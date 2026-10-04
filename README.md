@@ -2,6 +2,11 @@
 ![WKU](https://img.shields.io/badge/Western_Kentucky_University-Meteorology-CC0000?style=for-the-badge)
 ![TACC](https://img.shields.io/badge/TACC_Vista-H100_GPU-4a90d9?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active_Research-green?style=for-the-badge)
+<img width="1087" height="495" alt="image" src="https://github.com/user-attachments/assets/174b89aa-a425-4ff5-b9b4-6fb846461967" />
+<img width="750" height="238" alt="image" src="https://github.com/user-attachments/assets/ebbc3538-7d03-4981-a0f3-22840b41d8a1" />
+<img width="493" height="116" alt="image" src="https://github.com/user-attachments/assets/01f2d983-c0f9-46a6-b5b2-a9d8e2565139" />
+<img width="668" height="299" alt="image" src="https://github.com/user-attachments/assets/1f4212cf-8798-438b-8f9b-71cd2ac894f6" />
+
 
 ---
 
@@ -77,14 +82,14 @@ Planned storm return periods: **2, 5, 10, 25, 50, and 100-year** events using NO
 
 ![Developer](https://img.shields.io/badge/Developer-Robert_G._Lesoski-C8102E?style=for-the-badge)
 **Robert G. Lesoski**
-Disaster Science Operations Center (DSOC)
+Disaster Science Operations Center
 Western Kentucky University
 Meteorology-Freshman
 
 ![PI](https://img.shields.io/badge/Principal_Investigator-Dr._Manmeet_Singh-4a90d9?style=for-the-badge)
 
 **Dr. Manmeet Singh**
-Disaster Science Operations Center (DSOC)
+Disaster Science Operations Center 
 Western Kentucky University
 
 ---
@@ -92,7 +97,7 @@ Western Kentucky University
 ![Contributor](https://img.shields.io/badge/Research_Contributor-Somnath_Liutel-555555?style=for-the-badge)
 
 **Somnath Liutel**
-Disaster Science Operations Center (DSOC)
+Disaster Science Operations Center
 Western Kentucky University
 Graduate Student
 
