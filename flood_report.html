@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bowling Green — Flood Probability Report</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg0: #080808; --bg1: #101010; --bg2: #191919; --bg3: #222222;
+      --border: #2e2e2e; --accent: #cc1a1a; --text: #e8e8e8; --mute: #646464;
+      --crimson: #ff2a2a; --amber: #d4870a; --yellow: #c8a020; --green: #28b060;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg0);
+           color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* ── Header ── */
+    #header {
+      background: var(--bg1); border-bottom: 1px solid var(--border);
+      padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    #header h1 { font-size: 14px; font-weight: 700; color: #fff; }
+    #header .sub { font-size: 10px; color: var(--mute); margin-top: 2px; }
+    .hdr-btns { margin-left: auto; display: flex; gap: 8px; }
+    .btn {
+      border: none; border-radius: 6px; font-size: 12px; font-weight: 700;
+      padding: 7px 14px; cursor: pointer; white-space: nowrap;
+    }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { background: #74c0fc; }
+    .btn-secondary { background: var(--bg2); color: var(--accent); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--bg3); }
+    .btn:disabled { background: #222; color: #444; cursor: not-allowed; border-color: #222; }
+
+    /* ── Loading ── */
+    #loading-screen {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 16px;
+    }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--bg3);
+               border-top-color: var(--accent); border-radius: 50%;
+               animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #load-msg { color: #888; font-size: 13px; }
+    .bar-wrap { width: 280px; height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+    .bar { height: 100%; background: var(--accent); transition: width 0.35s; width: 0; }
+
+    /* ── File:// warning ── */
+    #file-warn {
+      flex: 1; display: none; flex-direction: column; align-items: center;
+      justify-content: center; gap: 10px; text-align: center; padding: 20px;
+    }
+    #file-warn h2 { color: var(--crimson); font-size: 16px; }
+    #file-warn p { color: #888; font-size: 13px; max-width: 380px; line-height: 1.7; }
+
+    /* ── Summary stat strip ── */
+    #summary-strip {
+      display: none; background: var(--bg1); border-bottom: 1px solid var(--border);
+      padding: 10px 20px; gap: 16px; flex-wrap: wrap; align-items: center;
+    }
+    .stat-pill {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 6px;
+      padding: 5px 12px; text-align: center;
+    }
+    .stat-pill .val { font-size: 16px; font-weight: 800; }
+    .stat-pill .key { font-size: 9px; color: var(--mute); text-transform: uppercase; letter-spacing: 0.07em; margin-top: 1px; }
+    .val-red    { color: var(--crimson); }
+    .val-amber  { color: var(--amber); }
+    .val-yellow { color: var(--yellow); }
+    .val-green  { color: var(--green); }
+    .val-blue   { color: var(--accent); }
+
+    /* ── Filter controls ── */
+    #controls {
+      display: none; background: var(--bg1); border-bottom: 1px solid var(--border);
+      padding: 8px 20px; gap: 12px; flex-wrap: wrap; align-items: center;
+    }
+    .ctrl-grp { display: flex; align-items: center; gap: 6px; }
+    .ctrl-grp label { font-size: 10px; color: var(--mute); white-space: nowrap; }
+    select, input[type=text] {
+      background: var(--bg2); border: 1px solid var(--border); color: var(--text);
+      border-radius: 5px; padding: 4px 8px; font-size: 11px; cursor: pointer;
+    }
+    input[type=text] { width: 180px; }
+    #result-counts { margin-left: auto; font-size: 10px; color: var(--mute); }
+
+    /* ── Main content ── */
+    #main { display: none; flex: 1; padding: 14px 20px; overflow-y: auto; }
+
+    /* ── Section card ── */
+    .section-card {
+      background: var(--bg1); border: 1px solid var(--border); border-radius: 8px;
+      overflow: hidden; margin-bottom: 14px;
+    }
+    .section-header {
+      background: var(--bg2); padding: 9px 14px;
+      display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border);
+    }
+    .section-header h2 {
+      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.09em; color: var(--accent); flex: 1;
+    }
+    .section-badge {
+      font-size: 10px; font-weight: 700; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 4px; padding: 2px 8px; color: #aaa;
+    }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th {
+      background: var(--bg2); position: sticky; top: 0; z-index: 2;
+      padding: 6px 10px; text-align: left; font-size: 9px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.07em; color: var(--mute);
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+      cursor: pointer; user-select: none;
+    }
+    th:hover { color: var(--accent); }
+    th.sorted-asc::after  { content: ' ▲'; color: var(--accent); }
+    th.sorted-desc::after { content: ' ▼'; color: var(--accent); }
+    td { padding: 5px 10px; border-bottom: 1px solid rgba(30,30,58,0.6); white-space: nowrap; }
+    tr:hover td { background: var(--bg2); }
+    tr:last-child td { border-bottom: none; }
+
+    /* Probability cell coloring */
+    .prob-cell { font-weight: 700; }
+    .prob-critical { color: #e74c3c; }
+    .prob-high     { color: var(--amber); }
+    .prob-moderate { color: var(--yellow); }
+    .prob-low      { color: var(--green); }
+    .prob-minimal  { color: var(--accent); }
+
+    /* Tier chips */
+    .tier { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 6px;
+            border-radius: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .tier-critical { background: rgba(192,57,43,.25);  color: #e74c3c; border: 1px solid #c0392b; }
+    .tier-high     { background: rgba(212,135,10,.25); color: var(--amber); border: 1px solid var(--amber); }
+    .tier-moderate { background: rgba(232,185,74,.15); color: var(--yellow); border: 1px solid var(--yellow); }
+    .tier-low      { background: rgba(46,204,113,.12); color: var(--green); border: 1px solid var(--green); }
+    .tier-minimal  { background: rgba(77,171,247,.12); color: var(--accent); border: 1px solid var(--accent); }
+
+    .empty { text-align: center; color: #333; padding: 20px; font-size: 11px; }
+
+    /* Expandable reason rows */
+    .why-btn {
+      background: none; border: 1px solid #2a2a4a; border-radius: 4px;
+      color: #555; font-size: 9px; font-weight: 700; padding: 2px 6px;
+      cursor: pointer; white-space: nowrap; transition: color 0.15s, border-color 0.15s;
+    }
+    .why-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .why-btn.open  { color: var(--accent); border-color: var(--accent); }
+    .reason-row td { padding: 0; border-bottom: 1px solid var(--border); }
+    .reason-cell {
+      padding: 8px 14px 10px 20px !important;
+      font-size: 10px; line-height: 1.65; color: #a0a0a0;
+      white-space: normal !important; background: #0e0e0e;
+      border-left: 3px solid var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <img src="dsoc_logo.png" style="height:42px;flex-shrink:0;margin-right:12px;" alt="DSOC Logo" />
+  <div>
+    <h1>Bowling Green, KY — Flood Risk Report</h1>
+    <div class="sub">TACC Vista 2-Year Storm · HPC Flooded Buildings · FEMA Annual Exceedance Probability · Warren County &nbsp;|&nbsp; <a href="https://www.wku.edu" target="_blank" style="color:var(--accent);text-decoration:none;">Robert Lesoski &mdash; Disaster Science Operations Center (DSOC) | AI Research Lab (AIR) &mdash; Western Kentucky University</a></div>
+  </div>
+  <div class="hdr-btns">
+    <button class="btn btn-secondary" id="methodology-btn" disabled>📄 Methodology TXT</button>
+    <button class="btn btn-primary" id="export-btn" disabled>⬇ Save Report as TXT</button>
+  </div>
+</div>
+
+<div id="file-warn">
+  <h2>⚠ Cannot load data from file://</h2>
+  <p>Double-click <strong>Launch Map.bat</strong> in this folder, then open<br/>
+  <code style="color:var(--accent)">http://localhost:8000/flood_report.html</code></p>
+</div>
+
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <p id="load-msg">Starting…</p>
+  <div class="bar-wrap"><div class="bar" id="load-bar"></div></div>
+</div>
+
+<!-- Summary strip -->
+<div id="summary-strip">
+  <div class="stat-pill">
+    <div class="val val-red" id="s-crit">—</div>
+    <div class="key">Critical (&gt;50% annual)</div>
+  </div>
+  <div class="stat-pill">
+    <div class="val val-amber" id="s-high">—</div>
+    <div class="key">High (20–50%)</div>
+  </div>
+  <div class="stat-pill">
+    <div class="val val-yellow" id="s-mod">—</div>
+    <div class="key">Moderate (4–20%)</div>
+  </div>
+  <div class="stat-pill">
+    <div class="val val-green" id="s-low">—</div>
+    <div class="key">Low (1–4%)</div>
+  </div>
+  <div class="stat-pill">
+    <div class="val val-blue" id="s-30yr">—</div>
+    <div class="key">Will flood in 30 yrs (&gt;26%)</div>
+  </div>
+  <div class="stat-pill" style="border-color:#1a3a5a">
+    <div class="val" id="s-vista-total" style="color:#74c0fc">—</div>
+    <div class="key">Vista flooded (Hr 9)</div>
+  </div>
+  <div class="stat-pill" style="border-color:#1a3a5a">
+    <div class="val" id="s-vista-severe" style="color:#e74c3c">—</div>
+    <div class="key">Vista severe (&gt;1.2m)</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div id="controls">
+  <div class="ctrl-grp">
+    <label>Buildings:</label>
+    <select id="bldg-filter">
+      <option value="all">All flood-risk buildings</option>
+      <option value="50">Annual prob &gt; 50% (critical)</option>
+      <option value="20">Annual prob &gt; 20%</option>
+      <option value="10">Annual prob &gt; 10%</option>
+      <option value="4">Annual prob &gt; 4%</option>
+      <option value="1">Annual prob &gt; 1%</option>
+    </select>
+  </div>
+  <div class="ctrl-grp">
+    <label>Roads:</label>
+    <select id="road-filter">
+      <option value="all">All tiers</option>
+      <option value="critical">Critical only</option>
+      <option value="high">High &amp; Critical</option>
+      <option value="moderate">Moderate &amp; above</option>
+    </select>
+  </div>
+  <div class="ctrl-grp">
+    <label>Address:</label>
+    <input type="text" id="addr-search" placeholder="Search address…" />
+  </div>
+  <div id="result-counts"></div>
+</div>
+
+<!-- Tables -->
+<div id="main">
+
+  <!-- ── TACC Vista Section ── -->
+  <div class="section-card" id="vista-card">
+    <div class="section-header" style="background:rgba(10,20,50,0.8);border-color:#1a3a5a">
+      <h2 style="color:#74c0fc">TACC Vista 2-Year Storm — Flooded Buildings (Peak Hour 9)</h2>
+      <span class="section-badge" id="vista-count" style="color:#74c0fc;border-color:#1a3a5a">Loading…</span>
+    </div>
+    <div style="font-size:10px;color:#446;padding:6px 14px;border-bottom:1px solid var(--border)">
+      3.5&quot; / 24-hr SCS Type II · NOAA Atlas 14 · GPU solver on NVIDIA H100 (TACC Vista) · 2m resolution · 80M grid cells · Hour 9 of 9 (t = 9:00:00, peak available extent)
+    </div>
+    <div class="tbl-wrap">
+      <table id="vista-table">
+        <thead><tr>
+          <th data-col="address">Address</th>
+          <th data-col="tier">Depth Tier</th>
+          <th data-col="depth_max_m">Max Depth (m)</th>
+          <th data-col="LAND_USE">Land Use</th>
+          <th data-col="sale_price">Sale Price</th>
+        </tr></thead>
+        <tbody id="vista-body"><tr><td colspan="5" class="empty">Loading Vista run data…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-header">
+      <h2>Buildings — FEMA Annual Flood Probability</h2>
+      <span class="section-badge" id="bldg-count">—</span>
+    </div>
+    <div class="tbl-wrap">
+      <table id="bldg-table">
+        <thead><tr>
+          <th data-col="ADDRESS">Address</th>
+          <th data-col="sale_price">Sale Price</th>
+          <th data-col="annualProb">Annual Prob.</th>
+          <th data-col="lifetimeProb">30-yr Lifetime</th>
+          <th data-col="floodTier">Risk Tier</th>
+          <th data-col="flood_at_rain_in">Floods At</th>
+          <th data-col="LAND_USE">Land Use</th>
+          <th>Why?</th>
+        </tr></thead>
+        <tbody id="bldg-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-header">
+      <h2>Roads — Annual Flood Probability</h2>
+      <span class="section-badge" id="road-count">—</span>
+    </div>
+    <div class="tbl-wrap">
+      <table id="road-table">
+        <thead><tr>
+          <th data-col="name">Road Name</th>
+          <th data-col="highway">Type</th>
+          <th data-col="risk_tier">Risk Tier</th>
+          <th data-col="annualProb">Annual Prob.</th>
+          <th data-col="lifetimeProb">30-yr Lifetime</th>
+          <th data-col="zone_type">Zone Type</th>
+          <th data-col="length">Length (m)</th>
+          <th>Why?</th>
+        </tr></thead>
+        <tbody id="road-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── file:// guard ─────────────────────────────────────────────────────────────
+if (location.protocol === 'file:') {
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('file-warn').style.display = 'flex';
+  throw new Error('file:// — use Launch Map.bat');
+}
+
+// ── Flood probability constants ───────────────────────────────────────────────
+// Rainfall threshold → return period (years), per DEM elevation-percentile calibration
+// Anchored to NOAA Atlas 14 frequency data for Bowling Green, KY (Warren County)
+const RAIN_TO_RP = {
+  0.25: 1,    // Bottom 3% terrain  → 100.00% annual AEP
+  0.50: 2,    // Bottom 7%          →  50.00% annual AEP
+  0.75: 3,    // Bottom 12%         →  33.33% annual AEP
+  1.00: 5,    // Bottom 18%         →  20.00% annual AEP
+  1.25: 7,    // Bottom 25%         →  14.29% annual AEP
+  1.50: 10,   // Bottom 33%         →  10.00% annual AEP
+  2.00: 25,   // Bottom 43%         →   4.00% annual AEP
+  2.50: 50,   // Bottom 57%         →   2.00% annual AEP
+  3.00: 100,  // Bottom 67%         →   1.00% annual AEP
+};
+
+// Road tier → base return period (conservative midpoint of elevation band)
+// critical <430ft → 2-yr; high 430-470ft → 5-yr; moderate 470-510ft → 20-yr; low >510ft → 50-yr
+const ROAD_TIER_RP = { critical: 2, high: 5, moderate: 20, low: 50 };
+
+// Karst/sinkhole zone correction factor: underground drainage can fail suddenly,
+// increasing effective flood frequency by 25% above terrain-only estimate
+const SINKHOLE_FACTOR = 1.25;
+
+// ── Probability math ──────────────────────────────────────────────────────────
+function aepFromRP(rp) {
+  return (1 / rp) * 100; // % annual exceedance probability
+}
+
+// Poisson probability: at least one event in N years
+function lifetimeProb(annualPct, years = 30) {
+  const p = annualPct / 100;
+  return (1 - Math.pow(1 - p, years)) * 100;
+}
+
+function probTier(annualPct) {
+  if (annualPct >= 50) return 'critical';
+  if (annualPct >= 20) return 'high';
+  if (annualPct >= 4)  return 'moderate';
+  if (annualPct >= 1)  return 'low';
+  return 'minimal';
+}
+
+function fmtPct(p) {
+  if (p == null) return '—';
+  if (p >= 99.9) return '>99%';
+  if (p >= 10)   return p.toFixed(1) + '%';
+  return p.toFixed(2) + '%';
+}
+
+function probCell(pct) {
+  const t = probTier(pct);
+  return `<td class="prob-cell prob-${t}">${fmtPct(pct)}</td>`;
+}
+
+const RAIN_RETURN = { 0.25:1, 0.50:2, 0.75:3, 1.00:5, 1.25:7, 1.50:10, 2.00:25, 2.50:50, 3.00:100 };
+function fmtRain(v) {
+  if (v == null || v >= 9) return '< 1% / yr';
+  const rp = RAIN_RETURN[Math.round(v * 100) / 100] || '';
+  return v.toFixed(2) + '"' + (rp ? ` (${rp}-yr)` : '');
+}
+
+function fmtPrice(v) {
+  const n = parseFloat(v);
+  if (isNaN(n) || n <= 0) return '—';
+  return '$' + Math.round(n).toLocaleString('en-US');
+}
+
+function tierChip(t) {
+  return `<span class="tier tier-${t}">${t}</span>`;
+}
+
+function tierRank(t) {
+  return { critical: 0, high: 1, moderate: 2, low: 3, minimal: 4 }[t] ?? 5;
+}
+
+// ── Reason generators ─────────────────────────────────────────────────────────
+function buildingReason(b) {
+  const v = b.flood_at_rain_in;
+  const lu = { R:'residential', C:'commercial', I:'industrial', M:'manufacturing/warehouse',
+                P:'public/institutional', A:'agricultural' }[b.LAND_USE] || 'this';
+  if (v <= 0.25) return `Ground elevation is at or below bankfull stage for the nearest stream or river channel (estimated <430 ft MSL). This ${lu} property occupies the active FEMA regulatory floodplain — the zone that experiences direct overflow from Barren River, Lost River, or a primary tributary during any significant storm. Even light rainfall (0.25\", a routine summer shower) is sufficient to inundate the parcel. Primary flooding mechanism: direct channel overflow and shallow groundwater emergence. Road closures and property access loss are likely several times per decade.`;
+  if (v <= 0.50) return `Located in a river-corridor lowland at estimated elevation 430–445 ft MSL. The parcel sits immediately adjacent to the active floodplain of Barren River, Jennings Creek, or a karst-fed tributary. During a 2-year storm event (ordinary heavy summer rainfall, ~0.50"), rising channel water overtops its banks and sheets across the terrain to this elevation. Primary mechanism: lateral floodplain overflow from the nearest surface watercourse. At-risk roughly every other year; flood insurance strongly recommended.`;
+  if (v <= 0.75) return `Situated within a karst depression or low river terrace at estimated elevation 445–455 ft MSL. Two flooding mechanisms apply here: (1) surface overflow from nearby stream channels during 3-year storm events, and (2) the underground Lost River karst conduit system backing up through sinkhole drains at low points. The Lost River disappears underground beneath central Bowling Green and its conduit capacity can be exceeded during 0.75"+ rain events, forcing water back to the surface through adjacent depressions. Flooding here can be sudden and without obvious surface water nearby.`;
+  if (v <= 1.00) return `Occupies a moderate-elevation closed depression or low terrace at estimated elevation 455–465 ft MSL. The DEM terrain analysis identifies this parcel within a basin that lacks efficient surface drainage — water that enters cannot exit quickly and must route underground through karst conduits. During a 5-year storm (approximately 1.00" over 1–2 hours), the basin fills faster than the conduit system can drain it, producing persistent standing water. Primary driver: closed-basin topography, not proximity to surface streams. Common in the Warren County karst landscape.`;
+  if (v <= 1.25) return `Located on the upper margin of a karst sinkhole drainage zone or shallow river terrace at estimated elevation 465–475 ft MSL. Flooding requires a 7-year storm event — the type of strong convective cell typical of Warren County's spring severe weather season. Water concentrates here from runoff draining off surrounding higher terrain and from nearby impervious surfaces. The Lost River karst system beneath Bowling Green may back up during sustained wet periods, extending inundation duration well beyond what the storm itself would produce on the surface.`;
+  if (v <= 1.50) return `Situated at moderate elevation (~475–490 ft MSL), removed from primary river channels but within a broad low-drainage neighborhood zone. Primary mechanism: stormwater accumulation from surrounding roads, rooftops, and parking surfaces during 10-year storm events. Sheet flow concentrates into this terrain low point faster than municipal stormwater infrastructure can convey it away. Older Bowling Green neighborhoods often have undersized stormwater systems designed for pre-development runoff volumes; increasing impervious cover has raised effective flood frequency. Karst subsurface drainage in the region may be seasonally near-saturation, slowing soil infiltration.`;
+  if (v <= 2.00) return `Located on gently sloping terrain at estimated elevation 490–505 ft MSL, well above primary river corridors and sinkhole basins. Flood risk is driven by regional runoff concentration during 25-year storm events — large-scale thunderstorm complexes or slow-moving frontal systems that saturate all lower drainage simultaneously. Surrounding development generates high impervious-surface runoff (rooftops, roads, parking areas) that overwhelms downstream stormwater systems and backs water up to this elevation. Standing water typically persists for hours after the storm as the system recovers.`;
+  if (v <= 2.50) return `Positioned at estimated elevation 505–520 ft MSL on higher ground, well removed from primary flood channels and karst basins. Inundation at this site requires a significant multi-day rainfall event or an intense 50-year storm. The flood mechanism is regional drainage saturation — when all lower-elevation areas are already inundated and every stormwater system is overwhelmed, backwater and sheet flow can reach this elevation. Annual risk is low (2%) but the binomial lifetime model yields a 45% probability of experiencing at least one flood over a 30-year ownership period.`;
+  if (v <= 3.00) return `At estimated elevation 520–535 ft MSL, this parcel sits near the outer edge of the modeled flood zone. Only extreme weather events — tropical storm remnants, slow-moving warm-season fronts, or multi-day systems producing 3"+ over 12–24 hours — generate sufficient regional runoff to reach this elevation. This corresponds to the 100-year flood threshold for the Bowling Green area. While annual risk is low (1%), the binomial model yields a 26% probability of this occurring at least once during a 30-year mortgage period — the same basis for FEMA's well-known "1-in-4 chance" statistic for 100-year floodplain properties.`;
+  return `Flood threshold (${v}") is outside the standard return-period lookup range. Risk is minimal but non-zero; consult flood_methodology.txt for full terrain-analysis details.`;
+}
+
+function roadReason(r) {
+  const name = r.name ? `"${r.name}"` : 'This unnamed segment';
+  const len = r.length ? ` (${Math.round(r.length)} m)` : '';
+  const hw = { primary:'primary arterial road', secondary:'secondary arterial road',
+    tertiary:'tertiary road', residential:'residential street', service:'service road',
+    unclassified:'local road', trunk:'trunk highway', motorway:'highway',
+    cycleway:'shared path', footway:'footway', path:'path' }[r.highway] || r.highway || 'road';
+  const zone = r.zone_type, tier = r.risk_tier;
+
+  if (zone === 'riverine') {
+    if (tier === 'critical') return `${name}${len} runs through or immediately adjacent to the active floodplain of Barren River or a primary tributary (Jennings Creek, Little Barren River, or a direct channel arm). Ground elevation is estimated below 430 ft MSL — at or below bankfull stage for the local stream system. Primary flooding mechanism: direct channel overflow during any storm producing ≥0.50" of rainfall (2-year event). River water overtops the near bank and sheets directly across the roadway surface. This is among the highest-risk road categories in Bowling Green; closures are likely multiple times per decade and can occur with as little as 30 minutes of heavy rain upstream.`;
+    if (tier === 'high') return `${name}${len} sits at the margin of an active river floodplain at estimated elevation 430–470 ft MSL. The ${hw} lies within lateral overflow reach of Barren River or Jennings Creek during moderate 5-year storm events. As river stage rises, water extends outward across the floodplain terrace — not as a wall but as a sheet moving across the low terrain to this road level. Inundation depth is often modest (1–6 inches) but enough to close the road to standard passenger vehicles. Events of this magnitude average every 5 years under current hydrology.`;
+    if (tier === 'moderate') return `${name}${len} occupies the extended riverine influence zone at estimated elevation 470–510 ft MSL. During significant regional storm events (20-year recurrence), Barren River or its tributaries rise high enough to push lateral overflow across broad floodplain terraces to this elevation. The flooding mechanism is prolonged sheet flow from the inundated lower floodplain rather than direct channel contact. Inundation may lag the peak storm by hours as water gradually migrates upslope. Frequency is low but 30-year lifetime probability exceeds 70%.`;
+    if (tier === 'low') return `${name}${len} is elevated above the primary floodplain (estimated >510 ft MSL) but lies within the outer boundary of the Barren River drainage basin. Flooding here requires extreme regional storm conditions — 50-year recurrence or worse — where river levels are at near-record stage and water extends well beyond the normal floodplain. Primary mechanism is far-field sheet flow from heavily inundated lower terrain. Annual probability is low (2%) but over a 30-year period the cumulative risk reaches approximately 45%.`;
+  }
+
+  if (zone === 'sinkhole') {
+    if (tier === 'critical') return `${name}${len} passes through or directly adjacent to a karst sinkhole depression at low elevation (<430 ft MSL). The primary flood mechanism is NOT surface overflow — it is karst conduit backup. Bowling Green sits above the Lost River cave system, one of the most hydraulically complex karst networks in Kentucky. When storm runoff exceeds underground conduit capacity, water backs up and resurfaces through sinkhole drains, flooding the ${hw} from below. This can occur during storms of just 0.50"+ of rain and is compounded by the 25% AEP uplift applied to all sinkhole-zone roads. Flash flooding risk is elevated because inundation is sudden, localized, and can occur without any surface water source visible nearby.`;
+    if (tier === 'high') return `${name}${len} lies within a mid-elevation karst sinkhole basin (estimated 430–470 ft MSL). Flooding is driven by karst drainage failure rather than surface stream overflow. During moderate storm events (base 5-year recurrence, adjusted upward by the 25% karst factor), the underground conduit system serving this sinkhole reaches capacity. Water that cannot drain underground accumulates at the road surface. Because sinkhole basins have no surface outlet, water persists on the ${hw} until the conduit system drains it — which may take hours to days after rainfall ends. The absence of visible flowing water makes this type of flooding especially unpredictable for drivers.`;
+    if (tier === 'moderate') return `${name}${len} sits within or adjacent to a karst drainage basin at moderate elevation (estimated 470–510 ft MSL). The sinkhole zone classification means this area drains primarily through underground karst conduits rather than surface channels. During significant storm events — with the 25% AEP uplift applied for karst terrain — the conduit system backs up and the basin surface accumulates standing water. This effect is amplified during multi-day wet periods when conduits are already near saturation from prior storms. Flooding of the ${hw} may not occur in every large storm but is consistent and predictable across longer time horizons.`;
+    if (tier === 'low') return `${name}${len} traverses higher-elevation karst terrain (estimated >510 ft MSL). While topographically elevated, the sinkhole zone designation indicates that local drainage is primarily underground, creating exposure to two rare but real flood scenarios: (1) regional karst conduit saturation during extreme multi-day rainfall events, and (2) sudden localized drainage failure when a conduit becomes blocked by sediment or debris, temporarily converting the sinkhole basin to a closed surface depression. The base 50-year recurrence is adjusted upward 25% for karst behavior. Flooding is unpredictable in timing but the 30-year binomial probability (~45%) represents meaningful cumulative risk.`;
+  }
+
+  return `Flood risk assessed from terrain elevation (${tier} tier) and drainage zone (${zone}). Annual probability and 30-year lifetime risk calculated from return-period model. See flood_methodology.txt for full explanation.`;
+}
+
+// ── Toggle reason rows ────────────────────────────────────────────────────────
+function toggleReason(id, btn) {
+  const row = document.getElementById(id);
+  if (!row) return;
+  const open = row.style.display !== 'none';
+  row.style.display = open ? 'none' : 'table-row';
+  btn.textContent = open ? '▶ Why?' : '▼ Why?';
+  btn.classList.toggle('open', !open);
+}
+
+// ── Spatial grid (same as viewer) ─────────────────────────────────────────────
+class SpatialGrid {
+  constructor(bboxes, cols=50, rows=50) {
+    this.cols=cols; this.rows=rows;
+    let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+    for(const b of bboxes){if(!b)continue;if(b[0]<x0)x0=b[0];if(b[2]>x1)x1=b[2];if(b[1]<y0)y0=b[1];if(b[3]>y1)y1=b[3];}
+    this.x0=x0;this.y0=y0;
+    this.cw=(x1-x0)/cols||0.001;this.ch=(y1-y0)/rows||0.001;
+    this.cells=Array.from({length:cols*rows},()=>[]);
+    bboxes.forEach((b,i)=>{if(!b)return;
+      const c0=Math.max(0,Math.floor((b[0]-x0)/this.cw));
+      const c1=Math.min(cols-1,Math.floor((b[2]-x0)/this.cw));
+      const r0=Math.max(0,Math.floor((b[1]-y0)/this.ch));
+      const r1=Math.min(rows-1,Math.floor((b[3]-y0)/this.ch));
+      for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)this.cells[r*cols+c].push(i);
+    });
+  }
+  candidates(b){
+    const{x0,y0,cw,ch,cols,rows,cells}=this;
+    const c0=Math.max(0,Math.floor((b[0]-x0)/cw));
+    const c1=Math.min(cols-1,Math.floor((b[2]-x0)/cw));
+    const r0=Math.max(0,Math.floor((b[1]-y0)/ch));
+    const r1=Math.min(rows-1,Math.floor((b[3]-y0)/ch));
+    const seen=new Set(),out=[];
+    for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)
+      for(const i of cells[r*cols+c])if(!seen.has(i)){seen.add(i);out.push(i);}
+    return out;
+  }
+}
+function geomBbox(geom){
+  if(!geom)return null;
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  const pts=geom.type==='Polygon'?geom.coordinates[0]:geom.type==='MultiPolygon'?geom.coordinates.flat(2):[];
+  for(const[x,y]of pts){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
+  return x0===Infinity?null:[x0,y0,x1,y1];
+}
+function bboxOverlap(a,b){return a[0]<=b[2]&&a[2]>=b[0]&&a[1]<=b[3]&&a[3]>=b[1];}
+const TIER_RANK={shallow:1,moderate:2,deep:3,severe:4};
+function worstTier(a,b){if(!a)return b;if(!b)return a;return TIER_RANK[a]>=TIER_RANK[b]?a:b;}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let allBuildings = [];
+let allRoads     = [];
+let allVistaBuildings = [];
+let vistaSort = { col: 'tier', asc: false };
+let bldgSort = { col: 'annualProb', asc: false };
+let roadSort = { col: 'annualProb', asc: false };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function setMsg(msg, pct) {
+  document.getElementById('load-msg').textContent = msg;
+  if (pct != null) document.getElementById('load-bar').style.width = pct + '%';
+}
+
+async function fetchLayer(name) {
+  const r = await fetch('./layers/' + name + '.geojson');
+  if (!r.ok) throw new Error(name + ': HTTP ' + r.status);
+  return r.json();
+}
+
+// ── Sort ──────────────────────────────────────────────────────────────────────
+function makeSorter(col, asc) {
+  return (a, b) => {
+    let va = a[col] ?? '', vb = b[col] ?? '';
+    if (col === 'floodTier' || col === 'risk_tier') { va = tierRank(va); vb = tierRank(vb); }
+    else if (typeof va === 'number' || typeof vb === 'number') {
+      va = parseFloat(va) || 0; vb = parseFloat(vb) || 0;
+    }
+    if (va < vb) return asc ? -1 : 1;
+    if (va > vb) return asc ? 1 : -1;
+    return 0;
+  };
+}
+
+// ── Render Vista buildings ────────────────────────────────────────────────────
+const TC = { shallow:'#4dabf7', moderate:'#00c9c9', deep:'#ff8c00', severe:'#e74c3c' };
+const TIER_LABEL = { shallow:'Shallow (0.1–0.3 m)', moderate:'Moderate (0.3–0.6 m)',
+                     deep:'Deep (0.6–1.2 m)', severe:'Severe (>1.2 m)' };
+
+function renderVista() {
+  const tbody = document.getElementById('vista-body');
+  if (!allVistaBuildings.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">No buildings in flood extent.</td></tr>';
+    return;
+  }
+  const tierOrd = {severe:0,deep:1,moderate:2,shallow:3};
+  const rows = [...allVistaBuildings].sort((a,b)=>(tierOrd[a.tier]||4)-(tierOrd[b.tier]||4)||a.address.localeCompare(b.address));
+  document.getElementById('vista-count').textContent = rows.length.toLocaleString() + ' buildings';
+  tbody.innerHTML = rows.map(b => {
+    const c = TC[b.tier] || '#888';
+    return `<tr>
+      <td>${b.address}</td>
+      <td><span style="color:${c};font-weight:700;font-size:10px">${TIER_LABEL[b.tier]||b.tier}</span></td>
+      <td style="color:${c}">${b.depth_max_m != null ? b.depth_max_m.toFixed(2) + ' m' : '—'}</td>
+      <td>${b.LAND_USE || '—'}</td>
+      <td>${fmtPrice(b.sale_price)}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('s-vista-total').textContent = rows.length.toLocaleString();
+  document.getElementById('s-vista-severe').textContent = rows.filter(r=>r.tier==='severe').length.toLocaleString();
+}
+
+// ── Render buildings ──────────────────────────────────────────────────────────
+function renderBuildings() {
+  const minProb = document.getElementById('bldg-filter').value;
+  const search  = document.getElementById('addr-search').value.trim().toLowerCase();
+
+  let rows = allBuildings.filter(b => {
+    if (minProb !== 'all' && b.annualProb < parseFloat(minProb)) return false;
+    if (search && !(b.ADDRESS || '').toLowerCase().includes(search)) return false;
+    return true;
+  });
+  rows.sort(makeSorter(bldgSort.col, bldgSort.asc));
+  document.getElementById('bldg-count').textContent = rows.length.toLocaleString() + ' buildings';
+
+  const tbody = document.getElementById('bldg-body');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">No buildings match filters.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map((b, i) => `<tr>
+    <td>${b.ADDRESS || b.name || '—'}</td>
+    <td>${fmtPrice(b.sale_price)}</td>
+    ${probCell(b.annualProb)}
+    ${probCell(b.lifetimeProb)}
+    <td>${tierChip(b.floodTier)}</td>
+    <td>${fmtRain(b.flood_at_rain_in)}</td>
+    <td>${b.LAND_USE || '—'}</td>
+    <td><button class="why-btn" onclick="toggleReason('br-${i}',this)">▶ Why?</button></td>
+  </tr>
+  <tr class="reason-row" id="br-${i}" style="display:none">
+    <td colspan="8" class="reason-cell">${b.reason || ''}</td>
+  </tr>`).join('');
+}
+
+// ── Render roads ──────────────────────────────────────────────────────────────
+function renderRoads() {
+  const tierFilter = document.getElementById('road-filter').value;
+  const allow = {
+    all: ['critical','high','moderate','low'],
+    critical: ['critical'],
+    high: ['critical','high'],
+    moderate: ['critical','high','moderate'],
+  }[tierFilter] || [];
+
+  let rows = allRoads.filter(r => allow.includes(r.risk_tier));
+  rows.sort(makeSorter(roadSort.col, roadSort.asc));
+  document.getElementById('road-count').textContent = rows.length.toLocaleString() + ' segments';
+
+  const tbody = document.getElementById('road-body');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">No roads match filter.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map((r, i) => `<tr>
+    <td>${r.name || '<span style="color:#333">unnamed</span>'}</td>
+    <td>${r.highway || '—'}</td>
+    <td>${tierChip(r.risk_tier || 'low')}</td>
+    ${probCell(r.annualProb)}
+    ${probCell(r.lifetimeProb)}
+    <td>${r.zone_type || '—'}</td>
+    <td>${r.length != null ? Math.round(r.length) : '—'}</td>
+    <td><button class="why-btn" onclick="toggleReason('rr-${i}',this)">▶ Why?</button></td>
+  </tr>
+  <tr class="reason-row" id="rr-${i}" style="display:none">
+    <td colspan="8" class="reason-cell">${r.reason || ''}</td>
+  </tr>`).join('');
+}
+
+// ── Summary stats ─────────────────────────────────────────────────────────────
+function updateSummary() {
+  const all = [...allBuildings, ...allRoads];
+  const fmt = n => n.toLocaleString();
+  document.getElementById('s-crit').textContent  = fmt(all.filter(x => x.annualProb  >= 50).length);
+  document.getElementById('s-high').textContent  = fmt(all.filter(x => x.annualProb  >= 20 && x.annualProb < 50).length);
+  document.getElementById('s-mod').textContent   = fmt(all.filter(x => x.annualProb  >= 4  && x.annualProb < 20).length);
+  document.getElementById('s-low').textContent   = fmt(all.filter(x => x.annualProb  >= 1  && x.annualProb < 4).length);
+  document.getElementById('s-30yr').textContent  = fmt(all.filter(x => x.lifetimeProb > 26).length);
+}
+
+// ── Sort wiring ───────────────────────────────────────────────────────────────
+function wireSort(tableId, sortState, renderFn) {
+  document.querySelectorAll('#' + tableId + ' th').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (!col) return;
+      if (sortState.col === col) sortState.asc = !sortState.asc;
+      else { sortState.col = col; sortState.asc = false; }
+      document.querySelectorAll('#' + tableId + ' th').forEach(h => h.classList.remove('sorted-asc','sorted-desc'));
+      th.classList.add(sortState.asc ? 'sorted-asc' : 'sorted-desc');
+      renderFn();
+    });
+  });
+}
+
+// ── TXT export — full report ──────────────────────────────────────────────────
+function exportReport() {
+  const minProb = document.getElementById('bldg-filter').value;
+  const tierFilter = document.getElementById('road-filter').value;
+  const search = document.getElementById('addr-search').value.trim();
+  const now = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
+
+  const bldgRows = allBuildings
+    .filter(b => {
+      if (minProb !== 'all' && b.annualProb < parseFloat(minProb)) return false;
+      if (search && !(b.ADDRESS || '').toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    })
+    .sort(makeSorter(bldgSort.col, bldgSort.asc));
+
+  const allow = { all:['critical','high','moderate','low'], critical:['critical'],
+    high:['critical','high'], moderate:['critical','high','moderate'] }[tierFilter] || [];
+  const roadRows = allRoads.filter(r => allow.includes(r.risk_tier))
+                            .sort(makeSorter(roadSort.col, roadSort.asc));
+
+  const W  = 100;
+  const sep  = '='.repeat(W);
+  const dash = '-'.repeat(W);
+  const pad  = (s, n) => String(s ?? '').padEnd(n).slice(0, n);
+
+  function wrapReason(text) {
+    if (!text) return '';
+    const prefix0 = '  WHY: ';
+    const prefixN = '         ';
+    const maxW = W - 2;
+    const words = text.split(' ');
+    const lines = [];
+    let line = prefix0;
+    for (const w of words) {
+      if (line.length + w.length + 1 > maxW && line.trim().length > 0) {
+        lines.push(line.trimEnd());
+        line = prefixN + w;
+      } else {
+        line += (line === prefix0 ? '' : ' ') + w;
+      }
+    }
+    if (line.trim()) lines.push(line.trimEnd());
+    return lines.join('\n') + '\n';
+  }
+
+  let txt = sep + '\n';
+  txt += 'BOWLING GREEN, KY — FLOOD RISK REPORT\n';
+  txt += 'Warren County · TACC Vista 2-Year Storm Run · FEMA Annual Exceedance Probability\n';
+  txt += `Generated: ${now}\n`;
+  txt += `Filters: Buildings ≥${minProb === 'all' ? 'all' : minProb + '%'} annual prob  |  Roads: ${tierFilter}  |  Address search: "${search || 'none'}"\n`;
+  txt += sep + '\n\n';
+
+  // ── SECTION 0: VISTA HPC RUN ──
+  txt += sep + '\n';
+  txt += `SECTION 1: TACC VISTA 2-YEAR STORM — FLOODED BUILDINGS AT PEAK (Hour 9, t = 9:00:00)\n`;
+  txt += `           2-Year Storm · 3.5" / 24-hr · SCS Type II · NOAA Atlas 14 · NVIDIA H100 (TACC Vista)\n`;
+  txt += `           GPU solver: Local Inertial Approximation · 2m resolution · ~80M grid cells\n`;
+  txt += sep + '\n';
+  if (!allVistaBuildings.length) {
+    txt += '  Vista HPC data not available. Run scripts/reproject_hpc.py and serve via local server.\n\n';
+  } else {
+    const tierOrd={severe:0,deep:1,moderate:2,shallow:3};
+    const vRows=[...allVistaBuildings].sort((a,b)=>(tierOrd[a.tier]||4)-(tierOrd[b.tier]||4)||a.address.localeCompare(b.address));
+    txt += `  Total flooded: ${vRows.length.toLocaleString()}  |  Severe: ${vRows.filter(r=>r.tier==='severe').length}  |  Deep: ${vRows.filter(r=>r.tier==='deep').length}  |  Moderate: ${vRows.filter(r=>r.tier==='moderate').length}  |  Shallow: ${vRows.filter(r=>r.tier==='shallow').length}\n\n`;
+    txt += pad('ADDRESS',38) + pad('DEPTH TIER',22) + pad('MAX DEPTH',12) + 'LAND USE\n';
+    txt += dash + '\n';
+    for(const b of vRows){
+      const depthStr = b.depth_max_m != null ? b.depth_max_m.toFixed(2)+'m' : '—';
+      txt += pad(b.address||'Unknown',38) + pad((b.tier||'—').toUpperCase(),22) + pad(depthStr,12) + (b.LAND_USE||'—') + '\n';
+    }
+    txt += '\n';
+  }
+
+  // ── SECTION 2: BUILDINGS (FEMA AEP) ──
+  txt += sep + '\n';
+  txt += `SECTION 2: BUILDINGS — FEMA ANNUAL FLOOD PROBABILITY  (${bldgRows.length.toLocaleString()} of ${allBuildings.length.toLocaleString()} flood-risk buildings  |  ${(20284).toLocaleString()} total in dataset)\n`;
+  txt += sep + '\n';
+  txt += 'Annual Prob  = Annual Exceedance Probability (AEP) = 1 ÷ Return Period\n';
+  txt += '30-yr Prob   = Probability of at least one flood event in a 30-year period\n';
+  txt += '             = 1 − (1 − AEP)^30   [Poisson/binomial model]\n\n';
+
+  if (!bldgRows.length) {
+    txt += '  No buildings match the current filters.\n\n';
+  } else {
+    txt += pad('ADDRESS', 36) + pad('SALE PRICE', 13) + pad('ANNUAL PROB', 13)
+         + pad('30-YR PROB', 12) + pad('TIER', 10) + pad('FLOODS AT', 18) + 'LAND USE\n';
+    txt += dash + '\n';
+    for (const b of bldgRows) {
+      txt += pad(b.ADDRESS || b.name || 'Unknown', 36)
+           + pad(fmtPrice(b.sale_price), 13)
+           + pad(fmtPct(b.annualProb), 13)
+           + pad(fmtPct(b.lifetimeProb), 12)
+           + pad((b.floodTier || '—').toUpperCase(), 10)
+           + pad(fmtRain(b.flood_at_rain_in), 18)
+           + (b.LAND_USE || '—') + '\n';
+      txt += wrapReason(b.reason);
+      txt += '\n';
+    }
+  }
+
+  txt += '\n';
+  // ── SECTION 3: ROADS ──
+  txt += sep + '\n';
+  txt += `SECTION 3: FLOOD-PRONE ROADS  (${roadRows.length.toLocaleString()} of ${allRoads.length.toLocaleString()} total road segments)\n`;
+  txt += sep + '\n';
+  txt += 'Karst/sinkhole zone roads carry a 25% AEP uplift above terrain-only baseline.\n\n';
+
+  if (!roadRows.length) {
+    txt += '  No roads match the current filter.\n\n';
+  } else {
+    txt += pad('ROAD NAME', 30) + pad('TYPE', 14) + pad('TIER', 10) + pad('ANNUAL PROB', 13)
+         + pad('30-YR PROB', 12) + pad('ZONE', 12) + 'LENGTH (m)\n';
+    txt += dash + '\n';
+    for (const r of roadRows) {
+      txt += pad(r.name || 'Unnamed', 30)
+           + pad(r.highway || '—', 14)
+           + pad((r.risk_tier || '—').toUpperCase(), 10)
+           + pad(fmtPct(r.annualProb), 13)
+           + pad(fmtPct(r.lifetimeProb), 12)
+           + pad(r.zone_type || '—', 12)
+           + (r.length != null ? Math.round(r.length) : '—') + '\n';
+      txt += wrapReason(r.reason);
+      txt += '\n';
+    }
+  }
+
+  // ── SECTION 4: SUMMARY ──
+  const all = [...bldgRows, ...roadRows];
+  txt += '\n' + sep + '\n';
+  txt += 'SECTION 4: RISK SUMMARY\n';
+  txt += sep + '\n';
+  const fmt2 = (arr, fn) => arr.filter(fn).length.toLocaleString();
+  txt += `Critical  (annual prob ≥ 50%)  :  ${fmt2(all, x => x.annualProb >= 50)}\n`;
+  txt += `High      (annual prob 20–50%) :  ${fmt2(all, x => x.annualProb >= 20 && x.annualProb < 50)}\n`;
+  txt += `Moderate  (annual prob 4–20%)  :  ${fmt2(all, x => x.annualProb >= 4  && x.annualProb < 20)}\n`;
+  txt += `Low       (annual prob 1–4%)   :  ${fmt2(all, x => x.annualProb >= 1  && x.annualProb < 4)}\n`;
+  txt += `Minimal   (annual prob < 1%)   :  ${fmt2(all, x => x.annualProb < 1)}\n`;
+  txt += `\n  Will flood within 30 years (>26% lifetime): ${fmt2(all, x => x.lifetimeProb > 26)}\n`;
+
+  if (allVistaBuildings.length) {
+    txt += `\n  TACC Vista 2-Year Storm (Peak Hour 9):\n`;
+    txt += `    Total flooded: ${allVistaBuildings.length.toLocaleString()}\n`;
+    txt += `    Severe (>1.2m): ${allVistaBuildings.filter(r=>r.tier==='severe').length.toLocaleString()}\n`;
+    txt += `    Deep (0.6-1.2m): ${allVistaBuildings.filter(r=>r.tier==='deep').length.toLocaleString()}\n`;
+    txt += `    Moderate (0.3-0.6m): ${allVistaBuildings.filter(r=>r.tier==='moderate').length.toLocaleString()}\n`;
+    txt += `    Shallow (0.1-0.3m): ${allVistaBuildings.filter(r=>r.tier==='shallow').length.toLocaleString()}\n`;
+  }
+
+  txt += '\n' + sep + '\n';
+  txt += 'NOTE: Section 1 (Vista Run) reflects exact HPC simulation output — no estimation.\n';
+  txt += 'Sections 2-3 use a DEM-based rainfall model, NOT official hydraulic engineering.\n';
+  txt += 'See flood_methodology.txt for full calculation details and justifications.\n';
+  txt += 'FEMA NFHL remains the authoritative regulatory source for flood insurance purposes.\n';
+  txt += sep + '\n';
+
+  const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'BowlingGreen_FloodProbability_' + new Date().toISOString().slice(0, 10) + '.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Methodology download ──────────────────────────────────────────────────────
+function downloadMethodology() {
+  fetch('./flood_methodology.txt')
+    .then(r => r.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'flood_methodology.txt'; a.click();
+      URL.revokeObjectURL(url);
+    })
+    .catch(() => alert('flood_methodology.txt not found in the project folder.'));
+}
+
+// ── Main load ─────────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    setMsg('Loading buildings… (1/3)', 8);
+    const bldgGeo = await fetchLayer('buildings');
+
+    setMsg('Loading roads… (2/3)', 30);
+    const roadGeo = await fetchLayer('roads');
+
+    setMsg('Loading Vista peak-hour simulation (79 MB)… (3/3)', 52);
+    let hpcGeo = null;
+    try {
+      const r = await fetch('./layers/flood_hpc/flood_h09.geojson');
+      if (r.ok) hpcGeo = await r.json();
+    } catch(e) { console.warn('Vista HPC data not found:', e.message); }
+
+    setMsg('Calculating flood probabilities…', 80);
+
+    // ── Process buildings ──
+    allBuildings = bldgGeo.features
+      .map(f => {
+        const p = f.properties;
+        const v = p.flood_at_rain_in;
+        const rp = (v != null && v < 9)
+          ? (RAIN_TO_RP[Math.round(v * 100) / 100] || null)
+          : null;
+        const annualProb   = rp ? aepFromRP(rp)  : 0.2; // < 1% → treat as 500-yr = 0.2%
+        const lifetimeProb30 = lifetimeProb(annualProb, 30);
+        const obj = {
+          ...p,
+          annualProb:   parseFloat(annualProb.toFixed(4)),
+          lifetimeProb: parseFloat(lifetimeProb30.toFixed(4)),
+          floodTier:    probTier(annualProb),
+        };
+        obj.reason = buildingReason(obj);
+        return obj;
+      })
+      .filter(b => b.flood_at_rain_in != null && b.flood_at_rain_in <= 3.0);
+
+    // ── Process roads ──
+    allRoads = roadGeo.features.map(f => {
+      const p = f.properties;
+      const baseRP = ROAD_TIER_RP[p.risk_tier] || 50;
+      let baseAEP  = aepFromRP(baseRP);
+      // Karst uplift: sinkhole zones flood faster than terrain alone suggests
+      if (p.zone_type === 'sinkhole') baseAEP = Math.min(99, baseAEP * SINKHOLE_FACTOR);
+      const lifetime30 = lifetimeProb(baseAEP, 30);
+      const obj = {
+        ...p,
+        annualProb:   parseFloat(baseAEP.toFixed(4)),
+        lifetimeProb: parseFloat(lifetime30.toFixed(4)),
+      };
+      obj.reason = roadReason(obj);
+      return obj;
+    });
+
+    // ── Cross-reference buildings with Vista peak-hour HPC ──
+    if (hpcGeo) {
+      const hpcFeats = hpcGeo.features || [];
+      const hpcBboxes = hpcFeats.map(f => geomBbox(f.geometry));
+      const grid = new SpatialGrid(hpcBboxes);
+      const bldgBboxes = bldgGeo.features.map(f => geomBbox(f.geometry));
+
+      allVistaBuildings = [];
+      bldgGeo.features.forEach((feat, i) => {
+        const bbox = bldgBboxes[i];
+        if (!bbox) return;
+        const cands = grid.candidates(bbox);
+        let bestTier = null, bestDepth = null;
+        for (const ci of cands) {
+          const hb = hpcBboxes[ci];
+          if (hb && bboxOverlap(bbox, hb)) {
+            const t = hpcFeats[ci].properties?.tier;
+            const d = parseFloat(hpcFeats[ci].properties?.depth_max_m) || 0;
+            bestTier = worstTier(bestTier, t);
+            if (bestDepth === null || d > bestDepth) bestDepth = d;
+          }
+        }
+        if (bestTier) {
+          const p = feat.properties || {};
+          const addr = (p['addr:housenumber'] && p['addr:street'])
+            ? p['addr:housenumber'] + ' ' + p['addr:street']
+            : p.ADDRESS || p.SiteAddress || p.name || ('Building ' + (i + 1));
+          allVistaBuildings.push({
+            address: addr, tier: bestTier, depth_max_m: bestDepth,
+            LAND_USE: p.LAND_USE, sale_price: p.sale_price
+          });
+        }
+      });
+    } else {
+      document.getElementById('vista-body').innerHTML =
+        '<tr><td colspan="5" class="empty" style="color:#c0392b">Vista HPC data not found — run <code>python scripts/reproject_hpc.py</code> and serve from local server.</td></tr>';
+      document.getElementById('vista-count').textContent = 'unavailable';
+    }
+
+    setMsg('Ready!', 100);
+    await new Promise(r => setTimeout(r, 400));
+
+    // Show UI
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('summary-strip').style.display = 'flex';
+    document.getElementById('controls').style.display = 'flex';
+    document.getElementById('main').style.display = 'block';
+    document.getElementById('export-btn').disabled = false;
+    document.getElementById('methodology-btn').disabled = false;
+
+    updateSummary();
+    if (allVistaBuildings.length) renderVista();
+    renderBuildings();
+    renderRoads();
+
+    // Mark default sort columns
+    document.querySelector('#bldg-table th[data-col="annualProb"]').classList.add('sorted-desc');
+    document.querySelector('#road-table th[data-col="annualProb"]').classList.add('sorted-desc');
+    wireSort('vista-table', vistaSort, renderVista);
+
+    // Wire filters
+    document.getElementById('bldg-filter').addEventListener('change', renderBuildings);
+    document.getElementById('road-filter').addEventListener('change', renderRoads);
+    document.getElementById('addr-search').addEventListener('input', renderBuildings);
+
+    // Wire sort
+    wireSort('bldg-table', bldgSort, renderBuildings);
+    wireSort('road-table', roadSort, renderRoads);
+
+    // Buttons
+    document.getElementById('export-btn').addEventListener('click', exportReport);
+    document.getElementById('methodology-btn').addEventListener('click', downloadMethodology);
+
+  } catch(e) {
+    setMsg('Error: ' + e.message, 0);
+    document.getElementById('load-bar').style.background = '#c0392b';
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>
