@@ -11,6 +11,8 @@
     :root {
       --bg0: #07070f; --bg1: #0d0d1a; --bg2: #13132a; --bg3: #1a1a3a;
       --border: #1e1e3a; --accent: #4dabf7; --text: #d0d0e0; --mute: #666;
+      --red: #C8102E; --shallow: #4dabf7; --moderate: #00c9c9;
+      --deep: #ff8c00; --severe: #e74c3c;
     }
     body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg0);
            color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
@@ -19,7 +21,7 @@
     #header {
       background: var(--bg1); border-bottom: 1px solid var(--border);
       padding: 8px 14px; display: flex; align-items: center; gap: 14px;
-      flex-shrink: 0; z-index: 10;
+      flex-shrink: 0; z-index: 10; flex-wrap: wrap;
     }
     #header h1 { font-size: 14px; font-weight: 700; color: #fff; white-space: nowrap; }
     #header .sub { font-size: 10px; color: var(--mute); }
@@ -27,7 +29,7 @@
     /* ── Header sliders ── */
     #rain-ctrl, #elev-ctrl {
       background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
-      padding: 8px 12px; display: flex; align-items: center; gap: 10px; max-width: 280px; flex: 1;
+      padding: 8px 12px; display: flex; align-items: center; gap: 10px; max-width: 260px; flex: 1;
     }
     #rain-ctrl .label, #elev-ctrl .label { font-size: 10px; color: var(--mute); white-space: nowrap; line-height: 1.3; }
     #rain-ctrl input[type=range], #elev-ctrl input[type=range] { flex: 1; accent-color: #4dabf7; cursor: pointer; }
@@ -35,15 +37,6 @@
                 white-space: nowrap; min-width: 48px; text-align: right; }
     #elev-val { font-size: 16px; font-weight: 800; color: rgba(0,185,220,1);
                 white-space: nowrap; min-width: 58px; text-align: right; }
-
-    /* ── Opacity row ── */
-    .opacity-row { display: flex; align-items: center; gap: 6px; padding: 2px 4px 4px 22px;
-                   font-size: 10px; color: #555; }
-    .opacity-row input[type=range] { flex: 1; accent-color: #444; height: 3px; }
-    .select-row { display: flex; align-items: center; gap: 6px; padding: 4px 4px;
-                  font-size: 10px; color: #888; }
-    .select-row select { background: var(--bg3); border: 1px solid var(--border); color: var(--text);
-                         border-radius: 4px; padding: 2px 4px; font-size: 10px; flex: 1; cursor: pointer; }
 
     /* ── Stats bar ── */
     #stats {
@@ -56,7 +49,7 @@
 
     /* ── Body layout ── */
     #main { display: flex; flex: 1; overflow: hidden; }
-    #sidebar { width: 250px; background: var(--bg1); border-right: 1px solid var(--border);
+    #sidebar { width: 260px; background: var(--bg1); border-right: 1px solid var(--border);
                overflow-y: auto; padding: 10px 12px; flex-shrink: 0; }
     #map-wrap { position: relative; flex: 1; overflow: hidden; }
     #map { width: 100%; height: 100%; }
@@ -75,15 +68,71 @@
     .slr-wrap { padding: 4px 4px 2px; }
     .slr-wrap label { font-size: 11px; color: #999; display: flex; justify-content: space-between; margin-bottom: 4px; }
     .slr-wrap input[type=range] { width: 100%; accent-color: var(--accent); }
+    .opacity-row { display: flex; align-items: center; gap: 6px; padding: 2px 4px 4px 22px;
+                   font-size: 10px; color: #555; }
+    .opacity-row input[type=range] { flex: 1; accent-color: #444; height: 3px; }
+    .select-row { display: flex; align-items: center; gap: 6px; padding: 4px 4px;
+                  font-size: 10px; color: #888; }
+    .select-row select { background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+                         border-radius: 4px; padding: 2px 4px; font-size: 10px; flex: 1; cursor: pointer; }
     .leg { padding: 2px 4px; }
     .leg-r { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
     .leg-r .sw { opacity: 0.85; }
     .leg-r span { font-size: 11px; color: #888; }
     hr { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
 
+    /* ── HPC simulation panel ── */
+    #hpc-panel {
+      background: linear-gradient(135deg, #0a0f1e, #0d1a2e);
+      border: 1px solid #1a3a5a; border-radius: 8px;
+      padding: 10px 12px; margin: 4px 0;
+    }
+    #hpc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    #hpc-toggle { cursor: pointer; accent-color: var(--accent); }
+    #hpc-title { font-size: 12px; font-weight: 700; color: #74c0fc; flex: 1; }
+    #hpc-badge {
+      font-size: 9px; font-weight: 700; background: rgba(200,16,46,0.25);
+      color: #C8102E; border: 1px solid #C8102E; border-radius: 3px; padding: 1px 5px;
+    }
+
+    /* time slider */
+    #hpc-time-row { margin-bottom: 8px; }
+    #hpc-time-label { font-size: 10px; color: #74c0fc; display: flex; justify-content: space-between;
+                      margin-bottom: 4px; font-weight: 600; }
+    #hpc-hour-slider { width: 100%; accent-color: #74c0fc; cursor: pointer; }
+
+    /* play controls */
+    #hpc-controls { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+    #hpc-play-btn {
+      background: rgba(116,192,252,0.15); border: 1px solid #74c0fc;
+      color: #74c0fc; border-radius: 5px; padding: 4px 10px;
+      font-size: 13px; cursor: pointer; font-weight: 700; min-width: 36px; text-align: center;
+    }
+    #hpc-play-btn:hover { background: rgba(116,192,252,0.3); }
+    #hpc-speed-sel {
+      background: var(--bg3); border: 1px solid var(--border); color: #aaa;
+      border-radius: 4px; padding: 3px 5px; font-size: 10px; cursor: pointer; flex: 1;
+    }
+    #hpc-3d-cb { cursor: pointer; accent-color: #ff8c00; }
+    #hpc-3d-label { font-size: 10px; color: #aaa; cursor: pointer; }
+
+    /* status line */
+    #hpc-status { font-size: 10px; color: #556; height: 14px; margin-top: 2px; }
+    #hpc-progress { width: 100%; height: 2px; background: #1a2a3a; border-radius: 1px; margin-top: 4px; }
+    #hpc-progress-bar { height: 100%; background: #74c0fc; border-radius: 1px; width: 0; transition: width 0.3s; }
+
+    /* HPC stats */
+    #hpc-stats { display: flex; gap: 8px; margin-top: 8px; }
+    .hpc-stat { flex: 1; text-align: center; background: rgba(0,0,0,0.3); border-radius: 4px; padding: 4px 2px; }
+    .hpc-stat .v { font-size: 13px; font-weight: 800; color: #74c0fc; }
+    .hpc-stat .k { font-size: 8px; color: #445; text-transform: uppercase; letter-spacing: 0.07em; margin-top: 1px; }
+
+    /* depth tier legend */
+    .tier-swatch { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
+
     /* ── Info panel ── */
     #info {
-      position: absolute; bottom: 28px; right: 12px; width: 300px;
+      position: absolute; bottom: 28px; right: 12px; width: 320px;
       background: rgba(7,7,15,0.97); border: 1px solid #2a2a4a; border-radius: 8px;
       padding: 12px 14px; display: none; z-index: 20; backdrop-filter: blur(8px);
     }
@@ -104,6 +153,14 @@
     .risk-mid    { background: rgba(230,126,34,.25); color: #e67e22; border: 1px solid #e67e22; }
     .risk-low    { background: rgba(241,196,15,.25); color: #f1c40f; border: 1px solid #f1c40f; }
     .risk-none   { background: rgba(46,204,113,.15); color: #2ecc71; border: 1px solid #2ecc71; }
+
+    /* HPC depth badge */
+    .depth-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px;
+                   border-radius: 3px; margin: 2px 0; }
+    .depth-shallow  { background: rgba(77,171,247,.2); color: #4dabf7; border: 1px solid #4dabf7; }
+    .depth-moderate { background: rgba(0,201,201,.2); color: #00c9c9; border: 1px solid #00c9c9; }
+    .depth-deep     { background: rgba(255,140,0,.2); color: #ff8c00; border: 1px solid #ff8c00; }
+    .depth-severe   { background: rgba(231,76,60,.3); color: #e74c3c; border: 1px solid #e74c3c; }
 
     /* ── Loading overlay ── */
     #loading {
@@ -163,6 +220,15 @@
     .elev-badge { display: inline-block; background: rgba(255,255,255,0.06); border: 1px solid #333;
                   border-radius: 4px; padding: 2px 7px; font-size: 11px; color: #74c0fc;
                   margin-top: 4px; font-weight: 600; }
+
+    /* ── HPC tooltip bar ── */
+    #hpc-now-bar {
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+      background: rgba(7,7,20,0.92); border: 1px solid #74c0fc;
+      border-radius: 20px; padding: 5px 18px;
+      font-size: 13px; font-weight: 700; color: #74c0fc;
+      display: none; z-index: 30; pointer-events: none; white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -170,7 +236,7 @@
 <div id="header">
   <div>
     <h1>Bowling Green, KY — 3D Flood Risk &amp; Property Map</h1>
-    <div class="sub">Warren County PVA · FEMA NFHL · KyFromAbove DEM · OSM Buildings · 2-ft Contours</div>
+    <div class="sub">Warren County PVA · FEMA NFHL · KyFromAbove DEM · OSM Buildings · TACC Vista H100</div>
   </div>
 
   <div id="rain-ctrl">
@@ -188,6 +254,7 @@
   <div id="stats">
     <div class="stat"><div class="val" id="stat-bldg">—</div><div class="key">Bldgs at Risk</div></div>
     <div class="stat"><div class="val" id="stat-parcels">—</div><div class="key">Parcels at Risk</div></div>
+    <div class="stat"><div class="val" id="stat-hpc-bldg" style="color:#74c0fc">—</div><div class="key">HPC Flooded</div></div>
   </div>
 
   <button id="sci-btn">How Floods Work ▸</button>
@@ -198,56 +265,51 @@
   <div id="sci-box">
     <button id="sci-close">×</button>
     <h2>How the Flood Simulation Works</h2>
-    <p class="byline">Bowling Green, KY · Warren County · DEM-based rainfall model</p>
+    <p class="byline">Bowling Green, KY · Warren County · GPU-accelerated hydrodynamic model · TACC Vista</p>
 
     <h3>1. Why Bowling Green Floods Differently</h3>
-    <p>Bowling Green sits on karst limestone terrain — a landscape riddled with underground caves, sinkholes, and internal drainage. When rain falls, water doesn't just run downhill toward streams: it also drains into sinkholes, collects in closed depressions, and can overwhelm underground conduits. This means low-lying areas and sinkhole basins flood <em>before</em> traditional riverside areas do.</p>
+    <p>Bowling Green sits on karst limestone terrain — a landscape riddled with underground caves, sinkholes, and internal drainage. When rain falls, water doesn't just run downhill toward streams: it also drains into sinkholes, collects in closed depressions, and can overwhelm underground conduits.</p>
     <div class="sci-note"><p>The city also sits at the confluence of Barren River, Lost River (which disappears underground), and numerous unnamed karst tributaries — making flood prediction especially complex.</p></div>
 
-    <h3>2. The Rainfall Slider (0" – 3")</h3>
-    <p>The slider simulates a single storm event dropping between 0 and 3 inches of rain. The blue flood overlay expands as rainfall increases, showing which areas inundate at each threshold. The model is built from a <strong>5-meter resolution DEM</strong> (KyFromAbove Phase 2 LiDAR) and uses elevation percentile thresholds:</p>
+    <h3>2. HPC Flood Simulation (TACC Vista)</h3>
+    <p>The time-animated flood layers are produced by a 2D GPU flood solver implementing the <strong>Local Inertial Approximation</strong> (Bates et al., 2010) — the same numerical scheme used by LISFLOOD-FP. Run on TACC Vista's NVIDIA H100 Grace-Hopper nodes via CuPy, processing <strong>80 million grid cells</strong> per timestep at <strong>2-meter resolution</strong> across a 10×10 km domain.</p>
     <table>
-      <tr><th>Rainfall</th><th>Elevation Percentile</th><th>What Floods</th></tr>
-      <tr><td>0.25"</td><td>Bottom 3%</td><td>Active FEMA floodplain only</td></tr>
-      <tr><td>0.50"</td><td>Bottom 7%</td><td>Low-lying river corridors</td></tr>
-      <tr><td>0.75"</td><td>Bottom 12%</td><td>Major sinkhole basins + stream bottoms</td></tr>
-      <tr><td>1.00"</td><td>Bottom 18%</td><td>Moderate karst depressions</td></tr>
-      <tr><td>1.50"</td><td>Bottom 33%</td><td>Broad low-elevation neighborhoods</td></tr>
-      <tr><td>2.00"</td><td>Bottom 43%</td><td>Typical severe thunderstorm impact</td></tr>
-      <tr><td>3.00"</td><td>Bottom 67%</td><td>Extreme/tropical event impact</td></tr>
+      <tr><th>Depth Tier</th><th>Range</th><th>Color</th><th>Hazard</th></tr>
+      <tr><td>Shallow</td><td>0.1–0.3 m</td><td style="color:#4dabf7">Blue</td><td>Ankle-deep; nuisance flooding</td></tr>
+      <tr><td>Moderate</td><td>0.3–0.6 m</td><td style="color:#00c9c9">Cyan</td><td>Knee-deep; vehicle hazard</td></tr>
+      <tr><td>Deep</td><td>0.6–1.2 m</td><td style="color:#ff8c00">Orange</td><td>Dangerous; structure damage</td></tr>
+      <tr><td>Severe</td><td>&gt;1.2 m</td><td style="color:#e74c3c">Red</td><td>Life-threatening; evacuation</td></tr>
     </table>
 
-    <h3>3. Karst Sinkhole Boost</h3>
-    <p>The purple <strong>Karst Sinkhole</strong> overlay shows 3,872 closed depressions identified from the contour data. Cells that fall within a significant depression are given a one-level early-flood boost — meaning they flood at lower rainfall than their raw elevation would suggest. This reflects the real-world behavior of karst drainage: sinkholes fill up before surrounding areas because they have no surface outlet.</p>
+    <h3>3. The Rainfall Slider (0" – 3")</h3>
+    <p>The slider simulates a single storm event dropping between 0 and 3 inches of rain. The blue flood overlay expands as rainfall increases, showing which areas inundate at each threshold based on terrain elevation percentile thresholds.</p>
 
     <h3>4. FEMA Flood Zones</h3>
-    <p>The red/orange/yellow FEMA overlay is the official National Flood Hazard Layer (NFHL), updated with 276 features across Warren County:</p>
+    <p>The red/orange FEMA overlay is the official National Flood Hazard Layer (NFHL) for Warren County:</p>
     <ul>
-      <li><strong style="color:#e74c3c">AE (red)</strong> — High risk; base flood elevation (BFE) established by detailed engineering study. Flood insurance is mandatory for federally backed mortgages.</li>
-      <li><strong style="color:#e67e22">A (orange)</strong> — High risk; no detailed BFE study. Similar requirements apply.</li>
-      <li><strong style="color:#f1c40f">X (yellow)</strong> — Moderate or minimal risk; 0.2% annual chance flood zone or outside mapped areas.</li>
+      <li><strong style="color:#e74c3c">AE (red)</strong> — High risk; BFE established. Flood insurance mandatory for federally backed mortgages.</li>
+      <li><strong style="color:#e67e22">A (orange)</strong> — High risk; no detailed BFE study.</li>
+      <li><strong style="color:#f1c40f">X (yellow)</strong> — Moderate/minimal risk; 0.2% annual chance flood zone.</li>
     </ul>
 
-    <h3>5. Building Heights &amp; Flood Risk Color</h3>
-    <p>Buildings are rendered using <strong>OSM building footprints</strong> (20,284 structures) extruded to a uniform reference height and color-coded purely by <strong>flood risk tier</strong>. Tier is derived from the minimum rainfall (in inches) needed to inundate that building's ground elevation:</p>
+    <h3>5. Return Period Table</h3>
     <table>
-      <tr><th>Color</th><th>Tier</th><th>Floods at</th></tr>
-      <tr><td style="color:#e74c3c">Red</td><td>Critical</td><td>≤ 0.50" (1–2 yr event)</td></tr>
-      <tr><td style="color:#e67e22">Orange</td><td>High</td><td>0.50"–1.00" (2–5 yr)</td></tr>
-      <tr><td style="color:#f1c40f">Yellow</td><td>Moderate</td><td>1.00"–2.00" (5–25 yr)</td></tr>
-      <tr><td style="color:#2ecc71">Green</td><td>Low</td><td>2.00"–3.00" (25–100 yr)</td></tr>
-      <tr><td style="color:#4dabf7">Blue</td><td>Minimal</td><td>Does not flood at ≤ 3"</td></tr>
+      <tr><th>Return Period</th><th>Rainfall (24-hr)</th><th>Annual Probability</th><th>Status</th></tr>
+      <tr><td>2-year</td><td>3.5 in</td><td>50%</td><td style="color:#2ecc71">Complete</td></tr>
+      <tr><td>5-year</td><td>4.2 in</td><td>20%</td><td style="color:#f1c40f">Pending</td></tr>
+      <tr><td>10-year</td><td>4.9 in</td><td>10%</td><td style="color:#f1c40f">Pending</td></tr>
+      <tr><td>25-year</td><td>5.9 in</td><td>4%</td><td style="color:#f1c40f">Pending</td></tr>
+      <tr><td>50-year</td><td>6.7 in</td><td>2%</td><td style="color:#f1c40f">Pending</td></tr>
+      <tr><td>100-year</td><td>7.6 in</td><td>1%</td><td style="color:#f1c40f">Pending</td></tr>
     </table>
-    <p>Buildings are placed at their actual ground altitude using the terrain layer — structures on hills appear elevated relative to those in valleys. Click any building to see its ground elevation above sea level and flood risk tier.</p>
 
-    <h3>7. Data Sources</h3>
+    <h3>6. Data Sources</h3>
     <ul>
       <li><strong>DEM:</strong> KyFromAbove Phase 2 LiDAR, 5m resolution, EPSG:32616</li>
-      <li><strong>Parcels:</strong> Warren County PVA, all 40,987 parcels (including WKU, schools, government)</li>
+      <li><strong>Parcels:</strong> Warren County PVA, all 40,987 parcels</li>
       <li><strong>Buildings:</strong> OpenStreetMap via pyrosm; colored by flood risk tier</li>
-      <li><strong>FEMA:</strong> NFHL via ArcGIS REST API, 276 features</li>
-      <li><strong>Contours:</strong> 2-ft topographic contours, 660 MB source file</li>
-      <li><strong>Sinkholes:</strong> Derived from closed depression contours (3,872 basins)</li>
+      <li><strong>FEMA:</strong> NFHL via ArcGIS REST API</li>
+      <li><strong>HPC Solver:</strong> Custom CuPy/CUDA LIA solver, TACC Vista NVIDIA H100</li>
     </ul>
   </div>
 </div>
@@ -255,6 +317,54 @@
 <div id="main">
   <div id="sidebar">
 
+    <!-- ── HPC Simulation Panel ── -->
+    <div class="sec">HPC Flood Simulation</div>
+    <div id="hpc-panel">
+      <div id="hpc-header">
+        <input type="checkbox" id="hpc-toggle" />
+        <span id="hpc-title">2-Year Storm · TACC Vista H100</span>
+        <span id="hpc-badge">2YR</span>
+      </div>
+
+      <div id="hpc-time-row">
+        <div id="hpc-time-label">
+          <span id="hpc-hour-label">Hour 1 of 9</span>
+          <span id="hpc-sim-time">t = 1:00:00</span>
+        </div>
+        <input type="range" id="hpc-hour-slider" min="1" max="9" step="1" value="1" disabled />
+      </div>
+
+      <div id="hpc-controls">
+        <button id="hpc-play-btn" title="Play/Pause animation" disabled>▶</button>
+        <select id="hpc-speed-sel" disabled>
+          <option value="2000">Slow (2s/hr)</option>
+          <option value="1000" selected>Normal (1s/hr)</option>
+          <option value="500">Fast (0.5s/hr)</option>
+          <option value="200">Fastest (0.2s/hr)</option>
+        </select>
+        <input type="checkbox" id="hpc-3d-cb" disabled />
+        <label for="hpc-3d-cb" id="hpc-3d-label">3D</label>
+      </div>
+
+      <div id="hpc-progress"><div id="hpc-progress-bar"></div></div>
+      <div id="hpc-status">Enable to load simulation data</div>
+
+      <div id="hpc-stats">
+        <div class="hpc-stat"><div class="v" id="hpc-feat-cnt">—</div><div class="k">Features</div></div>
+        <div class="hpc-stat"><div class="v" id="hpc-bldg-pct">—</div><div class="k">Bldgs Hit</div></div>
+        <div class="hpc-stat"><div class="v" id="hpc-road-pct">—</div><div class="k">Roads Hit</div></div>
+      </div>
+    </div>
+
+    <!-- Depth tier legend -->
+    <div class="leg" style="margin-top:4px">
+      <div class="leg-r"><div class="tier-swatch" style="background:#4dabf7"></div><span>Shallow · 0.1–0.3 m</span></div>
+      <div class="leg-r"><div class="tier-swatch" style="background:#00c9c9"></div><span>Moderate · 0.3–0.6 m</span></div>
+      <div class="leg-r"><div class="tier-swatch" style="background:#ff8c00"></div><span>Deep · 0.6–1.2 m</span></div>
+      <div class="leg-r"><div class="tier-swatch" style="background:#e74c3c"></div><span>Severe · &gt;1.2 m</span></div>
+    </div>
+
+    <hr />
     <div class="sec">Terrain</div>
     <div class="slr-wrap">
       <label>3D Exaggeration <span id="exag-val">1.75×</span></label>
@@ -292,23 +402,6 @@
     <label class="lr"><input type="checkbox" data-layer="all-parcels" /><div class="sw" style="background:#2ecc71; opacity:0.6;"></div><span class="lbl">All Parcels (flat)</span><span class="cnt" id="cnt-all-parcels"></span></label>
 
     <hr />
-    <div class="sec">FEMA Zones</div>
-    <div class="leg">
-      <div class="leg-r"><div class="sw" style="background:#e74c3c;"></div><span>AE — High risk, BFE established</span></div>
-      <div class="leg-r"><div class="sw" style="background:#e67e22;"></div><span>A — High risk, no BFE</span></div>
-      <div class="leg-r"><div class="sw" style="background:#f1c40f;"></div><span>X — Moderate / minimal</span></div>
-    </div>
-
-    <hr />
-    <div class="sec">Road Risk</div>
-    <div class="leg">
-      <div class="leg-r"><div class="sw" style="background:#e74c3c; height:4px; border-radius:1px;"></div><span>Critical (&lt;430 ft)</span></div>
-      <div class="leg-r"><div class="sw" style="background:#e67e22; height:4px; border-radius:1px;"></div><span>High (430–470 ft)</span></div>
-      <div class="leg-r"><div class="sw" style="background:#f1c40f; height:4px; border-radius:1px;"></div><span>Moderate (470–510 ft)</span></div>
-      <div class="leg-r"><div class="sw" style="background:#2ecc71; height:4px; border-radius:1px;"></div><span>Low (&gt;510 ft)</span></div>
-    </div>
-
-    <hr />
     <div class="sec">Building Vulnerability</div>
     <div class="leg">
       <div class="leg-r"><div class="sw" style="background:#c0392b;"></div><span>Crimson — 100-yr zone (≤1" rain)</span></div>
@@ -316,6 +409,7 @@
       <div class="leg-r"><div class="sw" style="background:#94a3b8;"></div><span>Grey — above flood line</span></div>
       <div class="leg-r"><div class="sw" style="background:rgba(0,105,148,0.85);"></div><span>Blue — currently inundated</span></div>
     </div>
+
     <hr />
     <div class="sec">FEMA Zones</div>
     <div class="leg">
@@ -336,13 +430,16 @@
     <hr />
     <div class="sec">Altitude Info</div>
     <div class="leg">
-      <div class="leg-r"><span style="font-size:11px;color:#888">Buildings sit at their actual<br/>ground elevation. Click any<br/>building to see altitude<br/>above sea level (ft / m).</span></div>
+      <div class="leg-r"><span style="font-size:11px;color:#888">Buildings sit at their actual<br/>ground elevation. Click any<br/>building or flood polygon<br/>to see altitude &amp; flood depth.</span></div>
     </div>
 
   </div>
 
   <div id="map-wrap">
     <div id="map"></div>
+
+    <!-- HPC now bar -->
+    <div id="hpc-now-bar">⏱ Hour — · t = —</div>
 
     <div id="loading">
       <div class="spinner"></div>
@@ -359,11 +456,32 @@
 </div>
 
 <script>
+// ─── Constants ───────────────────────────────────────────────────────────────
 const L = './layers/';
 const CENTER   = [-86.419, 36.972];
 const RAIN_MAX = 3.0;
 
-// ── Color expressions ─────────────────────────────────────────────────────────
+// HPC hourly files living in layers/flood_hpc/
+const HPC_HOURS = [1,2,3,4,5,6,7,8,9];
+const HPC_SECS  = {1:3600,2:7200,3:10800,4:14400,5:18000,6:21600,7:25200,8:28800,9:32400};
+
+// Depth tier → extrusion height (meters, visible on 3D map)
+const TIER_HEIGHT = { shallow: 3, moderate: 8, deep: 20, severe: 50 };
+const TIER_COLOR  = { shallow: '#4dabf7', moderate: '#00c9c9', deep: '#ff8c00', severe: '#e74c3c' };
+
+// MapLibre color expression for HPC tier
+const HPC_COLOR_EXPR = ['match', ['get','tier'],
+  'shallow',  '#4dabf7',
+  'moderate', '#00c9c9',
+  'deep',     '#ff8c00',
+  'severe',   '#e74c3c',
+  '#4dabf7'
+];
+const HPC_HEIGHT_EXPR = ['match', ['get','tier'],
+  'shallow', 3, 'moderate', 8, 'deep', 20, 'severe', 50, 3
+];
+
+// ─── Color expressions (existing) ────────────────────────────────────────────
 const FEMA_COLOR = ['match', ['get', 'FLD_ZONE'],
   'AE','#e74c3c', 'A','#e67e22', 'X','#f1c40f', '#aaa'];
 
@@ -384,22 +502,14 @@ const VALUE_COLOR = ['interpolate',['linear'],
 10000000,'#ff0000'
 ];
 
-// Building vulnerability colors: grey (safe) → amber (500-yr) → crimson (100-yr)
 const BLDG_RISK_COLOR = ['case',
-  ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9], 1.0], '#c0392b',  // crimson: 100-yr zone
-  ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9], 3.0], '#d4870a',  // amber:   500-yr / karst
-  '#94a3b8'                                                               // grey:    above flood line
+  ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9], 1.0], '#c0392b',
+  ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9], 3.0], '#d4870a',
+  '#94a3b8'
 ];
-
 const BLDG_H = ['coalesce',['get','height_m'],4];
 
-// ── State ─────────────────────────────────────────────────────────────────────
-let currentRain = 0;
-let buildingsData = null;
-let allParcelsData = null;
-let loadedLayers = {};
-
-// Elevation thresholds (ft MSL) → rainfall level (approx from rainfall_sim.py)
+// Elevation thresholds
 const ELEV_THRESHOLDS = [
   [403, 0.25],[419, 0.50],[440, 0.75],[464, 1.00],
   [493, 1.25],[525, 1.50],[565, 2.00],[614, 2.50],[663, 3.00],
@@ -408,6 +518,23 @@ function elevToRain(elevFt) {
   for (const [thresh, rain] of ELEV_THRESHOLDS) if (elevFt <= thresh) return rain;
   return 3.0;
 }
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let currentRain = 0;
+let buildingsData = null;
+let allParcelsData = null;
+let loadedLayers = {};
+
+// HPC state
+let hpcEnabled    = false;
+let hpcCurrentHour = 1;
+let hpcPlaying    = false;
+let hpcPlayTimer  = null;
+let hpcCache      = {};   // hour → GeoJSON data (preloaded/cached)
+let hpcLoading    = false;
+let hpc3dMode     = false;
+let hpcBuildingBBoxes = null; // precomputed bboxes for buildings
+let hpcRoadBBoxes     = null;
 
 const layerGroups = {
   flood:        ['flood-fill'],
@@ -420,7 +547,7 @@ const layerGroups = {
   'all-parcels':['all-parcels-fill'],
 };
 
-// ── Map init ──────────────────────────────────────────────────────────────────
+// ─── Map init ─────────────────────────────────────────────────────────────────
 const map = new maplibregl.Map({
   container: 'map',
   style: {
@@ -451,7 +578,7 @@ const map = new maplibregl.Map({
 map.addControl(new maplibregl.NavigationControl(), 'top-right');
 map.addControl(new maplibregl.ScaleControl({ unit: 'imperial' }), 'bottom-right');
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function setMsg(msg, pct) {
   document.getElementById('load-msg').textContent = msg;
   if (pct != null) document.getElementById('load-bar').style.width = pct + '%';
@@ -465,10 +592,7 @@ function setCount(id, n) {
 async function fetchLayer(name) {
   try {
     const r = await fetch(L + name + '.geojson');
-    if (!r.ok) {
-      console.warn(`[layer] "${name}" HTTP ${r.status} — skipped`);
-      return null;
-    }
+    if (!r.ok) { console.warn(`[layer] "${name}" HTTP ${r.status} — skipped`); return null; }
     return await r.json();
   } catch(e) {
     console.warn(`[layer] "${name}" failed:`, e.message || e);
@@ -476,9 +600,191 @@ async function fetchLayer(name) {
   }
 }
 
+async function fetchHpcHour(hour) {
+  if (hpcCache[hour]) return hpcCache[hour];
+  const url = `${L}flood_hpc/flood_h${String(hour).padStart(2,'0')}.geojson`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    hpcCache[hour] = data;
+    return data;
+  } catch(e) {
+    console.warn(`[hpc] Hour ${hour} failed:`, e.message || e);
+    return null;
+  }
+}
+
+// ─── HPC layer management ─────────────────────────────────────────────────────
+function hpcRemoveLayers() {
+  ['hpc-fill','hpc-3d','hpc-outline'].forEach(id => {
+    if (map.getLayer(id)) map.removeLayer(id);
+  });
+  if (map.getSource('hpc-src')) map.removeSource('hpc-src');
+}
+
+function hpcAddLayers(data) {
+  hpcRemoveLayers();
+  map.addSource('hpc-src', { type: 'geojson', data });
+  if (hpc3dMode) {
+    map.addLayer({
+      id: 'hpc-3d', type: 'fill-extrusion', source: 'hpc-src',
+      paint: {
+        'fill-extrusion-color': HPC_COLOR_EXPR,
+        'fill-extrusion-height': HPC_HEIGHT_EXPR,
+        'fill-extrusion-base': 0,
+        'fill-extrusion-opacity': 0.82
+      }
+    });
+  } else {
+    map.addLayer({
+      id: 'hpc-fill', type: 'fill', source: 'hpc-src',
+      paint: { 'fill-color': HPC_COLOR_EXPR, 'fill-opacity': 0.72 }
+    });
+    map.addLayer({
+      id: 'hpc-outline', type: 'line', source: 'hpc-src',
+      paint: { 'line-color': HPC_COLOR_EXPR, 'line-width': 0.5, 'line-opacity': 0.4 }
+    });
+  }
+}
+
+function hpcUpdateStats(data) {
+  if (!data) return;
+  const feats = data.features || [];
+  document.getElementById('hpc-feat-cnt').textContent = feats.length.toLocaleString();
+
+  // Count buildings overlapping HPC flood extent using bbox test
+  let bldgHit = 0, roadHit = 0;
+  if (buildingsData && hpcBuildingBBoxes) {
+    const hpcBboxes = feats.map(f => geomBbox(f.geometry)).filter(Boolean);
+    for (let i = 0; i < hpcBuildingBBoxes.length; i++) {
+      if (bboxesOverlapAny(hpcBuildingBBoxes[i], hpcBboxes)) bldgHit++;
+    }
+  }
+
+  const total = buildingsData?.features?.length || 20284;
+  const pct = total > 0 ? ((bldgHit / total) * 100).toFixed(1) + '%' : '—';
+  document.getElementById('hpc-bldg-pct').textContent = pct;
+  document.getElementById('stat-hpc-bldg').textContent = bldgHit > 0 ? bldgHit.toLocaleString() : '—';
+  document.getElementById('hpc-road-pct').textContent = '—'; // roads need line intersection
+}
+
+function geomBbox(geom) {
+  if (!geom) return null;
+  let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+  const pts = geom.type === 'Polygon' ? geom.coordinates[0]
+            : geom.type === 'MultiPolygon' ? geom.coordinates.flat(2) : [];
+  for (const [x, y] of pts) {
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+  }
+  return minX === Infinity ? null : [minX, minY, maxX, maxY];
+}
+
+function bboxOverlap(a, b) {
+  return a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
+}
+function bboxesOverlapAny(bbox, list) {
+  for (const b of list) if (b && bboxOverlap(bbox, b)) return true;
+  return false;
+}
+
+function precomputeBuildingBBoxes() {
+  if (!buildingsData) return;
+  hpcBuildingBBoxes = buildingsData.features.map(f => geomBbox(f.geometry)).filter(Boolean);
+}
+
+// Format sim time HH:MM
+function fmtSimTime(hour) {
+  const secs = HPC_SECS[hour] || hour * 3600;
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  return `${h}:${String(m).padStart(2,'0')}:00`;
+}
+
+async function hpcGoToHour(hour, silent = false) {
+  if (!hpcEnabled || hpcLoading) return;
+  hpcLoading = true;
+  hpcCurrentHour = hour;
+
+  // Update UI
+  document.getElementById('hpc-hour-slider').value = hour;
+  document.getElementById('hpc-hour-label').textContent = `Hour ${hour} of ${HPC_HOURS.length}`;
+  document.getElementById('hpc-sim-time').textContent = `t = ${fmtSimTime(hour)}`;
+  document.getElementById('hpc-now-bar').textContent = `⏱ Hour ${hour} of 9 · t = ${fmtSimTime(hour)}`;
+  document.getElementById('hpc-progress-bar').style.width = ((hour / HPC_HOURS.length) * 100) + '%';
+
+  if (!silent) document.getElementById('hpc-status').textContent = `Loading Hour ${hour}…`;
+
+  const data = await fetchHpcHour(hour);
+  if (data) {
+    hpcAddLayers(data);
+    hpcUpdateStats(data);
+    if (!silent) document.getElementById('hpc-status').textContent =
+      `Hour ${hour} · ${(data.features?.length||0).toLocaleString()} flood polygons`;
+  } else {
+    document.getElementById('hpc-status').textContent = `Hour ${hour} — file not yet available`;
+  }
+
+  // Preload adjacent hours
+  if (hour < HPC_HOURS.length) fetchHpcHour(hour + 1);
+  if (hour > 1) fetchHpcHour(hour - 1);
+
+  hpcLoading = false;
+}
+
+function hpcPlay() {
+  if (hpcPlayTimer) return;
+  hpcPlaying = true;
+  document.getElementById('hpc-play-btn').textContent = '⏸';
+  const speed = parseInt(document.getElementById('hpc-speed-sel').value);
+
+  async function step() {
+    if (!hpcPlaying) return;
+    const next = hpcCurrentHour < HPC_HOURS.length ? hpcCurrentHour + 1 : 1;
+    await hpcGoToHour(next, true);
+    hpcPlayTimer = setTimeout(step, speed);
+  }
+  hpcPlayTimer = setTimeout(step, 0);
+}
+
+function hpcPause() {
+  hpcPlaying = false;
+  if (hpcPlayTimer) { clearTimeout(hpcPlayTimer); hpcPlayTimer = null; }
+  document.getElementById('hpc-play-btn').textContent = '▶';
+}
+
+async function hpcEnable() {
+  hpcEnabled = true;
+  document.getElementById('hpc-hour-slider').disabled = false;
+  document.getElementById('hpc-play-btn').disabled = false;
+  document.getElementById('hpc-speed-sel').disabled = false;
+  document.getElementById('hpc-3d-cb').disabled = false;
+  document.getElementById('hpc-now-bar').style.display = 'block';
+  document.getElementById('hpc-status').textContent = 'Loading Hour 1…';
+  await hpcGoToHour(1);
+}
+
+function hpcDisable() {
+  hpcEnabled = false;
+  hpcPause();
+  hpcRemoveLayers();
+  hpcCache = {};
+  document.getElementById('hpc-hour-slider').disabled = true;
+  document.getElementById('hpc-play-btn').disabled = true;
+  document.getElementById('hpc-speed-sel').disabled = true;
+  document.getElementById('hpc-3d-cb').disabled = true;
+  document.getElementById('hpc-now-bar').style.display = 'none';
+  document.getElementById('hpc-status').textContent = 'Enable to load simulation data';
+  document.getElementById('hpc-feat-cnt').textContent = '—';
+  document.getElementById('hpc-bldg-pct').textContent = '—';
+  document.getElementById('stat-hpc-bldg').textContent = '—';
+}
+
+// ─── Info panel helpers ────────────────────────────────────────────────────────
 const HIDE_PROPS = new Set(['height_m','geometry','index','__index_level_0__',
   'damage_pct_2in','damage_usd_2in','prop_value_usd',
-  'ead_usd','damage_risk_tier']);
+  'ead_usd','damage_risk_tier','color','file','rp']);
 const LAYER_NAME = {
   'buildings-ext':  'Building',
   'fema-ae-fill':   'FEMA 100-yr Zone (AE/A)',
@@ -488,6 +794,8 @@ const LAYER_NAME = {
   'roads-line':     'Flood-Prone Road',
   'flood-fill':     'Flood Zone',
   'all-parcels-fill':'Parcel',
+  'hpc-fill':       'HPC Flood Polygon',
+  'hpc-3d':         'HPC Flood Polygon (3D)',
 };
 
 function fmt(k, v) {
@@ -500,9 +808,14 @@ function fmt(k, v) {
   }
   if (k === 'flood_at_rain_in') {
     if (v >= 9) return 'Does not flood at ≤3"';
-    const rp = {0.25:1, 0.50:2, 0.75:3, 1.00:5, 1.25:7, 1.50:10, 2.00:25, 2.50:50, 3.00:100};
-    const yr = rp[Math.round(v * 100) / 100] || '';
+    const rp = {0.25:1,0.50:2,0.75:3,1.00:5,1.25:7,1.50:10,2.00:25,2.50:50,3.00:100};
+    const yr = rp[Math.round(v*100)/100] || '';
     return v.toFixed(2) + '"' + (yr ? ' (' + yr + '-yr event)' : '');
+  }
+  if (k === 'depth_min_m' || k === 'depth_max_m') return parseFloat(v).toFixed(1) + ' m';
+  if (k === 'sim_seconds') {
+    const h = Math.floor(v/3600), m = Math.floor((v%3600)/60);
+    return `${h}h ${m}m simulation time`;
   }
   return String(v);
 }
@@ -513,7 +826,12 @@ function riskBadge(floodAt) {
   return '<span class="risk-badge risk-none">ABOVE FLOOD LINE</span>';
 }
 
-// Compute the primary orientation of a building polygon (longest edge → axis label)
+function depthBadge(tier) {
+  const labels = { shallow:'0.1–0.3 m · Ankle-Deep', moderate:'0.3–0.6 m · Knee-Deep',
+                   deep:'0.6–1.2 m · Waist-Deep', severe:'>1.2 m · Life-Threatening' };
+  return `<span class="depth-badge depth-${tier||'shallow'}">${(tier||'shallow').toUpperCase()} · ${labels[tier]||''}</span>`;
+}
+
 function computeBuildingFacing(geometry) {
   if (!geometry || geometry.type !== 'Polygon') return null;
   const coords = geometry.coordinates[0];
@@ -525,7 +843,6 @@ function computeBuildingFacing(geometry) {
     const len = Math.sqrt(dx*dx + dy*dy);
     if (len > maxLen) { maxLen = len; bestAngle = Math.atan2(dy, dx) * 180 / Math.PI; }
   }
-  // Convert math angle → compass bearing, then normalize to 0–180° axis
   let bearing = (90 - bestAngle) % 360;
   if (bearing < 0) bearing += 360;
   if (bearing > 180) bearing -= 180;
@@ -534,11 +851,15 @@ function computeBuildingFacing(geometry) {
 }
 
 function showInfo(feature, elevM) {
-  const p  = feature.properties || {};
+  const p   = feature.properties || {};
   const lyr = feature.layer?.id || '';
   document.getElementById('info-title').textContent = LAYER_NAME[lyr] || 'Feature';
 
   const badge = (p.flood_at_rain_in != null) ? riskBadge(p.flood_at_rain_in) : '';
+
+  // HPC depth badge
+  const isHpcFeat = lyr === 'hpc-fill' || lyr === 'hpc-3d';
+  const hpcBadge = (isHpcFeat && p.tier) ? depthBadge(p.tier) : '';
 
   // Ground elevation badge
   let elevBadge = '';
@@ -548,18 +869,23 @@ function showInfo(feature, elevM) {
     elevBadge = `<tr><td colspan="2"><span class="elev-badge">Ground Elevation: ${elevFt} ft (${elevMR} m) MSL</span></td></tr>`;
   }
 
-  // Water depth badge (when elevation slider is above baseline)
-  let depthBadge = '';
+  // Water depth badge (elevation slider)
+  let depthBadge2 = '';
   const wsElev = parseFloat(document.getElementById('elev-slider')?.value ?? '391');
   if (wsElev > 391 && elevM != null && isFinite(elevM)) {
     const terrainFt = elevM * 3.28084;
     const depth = Math.max(0, wsElev - terrainFt);
     if (depth > 0) {
-      depthBadge = `<tr><td colspan="2"><span class="elev-badge" style="color:#4dd9f5;border-color:rgba(0,105,148,0.6);background:rgba(0,105,148,0.2)">Water Depth: ${depth.toFixed(1)} ft above ground</span></td></tr>`;
+      depthBadge2 = `<tr><td colspan="2"><span class="elev-badge" style="color:#4dd9f5;border-color:rgba(0,105,148,0.6);background:rgba(0,105,148,0.2)">Water Depth: ${depth.toFixed(1)} ft above ground</span></td></tr>`;
     }
   }
 
-  // Building orientation from polygon geometry
+  // HPC hour context
+  let hpcContext = '';
+  if (lyr === 'buildings-ext' && hpcEnabled) {
+    hpcContext = `<tr><td colspan="2"><span class="elev-badge" style="color:#74c0fc;border-color:#74c0fc">HPC Hour ${hpcCurrentHour} active — click flood polygon for depth</span></td></tr>`;
+  }
+
   let facingRow = '';
   if (lyr === 'buildings-ext' && feature.geometry?.type === 'Polygon') {
     const axis = computeBuildingFacing(feature.geometry);
@@ -567,17 +893,18 @@ function showInfo(feature, elevM) {
   }
 
   const LABEL = {
-    PVA_PARCEL: 'Parcel ID', ADDRESS: 'Address', SiteAddress: 'Site Address',
-    ACRES: 'Acreage', LAND_USE: 'Land Use', ZONING: 'Zoning',
-    year_purchase: 'Year Purchased',
-    Jurisdiction: 'Jurisdiction', flood_at_rain_in: 'Floods At',
-    parcel_min_rain_in: 'Parcel Flood Threshold',
-    name: 'Name', building: 'Building Type', amenity: 'Amenity',
-    FLD_ZONE: 'FEMA Zone', SFHA_TF: 'Special Flood Hazard',
-    risk_tier: 'Risk Tier', ground_elev_ft: 'Ground Elevation (ft)',
-    sale_price: 'Sale Price', prop_value_usd: 'Assessed Value',
-    'addr:street': 'Street', 'addr:housenumber': 'House #',
-    'building:levels': 'Levels', height: 'Height (tags)',
+    PVA_PARCEL:'Parcel ID', ADDRESS:'Address', SiteAddress:'Site Address',
+    ACRES:'Acreage', LAND_USE:'Land Use', ZONING:'Zoning',
+    year_purchase:'Year Purchased', Jurisdiction:'Jurisdiction',
+    flood_at_rain_in:'Floods At', parcel_min_rain_in:'Parcel Flood Threshold',
+    name:'Name', building:'Building Type', amenity:'Amenity',
+    FLD_ZONE:'FEMA Zone', SFHA_TF:'Special Flood Hazard',
+    risk_tier:'Risk Tier', ground_elev_ft:'Ground Elevation (ft)',
+    sale_price:'Sale Price', prop_value_usd:'Assessed Value',
+    'addr:street':'Street', 'addr:housenumber':'House #',
+    'building:levels':'Levels', height:'Height (tags)',
+    tier:'Depth Tier', hour:'Simulation Hour', depth_min_m:'Min Depth',
+    depth_max_m:'Max Depth', sim_seconds:'Sim Time',
   };
 
   const rows = Object.entries(p)
@@ -592,49 +919,42 @@ function showInfo(feature, elevM) {
 
   document.getElementById('info-table').innerHTML =
     (badge ? `<tr><td colspan="2">${badge}</td></tr>` : '') +
-    elevBadge + depthBadge + facingRow +
+    (hpcBadge ? `<tr><td colspan="2">${hpcBadge}</td></tr>` : '') +
+    elevBadge + depthBadge2 + hpcContext + facingRow +
     (rows || '<tr><td colspan="2" style="color:#555">No attributes</td></tr>');
   document.getElementById('info').style.display = 'block';
 }
 
-// ── Live stats update ─────────────────────────────────────────────────────────
+// ─── Live stats ────────────────────────────────────────────────────────────────
 function updateStats(rain) {
   let bldgRisk = 0, parcelRisk = 0;
-
   for (const f of (buildingsData?.features || [])) {
     const floodAt = (f.properties || {}).flood_at_rain_in ?? 9;
     if (floodAt <= rain) bldgRisk++;
   }
-
   for (const f of (allParcelsData?.features || [])) {
     const floodAt = (f.properties || {}).flood_at_rain_in ?? 9;
     if (floodAt <= rain) parcelRisk++;
   }
-
-  const bldgEl = document.getElementById('stat-bldg');
+  const bldgEl   = document.getElementById('stat-bldg');
   const parcelEl = document.getElementById('stat-parcels');
   if (bldgEl)   bldgEl.textContent   = rain === 0 ? '—' : bldgRisk.toLocaleString();
   if (parcelEl) parcelEl.textContent = rain === 0 ? '—' : parcelRisk.toLocaleString();
 }
 
-// ── Rainfall slider logic ─────────────────────────────────────────────────────
+// ─── Rainfall slider ──────────────────────────────────────────────────────────
 function applyRain(rain) {
   currentRain = rain;
   document.getElementById('rain-val').textContent = rain.toFixed(2) + '"';
-
-  // Show/hide flood sim
   const hasFlood = loadedLayers['flood'];
   if (hasFlood) {
-    if (rain === 0) {
-      map.setLayoutProperty('flood-fill', 'visibility', 'none');
-    } else {
+    if (rain === 0) { map.setLayoutProperty('flood-fill', 'visibility', 'none'); }
+    else {
       const cb = document.querySelector('[data-layer="flood"]');
       if (cb?.checked) map.setLayoutProperty('flood-fill', 'visibility', 'visible');
       map.setFilter('flood-fill', ['<=', ['get', 'min_rain_in'], rain]);
     }
   }
-
-  // Recolor buildings: flooded → water blue; dry → vulnerability tier (grey/amber/crimson)
   if (loadedLayers['buildings']) {
     const floodColor = rain === 0 ? BLDG_RISK_COLOR : [
       'case',
@@ -644,27 +964,21 @@ function applyRain(rain) {
       '#94a3b8'
     ];
     map.setPaintProperty('buildings-ext', 'fill-extrusion-color', floodColor);
-    // Flooded buildings slightly taller for visual emphasis
     const floodH = rain === 0 ? BLDG_H : [
       'case',
-      ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9.0], rain],
-      ['max', BLDG_H, 8],
+      ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9.0], rain], ['max', BLDG_H, 8],
       BLDG_H
     ];
     map.setPaintProperty('buildings-ext', 'fill-extrusion-height', floodH);
   }
-
-  // Recolor flat parcels by flood risk (not value)
   if (loadedLayers['all-parcels']) {
     const flatColor = rain === 0 ? VALUE_COLOR : [
       'case',
-      ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9.0], rain],
-      '#1e90ff',
+      ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9.0], rain], '#1e90ff',
       VALUE_COLOR
     ];
     map.setPaintProperty('all-parcels-fill', 'fill-color', flatColor);
   }
-
   updateStats(rain);
 }
 
@@ -672,7 +986,7 @@ document.getElementById('rain-slider').addEventListener('input', function() {
   applyRain(parseFloat(this.value));
 });
 
-// ── Main load ─────────────────────────────────────────────────────────────────
+// ─── Main load ────────────────────────────────────────────────────────────────
 map.on('load', async () => {
   setMsg('Loading flood simulation… (1/6)', 5);
   const floodData = await fetchLayer('flood_sim');
@@ -686,24 +1000,26 @@ map.on('load', async () => {
   setMsg('Loading rivers & roads… (4/6)', 48);
   const [riverine, roads] = await Promise.all([fetchLayer('riverine'), fetchLayer('roads')]);
 
-  setMsg('Loading buildings (largest file)… (5/6)', 62);
+  setMsg('Loading buildings… (5/6)', 62);
   const bldgs = await fetchLayer('buildings');
 
   setMsg('Loading parcels… (6/6)', 80);
   const allParcels = await fetchLayer('all_parcels');
 
-  buildingsData = bldgs;
+  buildingsData  = bldgs;
   allParcelsData = allParcels;
+
+  // Precompute bboxes for HPC building-hit counting
+  precomputeBuildingBBoxes();
 
   setMsg('Rendering all layers…', 92);
 
-  // ── Flood simulation (controlled by slider) ───────────────────────────────
+  // ── Flood simulation (rainfall slider) ────────────────────────────────────
   if (floodData) {
     map.addSource('flood-src', { type: 'geojson', data: floodData });
     map.addLayer({
       id: 'flood-fill', type: 'fill', source: 'flood-src',
       filter: ['<=', ['get', 'min_rain_in'], 0],
-      // Water color: RGBA(0, 105, 148, 0.65) as specified
       paint: { 'fill-color': 'rgba(0,105,148,0.65)', 'fill-outline-color': 'rgba(0,80,120,0.8)', 'fill-opacity': 1 }
     });
     map.setLayoutProperty('flood-fill', 'visibility', 'none');
@@ -711,39 +1027,37 @@ map.on('load', async () => {
     setCount('cnt-flood', (floodData.features?.length ?? 0) + ' bands');
   }
 
-  // ── FEMA flood zones — split 100-yr (AE/A) vs 500-yr (X) ─────────────────
+  // ── FEMA ──────────────────────────────────────────────────────────────────
   if (fema) {
     map.addSource('fema-src', { type: 'geojson', data: fema });
     const ae100 = ['in', ['get', 'FLD_ZONE'], ['literal', ['AE','A','AO','AH']]];
     const x500  = ['in', ['get', 'FLD_ZONE'], ['literal', ['X','X500']]];
-    // 100-year (crimson)
-    map.addLayer({ id: 'fema-ae-fill', type: 'fill', source: 'fema-src', filter: ae100,
-      paint: { 'fill-color': '#c0392b', 'fill-opacity': 0.35 } });
-    map.addLayer({ id: 'fema-ae-line', type: 'line', source: 'fema-src', filter: ae100,
-      paint: { 'line-color': '#e74c3c', 'line-width': 1.5, 'line-opacity': 0.8 } });
-    // 500-year (amber)
-    map.addLayer({ id: 'fema-x-fill', type: 'fill', source: 'fema-src', filter: x500,
-      paint: { 'fill-color': '#d4870a', 'fill-opacity': 0.25 } });
-    map.addLayer({ id: 'fema-x-line', type: 'line', source: 'fema-src', filter: x500,
-      paint: { 'line-color': '#e67e22', 'line-width': 1, 'line-opacity': 0.6 } });
+    map.addLayer({ id:'fema-ae-fill', type:'fill', source:'fema-src', filter:ae100,
+      paint:{'fill-color':'#c0392b','fill-opacity':0.35} });
+    map.addLayer({ id:'fema-ae-line', type:'line', source:'fema-src', filter:ae100,
+      paint:{'line-color':'#e74c3c','line-width':1.5,'line-opacity':0.8} });
+    map.addLayer({ id:'fema-x-fill', type:'fill', source:'fema-src', filter:x500,
+      paint:{'fill-color':'#d4870a','fill-opacity':0.25} });
+    map.addLayer({ id:'fema-x-line', type:'line', source:'fema-src', filter:x500,
+      paint:{'line-color':'#e67e22','line-width':1,'line-opacity':0.6} });
     loadedLayers['fema-ae'] = true;
     loadedLayers['fema-x'] = true;
-    const ae_n = fema.features?.filter(f => ['AE','A','AO','AH'].includes(f.properties?.FLD_ZONE)).length ?? 0;
-    const x_n  = fema.features?.filter(f => ['X','X500'].includes(f.properties?.FLD_ZONE)).length ?? 0;
+    const ae_n = fema.features?.filter(f=>['AE','A','AO','AH'].includes(f.properties?.FLD_ZONE)).length??0;
+    const x_n  = fema.features?.filter(f=>['X','X500'].includes(f.properties?.FLD_ZONE)).length??0;
     setCount('cnt-fema-ae', ae_n);
     setCount('cnt-fema-x', x_n);
   }
 
-  // ── Karst sinkholes — depth-coded by risk tier ───────────────────────────
+  // ── Karst sinkholes ────────────────────────────────────────────────────────
   if (sinkholes) {
     map.addSource('sinkholes-src', { type: 'geojson', data: sinkholes });
     const sinkColor = ['match',
       ['coalesce',['get','risk_tier'],['get','flood_risk_tier'],'low'],
       'critical','#7d3c98','high','#9b59b6','moderate','#c39bd3','low','#e8daef','#e8daef'];
-    map.addLayer({ id: 'sinkholes-fill', type: 'fill', source: 'sinkholes-src',
-      paint: { 'fill-color': sinkColor, 'fill-opacity': 0.55 } });
-    map.addLayer({ id: 'sinkholes-line', type: 'line', source: 'sinkholes-src',
-      paint: { 'line-color': '#c39bd3', 'line-width': 0.7, 'line-opacity': 0.8 } });
+    map.addLayer({ id:'sinkholes-fill', type:'fill', source:'sinkholes-src',
+      paint:{'fill-color':sinkColor,'fill-opacity':0.55} });
+    map.addLayer({ id:'sinkholes-line', type:'line', source:'sinkholes-src',
+      paint:{'line-color':'#c39bd3','line-width':0.7,'line-opacity':0.8} });
     loadedLayers['sinkholes'] = true;
     setCount('cnt-sinkholes', sinkholes.features?.length);
   }
@@ -751,36 +1065,36 @@ map.on('load', async () => {
   // ── Riverine ──────────────────────────────────────────────────────────────
   if (riverine) {
     map.addSource('riverine-src', { type: 'geojson', data: riverine });
-    map.addLayer({ id: 'riverine-fill', type: 'fill', source: 'riverine-src',
-      paint: { 'fill-color': '#3498db', 'fill-opacity': 0.3 } });
-    map.addLayer({ id: 'riverine-line', type: 'line', source: 'riverine-src',
-      paint: { 'line-color': '#5dade2', 'line-width': 1 } });
+    map.addLayer({ id:'riverine-fill', type:'fill', source:'riverine-src',
+      paint:{'fill-color':'#3498db','fill-opacity':0.3} });
+    map.addLayer({ id:'riverine-line', type:'line', source:'riverine-src',
+      paint:{'line-color':'#5dade2','line-width':1} });
     loadedLayers['riverine'] = true;
     setCount('cnt-riverine', riverine.features?.length);
   }
 
-  // ── At-risk roads ─────────────────────────────────────────────────────────
+  // ── Roads ─────────────────────────────────────────────────────────────────
   if (roads) {
     map.addSource('roads-src', { type: 'geojson', data: roads });
-    map.addLayer({ id: 'roads-line', type: 'line', source: 'roads-src',
-      paint: { 'line-color': RISK_COLOR, 'line-width': 3, 'line-opacity': 0.9,
-               'line-cap': 'round', 'line-join': 'round' } });
+    map.addLayer({ id:'roads-line', type:'line', source:'roads-src',
+      paint:{'line-color':RISK_COLOR,'line-width':3,'line-opacity':0.9,
+             'line-cap':'round','line-join':'round'} });
     loadedLayers['roads'] = true;
     setCount('cnt-roads', roads.features?.length);
   }
 
-  // ── All parcels (flat fill, off by default) ────────────────────────────────
+  // ── All parcels ────────────────────────────────────────────────────────────
   if (allParcels) {
     map.addSource('all-parcels-src', { type: 'geojson', data: allParcels });
-    map.addLayer({ id: 'all-parcels-fill', type: 'fill', source: 'all-parcels-src',
-      layout: { visibility: 'none' },
-      paint: { 'fill-color': VALUE_COLOR, 'fill-opacity': 0.5,
-               'fill-outline-color': 'rgba(255,255,255,0.05)' } });
+    map.addLayer({ id:'all-parcels-fill', type:'fill', source:'all-parcels-src',
+      layout:{'visibility':'none'},
+      paint:{'fill-color':VALUE_COLOR,'fill-opacity':0.5,
+             'fill-outline-color':'rgba(255,255,255,0.05)'} });
     loadedLayers['all-parcels'] = true;
     setCount('cnt-all-parcels', allParcels.features?.length);
   }
 
-  // ── OSM buildings (fill-extrusion — smooth footprints) ────────────────────
+  // ── Buildings ─────────────────────────────────────────────────────────────
   if (bldgs) {
     map.addSource('buildings-src', { type: 'geojson', data: bldgs });
     map.addLayer({
@@ -806,7 +1120,6 @@ map.on('load', async () => {
       const vis = cb.checked ? 'visible' : 'none';
       (layerGroups[cb.dataset.layer] || []).forEach(id => {
         if (map.getLayer(id)) {
-          // Flood layer: only show when rain > 0
           if (id === 'flood-fill' && currentRain === 0 && cb.checked) return;
           map.setLayoutProperty(id, 'visibility', vis);
         }
@@ -814,7 +1127,32 @@ map.on('load', async () => {
     });
   });
 
-  // ── Terrain exaggeration (1.0–3.0×, default 1.75×) ───────────────────────
+  // ── HPC toggle ────────────────────────────────────────────────────────────
+  document.getElementById('hpc-toggle').addEventListener('change', function() {
+    if (this.checked) hpcEnable(); else hpcDisable();
+  });
+
+  // ── HPC time slider ───────────────────────────────────────────────────────
+  document.getElementById('hpc-hour-slider').addEventListener('input', function() {
+    if (hpcPlaying) hpcPause();
+    hpcGoToHour(parseInt(this.value));
+  });
+
+  // ── HPC play/pause ────────────────────────────────────────────────────────
+  document.getElementById('hpc-play-btn').addEventListener('click', function() {
+    if (hpcPlaying) hpcPause(); else hpcPlay();
+  });
+
+  // ── HPC 3D toggle ─────────────────────────────────────────────────────────
+  document.getElementById('hpc-3d-cb').addEventListener('change', async function() {
+    hpc3dMode = this.checked;
+    if (hpcEnabled) {
+      const data = hpcCache[hpcCurrentHour];
+      if (data) hpcAddLayers(data);
+    }
+  });
+
+  // ── Terrain exaggeration ──────────────────────────────────────────────────
   const exSlider = document.getElementById('exag-slider');
   exSlider.addEventListener('input', () => {
     const v = parseFloat(exSlider.value);
@@ -822,7 +1160,7 @@ map.on('load', async () => {
     map.setTerrain({ source: 'terrain', exaggeration: v });
   });
 
-  // ── Flood elevation slider (new) ─────────────────────────────────────────
+  // ── Elevation slider ──────────────────────────────────────────────────────
   const elevSlider = document.getElementById('elev-slider');
   const rainSlider = document.getElementById('rain-slider');
   elevSlider.addEventListener('input', () => {
@@ -832,7 +1170,6 @@ map.on('load', async () => {
     rainSlider.value = String(rain);
     applyRain(rain);
   });
-  // Keep elevation slider in sync when rain slider moves
   rainSlider.addEventListener('input', function() {
     const rain = parseFloat(this.value);
     const matchElev = ELEV_THRESHOLDS.find(([,r]) => r >= rain)?.[0] ?? 663;
@@ -850,7 +1187,7 @@ map.on('load', async () => {
                'hillshade-illumination-anchor': 'map' }
     }, 'osm');
   }
-  const hsCb  = document.getElementById('hillshade-cb');
+  const hsCb = document.getElementById('hillshade-cb');
   const hsDirRow = document.getElementById('hs-dir-row');
   const hsDirSel = document.getElementById('hs-dir');
   hsCb.addEventListener('change', () => {
@@ -863,44 +1200,44 @@ map.on('load', async () => {
   // ── Per-layer opacity sliders ─────────────────────────────────────────────
   document.querySelectorAll('[data-opacity-layer]').forEach(slider => {
     slider.addEventListener('input', () => {
-      const id = slider.dataset.opacityLayer;
+      const id  = slider.dataset.opacityLayer;
       const prop = slider.dataset.prop || 'fill-opacity';
-      const val = parseFloat(slider.value);
+      const val  = parseFloat(slider.value);
       if (map.getLayer(id)) try { map.setPaintProperty(id, prop, val); } catch(e) {}
     });
   });
-  const femaOpacitySlider = document.querySelector('[data-opacity-group="fema"]');
-  if (femaOpacitySlider) {
-    femaOpacitySlider.addEventListener('input', () => {
-      const val = parseFloat(femaOpacitySlider.value);
+  const femaOpacity = document.querySelector('[data-opacity-group="fema"]');
+  if (femaOpacity) {
+    femaOpacity.addEventListener('input', () => {
+      const val = parseFloat(femaOpacity.value);
       ['fema-ae-fill','fema-x-fill'].forEach(id => { if (map.getLayer(id)) map.setPaintProperty(id,'fill-opacity',val*0.9); });
       ['fema-ae-line','fema-x-line'].forEach(id => { if (map.getLayer(id)) map.setPaintProperty(id,'line-opacity',val); });
     });
   }
-  const sinkOpacitySlider = document.querySelector('[data-opacity-group="sinkholes"]');
-  if (sinkOpacitySlider) {
-    sinkOpacitySlider.addEventListener('input', () => {
-      const val = parseFloat(sinkOpacitySlider.value);
+  const sinkOpacity = document.querySelector('[data-opacity-group="sinkholes"]');
+  if (sinkOpacity) {
+    sinkOpacity.addEventListener('input', () => {
+      const val = parseFloat(sinkOpacity.value);
       if (map.getLayer('sinkholes-fill')) map.setPaintProperty('sinkholes-fill','fill-opacity',val);
     });
   }
 
-  // ── Click handlers ─────────────────────────────────────────────────────────
+  // ── Click handlers ────────────────────────────────────────────────────────
   const CLICKABLE = ['buildings-ext','all-parcels-fill',
                      'fema-ae-fill','fema-x-fill',
-                     'sinkholes-fill','riverine-fill','roads-line','flood-fill'];
+                     'sinkholes-fill','riverine-fill',
+                     'roads-line','flood-fill',
+                     'hpc-fill','hpc-3d'];
 
   CLICKABLE.forEach(id => {
-    if (!map.getLayer(id)) return;
-    map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseenter', id, () => { if (map.getLayer(id)) map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
   });
 
   map.on('click', e => {
-    const feats = map.queryRenderedFeatures(e.point, { layers: CLICKABLE.filter(id => map.getLayer(id)) });
+    const activeLayers = CLICKABLE.filter(id => map.getLayer(id));
+    const feats = map.queryRenderedFeatures(e.point, { layers: activeLayers });
     if (!feats.length) { document.getElementById('info').style.display = 'none'; return; }
-
-    // Query terrain elevation at click point (meters above sea level)
     const elevM = map.queryTerrainElevation(e.lngLat, { exaggerated: false });
     showInfo(feats[0], elevM);
   });

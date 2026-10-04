@@ -4,9 +4,15 @@
 *.pbf
 *.osm
 
-# Cache and generated layers
+# Cache
 cache/
-layers/
+
+# Large generated layers (keep small GeoJSONs)
+layers/flood_damage.geojson
+
+# HPC reprojected flood layers (50–80 MB each, serve locally)
+# Run scripts/reproject_hpc.py to regenerate from Vista output
+layers/flood_hpc/
 
 # Python
 __pycache__/
