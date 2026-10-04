@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bowling Green KY — 3D Flood Risk &amp; Property Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg0: #07070f; --bg1: #0d0d1a; --bg2: #13132a; --bg3: #1a1a3a;
+      --border: #1e1e3a; --accent: #4dabf7; --text: #d0d0e0; --mute: #666;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg0);
+           color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ── Header ── */
+    #header {
+      background: var(--bg1); border-bottom: 1px solid var(--border);
+      padding: 8px 14px; display: flex; align-items: center; gap: 14px;
+      flex-shrink: 0; z-index: 10;
+    }
+    #header h1 { font-size: 14px; font-weight: 700; color: #fff; white-space: nowrap; }
+    #header .sub { font-size: 10px; color: var(--mute); }
+
+    /* ── Header sliders ── */
+    #rain-ctrl, #elev-ctrl {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 12px; display: flex; align-items: center; gap: 10px; max-width: 280px; flex: 1;
+    }
+    #rain-ctrl .label, #elev-ctrl .label { font-size: 10px; color: var(--mute); white-space: nowrap; line-height: 1.3; }
+    #rain-ctrl input[type=range], #elev-ctrl input[type=range] { flex: 1; accent-color: #4dabf7; cursor: pointer; }
+    #rain-val { font-size: 20px; font-weight: 800; color: var(--accent);
+                white-space: nowrap; min-width: 48px; text-align: right; }
+    #elev-val { font-size: 16px; font-weight: 800; color: rgba(0,185,220,1);
+                white-space: nowrap; min-width: 58px; text-align: right; }
+
+    /* ── Opacity row ── */
+    .opacity-row { display: flex; align-items: center; gap: 6px; padding: 2px 4px 4px 22px;
+                   font-size: 10px; color: #555; }
+    .opacity-row input[type=range] { flex: 1; accent-color: #444; height: 3px; }
+    .select-row { display: flex; align-items: center; gap: 6px; padding: 4px 4px;
+                  font-size: 10px; color: #888; }
+    .select-row select { background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+                         border-radius: 4px; padding: 2px 4px; font-size: 10px; flex: 1; cursor: pointer; }
+
+    /* ── Stats bar ── */
+    #stats {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 6px 14px; display: flex; gap: 18px; align-items: center;
+    }
+    .stat { text-align: center; }
+    .stat .val { font-size: 16px; font-weight: 800; color: var(--accent); }
+    .stat .key { font-size: 9px; color: var(--mute); text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* ── Body layout ── */
+    #main { display: flex; flex: 1; overflow: hidden; }
+    #sidebar { width: 250px; background: var(--bg1); border-right: 1px solid var(--border);
+               overflow-y: auto; padding: 10px 12px; flex-shrink: 0; }
+    #map-wrap { position: relative; flex: 1; overflow: hidden; }
+    #map { width: 100%; height: 100%; }
+
+    /* ── Sidebar components ── */
+    .sec { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em;
+           color: #444; margin: 14px 0 6px; }
+    .sec:first-child { margin-top: 4px; }
+    .lr { display: flex; align-items: center; gap: 7px; padding: 5px 4px;
+          border-radius: 4px; cursor: pointer; user-select: none; }
+    .lr:hover { background: var(--bg2); }
+    .lr input[type=checkbox] { cursor: pointer; accent-color: var(--accent); flex-shrink: 0; }
+    .sw { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; opacity: 0.9; }
+    .lbl { font-size: 12px; color: #bbb; flex: 1; }
+    .cnt { font-size: 10px; color: #555; }
+    .slr-wrap { padding: 4px 4px 2px; }
+    .slr-wrap label { font-size: 11px; color: #999; display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .slr-wrap input[type=range] { width: 100%; accent-color: var(--accent); }
+    .leg { padding: 2px 4px; }
+    .leg-r { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+    .leg-r .sw { opacity: 0.85; }
+    .leg-r span { font-size: 11px; color: #888; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+
+    /* ── Info panel ── */
+    #info {
+      position: absolute; bottom: 28px; right: 12px; width: 300px;
+      background: rgba(7,7,15,0.97); border: 1px solid #2a2a4a; border-radius: 8px;
+      padding: 12px 14px; display: none; z-index: 20; backdrop-filter: blur(8px);
+    }
+    #info h3 { font-size: 11px; font-weight: 800; color: var(--accent); margin-bottom: 8px;
+               text-transform: uppercase; letter-spacing: 0.06em; }
+    #info table { width: 100%; border-collapse: collapse; }
+    #info td { font-size: 11px; padding: 2px 0; vertical-align: top; }
+    #info td:first-child { color: #666; width: 44%; padding-right: 8px; }
+    #info td:last-child { color: #ddd; word-break: break-word; }
+    #info-close { position: absolute; top: 8px; right: 10px; background: none;
+                  border: none; color: #555; cursor: pointer; font-size: 16px; }
+    #info-close:hover { color: #aaa; }
+
+    /* ── Flood risk badge ── */
+    .risk-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 6px;
+                  border-radius: 3px; margin-top: 4px; }
+    .risk-high   { background: rgba(231,76,60,.25); color: #e74c3c; border: 1px solid #e74c3c; }
+    .risk-mid    { background: rgba(230,126,34,.25); color: #e67e22; border: 1px solid #e67e22; }
+    .risk-low    { background: rgba(241,196,15,.25); color: #f1c40f; border: 1px solid #f1c40f; }
+    .risk-none   { background: rgba(46,204,113,.15); color: #2ecc71; border: 1px solid #2ecc71; }
+
+    /* ── Loading overlay ── */
+    #loading {
+      position: absolute; inset: 0; background: rgba(7,7,15,0.9);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 50; flex-direction: column; gap: 14px;
+    }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--bg3);
+               border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #load-msg { color: #888; font-size: 13px; }
+    .load-bar-wrap { width: 240px; height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+    .load-bar { height: 100%; background: var(--accent); border-radius: 2px;
+                transition: width 0.3s; width: 0; }
+
+    .maplibregl-ctrl-group { background: var(--bg2) !important; border: 1px solid var(--border) !important; }
+    .maplibregl-ctrl-group button { background: var(--bg2) !important; }
+    .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(0.6); }
+
+    /* ── Flood Science Modal ── */
+    #sci-btn {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--accent); font-size: 12px; font-weight: 700; padding: 5px 10px;
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    }
+    #sci-btn:hover { background: var(--bg3); }
+    #sci-modal {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.72); align-items: center; justify-content: center;
+    }
+    #sci-modal.open { display: flex; }
+    #sci-box {
+      background: var(--bg1); border: 1px solid #2a2a5a; border-radius: 12px;
+      width: min(700px, 95vw); max-height: 88vh; overflow-y: auto;
+      padding: 24px 28px; position: relative;
+    }
+    #sci-box h2 { font-size: 17px; color: #fff; margin-bottom: 4px; }
+    #sci-box .byline { font-size: 11px; color: #555; margin-bottom: 20px; }
+    #sci-box h3 { font-size: 12px; font-weight: 800; text-transform: uppercase;
+                  letter-spacing: 0.08em; color: var(--accent); margin: 18px 0 6px; }
+    #sci-box p  { font-size: 13px; color: #aaa; line-height: 1.65; margin-bottom: 8px; }
+    #sci-box ul { padding-left: 18px; margin-bottom: 8px; }
+    #sci-box li { font-size: 12px; color: #999; line-height: 1.7; }
+    #sci-box table { width: 100%; border-collapse: collapse; margin: 8px 0 4px; }
+    #sci-box th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em;
+                  color: #555; padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+    #sci-box td { font-size: 12px; color: #aaa; padding: 4px 8px; border-bottom: 1px solid #111; }
+    #sci-box td:first-child { color: var(--accent); font-weight: 700; }
+    #sci-close { position: absolute; top: 14px; right: 16px; background: none; border: none;
+                 color: #555; font-size: 22px; cursor: pointer; line-height: 1; }
+    #sci-close:hover { color: #ccc; }
+    .sci-note { background: rgba(77,171,247,0.08); border-left: 3px solid var(--accent);
+                border-radius: 4px; padding: 8px 12px; margin: 10px 0; }
+    .sci-note p { margin: 0; font-size: 12px; }
+
+    /* ── Elevation badge in popup ── */
+    .elev-badge { display: inline-block; background: rgba(255,255,255,0.06); border: 1px solid #333;
+                  border-radius: 4px; padding: 2px 7px; font-size: 11px; color: #74c0fc;
+                  margin-top: 4px; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <h1>Bowling Green, KY — 3D Flood Risk &amp; Property Map</h1>
+    <div class="sub">Warren County PVA · FEMA NFHL · KyFromAbove DEM · OSM Buildings · 2-ft Contours</div>
+  </div>
+
+  <div id="rain-ctrl">
+    <span class="label">Rainfall<br/>Scenario</span>
+    <input type="range" id="rain-slider" min="0" max="3.0" step="0.25" value="0" />
+    <div id="rain-val">0.00"</div>
+  </div>
+
+  <div id="elev-ctrl">
+    <span class="label">Water Surface<br/>Elevation</span>
+    <input type="range" id="elev-slider" min="391" max="700" step="1" value="391" />
+    <div id="elev-val">391 ft</div>
+  </div>
+
+  <div id="stats">
+    <div class="stat"><div class="val" id="stat-bldg">—</div><div class="key">Bldgs at Risk</div></div>
+    <div class="stat"><div class="val" id="stat-parcels">—</div><div class="key">Parcels at Risk</div></div>
+  </div>
+
+  <button id="sci-btn">How Floods Work ▸</button>
+</div>
+
+<!-- ── Flood Science Modal ──────────────────────────────────────────────── -->
+<div id="sci-modal">
+  <div id="sci-box">
+    <button id="sci-close">×</button>
+    <h2>How the Flood Simulation Works</h2>
+    <p class="byline">Bowling Green, KY · Warren County · DEM-based rainfall model</p>
+
+    <h3>1. Why Bowling Green Floods Differently</h3>
+    <p>Bowling Green sits on karst limestone terrain — a landscape riddled with underground caves, sinkholes, and internal drainage. When rain falls, water doesn't just run downhill toward streams: it also drains into sinkholes, collects in closed depressions, and can overwhelm underground conduits. This means low-lying areas and sinkhole basins flood <em>before</em> traditional riverside areas do.</p>
+    <div class="sci-note"><p>The city also sits at the confluence of Barren River, Lost River (which disappears underground), and numerous unnamed karst tributaries — making flood prediction especially complex.</p></div>
+
+    <h3>2. The Rainfall Slider (0" – 3")</h3>
+    <p>The slider simulates a single storm event dropping between 0 and 3 inches of rain. The blue flood overlay expands as rainfall increases, showing which areas inundate at each threshold. The model is built from a <strong>5-meter resolution DEM</strong> (KyFromAbove Phase 2 LiDAR) and uses elevation percentile thresholds:</p>
+    <table>
+      <tr><th>Rainfall</th><th>Elevation Percentile</th><th>What Floods</th></tr>
+      <tr><td>0.25"</td><td>Bottom 3%</td><td>Active FEMA floodplain only</td></tr>
+      <tr><td>0.50"</td><td>Bottom 7%</td><td>Low-lying river corridors</td></tr>
+      <tr><td>0.75"</td><td>Bottom 12%</td><td>Major sinkhole basins + stream bottoms</td></tr>
+      <tr><td>1.00"</td><td>Bottom 18%</td><td>Moderate karst depressions</td></tr>
+      <tr><td>1.50"</td><td>Bottom 33%</td><td>Broad low-elevation neighborhoods</td></tr>
+      <tr><td>2.00"</td><td>Bottom 43%</td><td>Typical severe thunderstorm impact</td></tr>
+      <tr><td>3.00"</td><td>Bottom 67%</td><td>Extreme/tropical event impact</td></tr>
+    </table>
+
+    <h3>3. Karst Sinkhole Boost</h3>
+    <p>The purple <strong>Karst Sinkhole</strong> overlay shows 3,872 closed depressions identified from the contour data. Cells that fall within a significant depression are given a one-level early-flood boost — meaning they flood at lower rainfall than their raw elevation would suggest. This reflects the real-world behavior of karst drainage: sinkholes fill up before surrounding areas because they have no surface outlet.</p>
+
+    <h3>4. FEMA Flood Zones</h3>
+    <p>The red/orange/yellow FEMA overlay is the official National Flood Hazard Layer (NFHL), updated with 276 features across Warren County:</p>
+    <ul>
+      <li><strong style="color:#e74c3c">AE (red)</strong> — High risk; base flood elevation (BFE) established by detailed engineering study. Flood insurance is mandatory for federally backed mortgages.</li>
+      <li><strong style="color:#e67e22">A (orange)</strong> — High risk; no detailed BFE study. Similar requirements apply.</li>
+      <li><strong style="color:#f1c40f">X (yellow)</strong> — Moderate or minimal risk; 0.2% annual chance flood zone or outside mapped areas.</li>
+    </ul>
+
+    <h3>5. Building Heights &amp; Flood Risk Color</h3>
+    <p>Buildings are rendered using <strong>OSM building footprints</strong> (20,284 structures) extruded to a uniform reference height and color-coded purely by <strong>flood risk tier</strong>. Tier is derived from the minimum rainfall (in inches) needed to inundate that building's ground elevation:</p>
+    <table>
+      <tr><th>Color</th><th>Tier</th><th>Floods at</th></tr>
+      <tr><td style="color:#e74c3c">Red</td><td>Critical</td><td>≤ 0.50" (1–2 yr event)</td></tr>
+      <tr><td style="color:#e67e22">Orange</td><td>High</td><td>0.50"–1.00" (2–5 yr)</td></tr>
+      <tr><td style="color:#f1c40f">Yellow</td><td>Moderate</td><td>1.00"–2.00" (5–25 yr)</td></tr>
+      <tr><td style="color:#2ecc71">Green</td><td>Low</td><td>2.00"–3.00" (25–100 yr)</td></tr>
+      <tr><td style="color:#4dabf7">Blue</td><td>Minimal</td><td>Does not flood at ≤ 3"</td></tr>
+    </table>
+    <p>Buildings are placed at their actual ground altitude using the terrain layer — structures on hills appear elevated relative to those in valleys. Click any building to see its ground elevation above sea level and flood risk tier.</p>
+
+    <h3>7. Data Sources</h3>
+    <ul>
+      <li><strong>DEM:</strong> KyFromAbove Phase 2 LiDAR, 5m resolution, EPSG:32616</li>
+      <li><strong>Parcels:</strong> Warren County PVA, all 40,987 parcels (including WKU, schools, government)</li>
+      <li><strong>Buildings:</strong> OpenStreetMap via pyrosm; colored by flood risk tier</li>
+      <li><strong>FEMA:</strong> NFHL via ArcGIS REST API, 276 features</li>
+      <li><strong>Contours:</strong> 2-ft topographic contours, 660 MB source file</li>
+      <li><strong>Sinkholes:</strong> Derived from closed depression contours (3,872 basins)</li>
+    </ul>
+  </div>
+</div>
+
+<div id="main">
+  <div id="sidebar">
+
+    <div class="sec">Terrain</div>
+    <div class="slr-wrap">
+      <label>3D Exaggeration <span id="exag-val">1.75×</span></label>
+      <input type="range" id="exag-slider" min="1.0" max="3.0" step="0.05" value="1.75" />
+    </div>
+    <div class="sec">Hillshade</div>
+    <label class="lr"><input type="checkbox" id="hillshade-cb" /><div class="sw" style="background:linear-gradient(135deg,#ccc 30%,#333);"></div><span class="lbl">Hillshade</span></label>
+    <div class="select-row" id="hs-dir-row" style="display:none">
+      <span style="white-space:nowrap;font-size:10px;color:#888">Sun direction</span>
+      <select id="hs-dir">
+        <option value="315">NW (standard)</option><option value="45">NE</option>
+        <option value="225">SW</option><option value="135">SE</option>
+      </select>
+    </div>
+
+    <hr />
+    <div class="sec">Flood Hazard</div>
+    <label class="lr"><input type="checkbox" checked data-layer="flood" /><div class="sw" style="background:rgba(0,105,148,0.85);"></div><span class="lbl">Rainfall Flood Zones</span><span class="cnt" id="cnt-flood"></span></label>
+    <div class="opacity-row"><span>Opacity</span><input type="range" min="0" max="1" step="0.05" value="0.65" data-opacity-layer="flood-fill" data-prop="fill-opacity" /></div>
+    <label class="lr"><input type="checkbox" checked data-layer="fema-ae" /><div class="sw" style="background:#c0392b;"></div><span class="lbl">FEMA 100-yr (AE/A)</span><span class="cnt" id="cnt-fema-ae"></span></label>
+    <label class="lr"><input type="checkbox" checked data-layer="fema-x" /><div class="sw" style="background:#d4870a;"></div><span class="lbl">FEMA 500-yr (X)</span><span class="cnt" id="cnt-fema-x"></span></label>
+    <div class="opacity-row"><span>FEMA Opacity</span><input type="range" min="0" max="1" step="0.05" value="0.4" data-opacity-group="fema" /></div>
+    <label class="lr"><input type="checkbox" checked data-layer="sinkholes" /><div class="sw" style="background:#7d3c98;"></div><span class="lbl">Karst Sinkholes (depth)</span><span class="cnt" id="cnt-sinkholes"></span></label>
+    <div class="opacity-row"><span>Opacity</span><input type="range" min="0" max="1" step="0.05" value="0.55" data-opacity-group="sinkholes" /></div>
+    <label class="lr"><input type="checkbox" checked data-layer="riverine" /><div class="sw" style="background:#3498db;"></div><span class="lbl">Riverine Flood Zones</span><span class="cnt" id="cnt-riverine"></span></label>
+
+    <hr />
+    <div class="sec">Infrastructure</div>
+    <label class="lr"><input type="checkbox" checked data-layer="roads" /><div class="sw" style="background:#e74c3c; height:4px; border-radius:1px;"></div><span class="lbl">Flood-Prone Roads</span><span class="cnt" id="cnt-roads"></span></label>
+
+    <hr />
+    <div class="sec">Structures</div>
+    <label class="lr"><input type="checkbox" checked data-layer="buildings" /><div class="sw" style="background:#94a3b8;"></div><span class="lbl">Buildings (vulnerability)</span><span class="cnt" id="cnt-buildings"></span></label>
+    <div class="opacity-row"><span>Opacity</span><input type="range" min="0" max="1" step="0.05" value="0.85" data-opacity-layer="buildings-ext" data-prop="fill-extrusion-opacity" /></div>
+    <label class="lr"><input type="checkbox" data-layer="all-parcels" /><div class="sw" style="background:#2ecc71; opacity:0.6;"></div><span class="lbl">All Parcels (flat)</span><span class="cnt" id="cnt-all-parcels"></span></label>
+
+    <hr />
+    <div class="sec">FEMA Zones</div>
+    <div class="leg">
+      <div class="leg-r"><div class="sw" style="background:#e74c3c;"></div><span>AE — High risk, BFE established</span></div>
+      <div class="leg-r"><div class="sw" style="background:#e67e22;"></div><span>A — High risk, no BFE</span></div>
+      <div class="leg-r"><div class="sw" style="background:#f1c40f;"></div><span>X — Moderate / minimal</span></div>
+    </div>
+
+    <hr />
+    <div class="sec">Road Risk</div>
+    <div class="leg">
+      <div class="leg-r"><div class="sw" style="background:#e74c3c; height:4px; border-radius:1px;"></div><span>Critical (&lt;430 ft)</span></div>
+      <div class="leg-r"><div class="sw" style="background:#e67e22; height:4px; border-radius:1px;"></div><span>High (430–470 ft)</span></div>
+      <div class="leg-r"><div class="sw" style="background:#f1c40f; height:4px; border-radius:1px;"></div><span>Moderate (470–510 ft)</span></div>
+      <div class="leg-r"><div class="sw" style="background:#2ecc71; height:4px; border-radius:1px;"></div><span>Low (&gt;510 ft)</span></div>
+    </div>
+
+    <hr />
+    <div class="sec">Building Vulnerability</div>
+    <div class="leg">
+      <div class="leg-r"><div class="sw" style="background:#c0392b;"></div><span>Crimson — 100-yr zone (≤1" rain)</span></div>
+      <div class="leg-r"><div class="sw" style="background:#d4870a;"></div><span>Amber — 500-yr / karst (1–3")</span></div>
+      <div class="leg-r"><div class="sw" style="background:#94a3b8;"></div><span>Grey — above flood line</span></div>
+      <div class="leg-r"><div class="sw" style="background:rgba(0,105,148,0.85);"></div><span>Blue — currently inundated</span></div>
+    </div>
+    <hr />
+    <div class="sec">FEMA Zones</div>
+    <div class="leg">
+      <div class="leg-r"><div class="sw" style="background:#c0392b;"></div><span>AE/A — 100-yr (1% annual)</span></div>
+      <div class="leg-r"><div class="sw" style="background:#d4870a;"></div><span>X — 500-yr (0.2% annual)</span></div>
+    </div>
+
+    <hr />
+    <div class="sec">Flood Rainfall Bands</div>
+    <div class="leg">
+      <div class="leg-r"><div class="sw" style="background:#1e90ff;opacity:0.3;"></div><span>0.25" — Active floodplain</span></div>
+      <div class="leg-r"><div class="sw" style="background:#1e90ff;opacity:0.45;"></div><span>0.75" — Sinkhole basins</span></div>
+      <div class="leg-r"><div class="sw" style="background:#1e90ff;opacity:0.6;"></div><span>1.50" — Low neighborhoods</span></div>
+      <div class="leg-r"><div class="sw" style="background:#1e90ff;opacity:0.8;"></div><span>2.00" — Thunderstorm level</span></div>
+      <div class="leg-r"><div class="sw" style="background:#1e90ff;"></div><span>3.00" — Extreme event</span></div>
+    </div>
+
+    <hr />
+    <div class="sec">Altitude Info</div>
+    <div class="leg">
+      <div class="leg-r"><span style="font-size:11px;color:#888">Buildings sit at their actual<br/>ground elevation. Click any<br/>building to see altitude<br/>above sea level (ft / m).</span></div>
+    </div>
+
+  </div>
+
+  <div id="map-wrap">
+    <div id="map"></div>
+
+    <div id="loading">
+      <div class="spinner"></div>
+      <p id="load-msg">Initializing map…</p>
+      <div class="load-bar-wrap"><div class="load-bar" id="load-bar"></div></div>
+    </div>
+
+    <div id="info">
+      <button id="info-close">×</button>
+      <h3 id="info-title">Feature</h3>
+      <table id="info-table"></table>
+    </div>
+  </div>
+</div>
+
+<script>
+const L = './layers/';
+const CENTER   = [-86.419, 36.972];
+const RAIN_MAX = 3.0;
+
+// ── Color expressions ─────────────────────────────────────────────────────────
+const FEMA_COLOR = ['match', ['get', 'FLD_ZONE'],
+  'AE','#e74c3c', 'A','#e67e22', 'X','#f1c40f', '#aaa'];
+
+const RISK_COLOR = ['match',
+  ['coalesce',['get','risk_tier'],['get','flood_risk_tier'],'low'],
+  'critical','#e74c3c','high','#e67e22','moderate','#f1c40f','low','#2ecc71','#aaa'];
+
+const VALUE_COLOR = ['interpolate',['linear'],
+  ['coalesce',['get','sale_price'],0],
+       0,'#0a1020',
+   50000,'#1e3a5f',
+  100000,'#2e6da4',
+  200000,'#4dabf7',
+  400000,'#74c0fc',
+  600000,'#a9e34b',
+ 1000000,'#ffd43b',
+ 3000000,'#ff6b6b',
+10000000,'#ff0000'
+];
+
+// Building vulnerability colors: grey (safe) → amber (500-yr) → crimson (100-yr)
+const BLDG_RISK_COLOR = ['case',
+  ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9], 1.0], '#c0392b',  // crimson: 100-yr zone
+  ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9], 3.0], '#d4870a',  // amber:   500-yr / karst
+  '#94a3b8'                                                               // grey:    above flood line
+];
+
+const BLDG_H = ['coalesce',['get','height_m'],4];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentRain = 0;
+let buildingsData = null;
+let allParcelsData = null;
+let loadedLayers = {};
+
+// Elevation thresholds (ft MSL) → rainfall level (approx from rainfall_sim.py)
+const ELEV_THRESHOLDS = [
+  [403, 0.25],[419, 0.50],[440, 0.75],[464, 1.00],
+  [493, 1.25],[525, 1.50],[565, 2.00],[614, 2.50],[663, 3.00],
+];
+function elevToRain(elevFt) {
+  for (const [thresh, rain] of ELEV_THRESHOLDS) if (elevFt <= thresh) return rain;
+  return 3.0;
+}
+
+const layerGroups = {
+  flood:        ['flood-fill'],
+  'fema-ae':    ['fema-ae-fill','fema-ae-line'],
+  'fema-x':     ['fema-x-fill','fema-x-line'],
+  sinkholes:    ['sinkholes-fill','sinkholes-line'],
+  riverine:     ['riverine-fill','riverine-line'],
+  roads:        ['roads-line'],
+  buildings:    ['buildings-ext'],
+  'all-parcels':['all-parcels-fill'],
+};
+
+// ── Map init ──────────────────────────────────────────────────────────────────
+const map = new maplibregl.Map({
+  container: 'map',
+  style: {
+    version: 8,
+    sources: {
+      osm: {
+        type: 'raster',
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+        maxzoom: 19
+      },
+      terrain: {
+        type: 'raster-dem',
+        tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+        encoding: 'terrarium', tileSize: 256, maxzoom: 15
+      }
+    },
+    layers: [{
+      id: 'osm', type: 'raster', source: 'osm',
+      paint: { 'raster-opacity': 0.6, 'raster-saturation': -0.5, 'raster-brightness-min': 0.02 }
+    }],
+    terrain: { source: 'terrain', exaggeration: 2 }
+  },
+  center: CENTER, zoom: 12, pitch: 52, bearing: -14, maxPitch: 85, hash: true
+});
+
+map.addControl(new maplibregl.NavigationControl(), 'top-right');
+map.addControl(new maplibregl.ScaleControl({ unit: 'imperial' }), 'bottom-right');
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function setMsg(msg, pct) {
+  document.getElementById('load-msg').textContent = msg;
+  if (pct != null) document.getElementById('load-bar').style.width = pct + '%';
+}
+
+function setCount(id, n) {
+  const el = document.getElementById(id);
+  if (el && n != null) el.textContent = n.toLocaleString();
+}
+
+async function fetchLayer(name) {
+  try {
+    const r = await fetch(L + name + '.geojson');
+    if (!r.ok) {
+      console.warn(`[layer] "${name}" HTTP ${r.status} — skipped`);
+      return null;
+    }
+    return await r.json();
+  } catch(e) {
+    console.warn(`[layer] "${name}" failed:`, e.message || e);
+    return null;
+  }
+}
+
+const HIDE_PROPS = new Set(['height_m','geometry','index','__index_level_0__',
+  'damage_pct_2in','damage_usd_2in','prop_value_usd',
+  'ead_usd','damage_risk_tier']);
+const LAYER_NAME = {
+  'buildings-ext':  'Building',
+  'fema-ae-fill':   'FEMA 100-yr Zone (AE/A)',
+  'fema-x-fill':    'FEMA 500-yr Zone (X)',
+  'sinkholes-fill': 'Karst Sinkhole',
+  'riverine-fill':  'Riverine Zone',
+  'roads-line':     'Flood-Prone Road',
+  'flood-fill':     'Flood Zone',
+  'all-parcels-fill':'Parcel',
+};
+
+function fmt(k, v) {
+  if (v == null || v === '') return null;
+  if (k === 'ACRES') return typeof v === 'number' ? v.toFixed(3) + ' ac' : String(v);
+  if (k === 'sale_price' || k === 'prop_value_usd') {
+    const n = parseFloat(v);
+    if (!isNaN(n) && n > 0) return '$' + Math.round(n).toLocaleString('en-US');
+    return null;
+  }
+  if (k === 'flood_at_rain_in') {
+    if (v >= 9) return 'Does not flood at ≤3"';
+    const rp = {0.25:1, 0.50:2, 0.75:3, 1.00:5, 1.25:7, 1.50:10, 2.00:25, 2.50:50, 3.00:100};
+    const yr = rp[Math.round(v * 100) / 100] || '';
+    return v.toFixed(2) + '"' + (yr ? ' (' + yr + '-yr event)' : '');
+  }
+  return String(v);
+}
+
+function riskBadge(floodAt) {
+  if (floodAt <= 1.0) return '<span class="risk-badge risk-high" style="background:rgba(192,57,43,.25);color:#c0392b;border-color:#c0392b">100-YR FLOOD ZONE</span>';
+  if (floodAt <= 3.0) return '<span class="risk-badge risk-mid" style="background:rgba(212,135,10,.25);color:#d4870a;border-color:#d4870a">500-YR / KARST ZONE</span>';
+  return '<span class="risk-badge risk-none">ABOVE FLOOD LINE</span>';
+}
+
+// Compute the primary orientation of a building polygon (longest edge → axis label)
+function computeBuildingFacing(geometry) {
+  if (!geometry || geometry.type !== 'Polygon') return null;
+  const coords = geometry.coordinates[0];
+  if (!coords || coords.length < 3) return null;
+  let maxLen = 0, bestAngle = 0;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const dx = coords[i+1][0] - coords[i][0];
+    const dy = coords[i+1][1] - coords[i][1];
+    const len = Math.sqrt(dx*dx + dy*dy);
+    if (len > maxLen) { maxLen = len; bestAngle = Math.atan2(dy, dx) * 180 / Math.PI; }
+  }
+  // Convert math angle → compass bearing, then normalize to 0–180° axis
+  let bearing = (90 - bestAngle) % 360;
+  if (bearing < 0) bearing += 360;
+  if (bearing > 180) bearing -= 180;
+  const axes = ['N–S','NE–SW','E–W','SE–NW'];
+  return axes[Math.round(bearing / 45) % 4];
+}
+
+function showInfo(feature, elevM) {
+  const p  = feature.properties || {};
+  const lyr = feature.layer?.id || '';
+  document.getElementById('info-title').textContent = LAYER_NAME[lyr] || 'Feature';
+
+  const badge = (p.flood_at_rain_in != null) ? riskBadge(p.flood_at_rain_in) : '';
+
+  // Ground elevation badge
+  let elevBadge = '';
+  if (elevM != null && isFinite(elevM)) {
+    const elevFt = (elevM * 3.28084).toFixed(0);
+    const elevMR  = elevM.toFixed(0);
+    elevBadge = `<tr><td colspan="2"><span class="elev-badge">Ground Elevation: ${elevFt} ft (${elevMR} m) MSL</span></td></tr>`;
+  }
+
+  // Water depth badge (when elevation slider is above baseline)
+  let depthBadge = '';
+  const wsElev = parseFloat(document.getElementById('elev-slider')?.value ?? '391');
+  if (wsElev > 391 && elevM != null && isFinite(elevM)) {
+    const terrainFt = elevM * 3.28084;
+    const depth = Math.max(0, wsElev - terrainFt);
+    if (depth > 0) {
+      depthBadge = `<tr><td colspan="2"><span class="elev-badge" style="color:#4dd9f5;border-color:rgba(0,105,148,0.6);background:rgba(0,105,148,0.2)">Water Depth: ${depth.toFixed(1)} ft above ground</span></td></tr>`;
+    }
+  }
+
+  // Building orientation from polygon geometry
+  let facingRow = '';
+  if (lyr === 'buildings-ext' && feature.geometry?.type === 'Polygon') {
+    const axis = computeBuildingFacing(feature.geometry);
+    if (axis) facingRow = `<tr><td>Orientation</td><td>${axis}</td></tr>`;
+  }
+
+  const LABEL = {
+    PVA_PARCEL: 'Parcel ID', ADDRESS: 'Address', SiteAddress: 'Site Address',
+    ACRES: 'Acreage', LAND_USE: 'Land Use', ZONING: 'Zoning',
+    year_purchase: 'Year Purchased',
+    Jurisdiction: 'Jurisdiction', flood_at_rain_in: 'Floods At',
+    parcel_min_rain_in: 'Parcel Flood Threshold',
+    name: 'Name', building: 'Building Type', amenity: 'Amenity',
+    FLD_ZONE: 'FEMA Zone', SFHA_TF: 'Special Flood Hazard',
+    risk_tier: 'Risk Tier', ground_elev_ft: 'Ground Elevation (ft)',
+    sale_price: 'Sale Price', prop_value_usd: 'Assessed Value',
+    'addr:street': 'Street', 'addr:housenumber': 'House #',
+    'building:levels': 'Levels', height: 'Height (tags)',
+  };
+
+  const rows = Object.entries(p)
+    .filter(([k]) => !HIDE_PROPS.has(k))
+    .map(([k, v]) => {
+      const d = fmt(k, v);
+      if (!d) return '';
+      const label = LABEL[k] || k.replace(/_/g,' ');
+      return `<tr><td>${label}</td><td>${d}</td></tr>`;
+    })
+    .filter(Boolean).join('');
+
+  document.getElementById('info-table').innerHTML =
+    (badge ? `<tr><td colspan="2">${badge}</td></tr>` : '') +
+    elevBadge + depthBadge + facingRow +
+    (rows || '<tr><td colspan="2" style="color:#555">No attributes</td></tr>');
+  document.getElementById('info').style.display = 'block';
+}
+
+// ── Live stats update ─────────────────────────────────────────────────────────
+function updateStats(rain) {
+  let bldgRisk = 0, parcelRisk = 0;
+
+  for (const f of (buildingsData?.features || [])) {
+    const floodAt = (f.properties || {}).flood_at_rain_in ?? 9;
+    if (floodAt <= rain) bldgRisk++;
+  }
+
+  for (const f of (allParcelsData?.features || [])) {
+    const floodAt = (f.properties || {}).flood_at_rain_in ?? 9;
+    if (floodAt <= rain) parcelRisk++;
+  }
+
+  const bldgEl = document.getElementById('stat-bldg');
+  const parcelEl = document.getElementById('stat-parcels');
+  if (bldgEl)   bldgEl.textContent   = rain === 0 ? '—' : bldgRisk.toLocaleString();
+  if (parcelEl) parcelEl.textContent = rain === 0 ? '—' : parcelRisk.toLocaleString();
+}
+
+// ── Rainfall slider logic ─────────────────────────────────────────────────────
+function applyRain(rain) {
+  currentRain = rain;
+  document.getElementById('rain-val').textContent = rain.toFixed(2) + '"';
+
+  // Show/hide flood sim
+  const hasFlood = loadedLayers['flood'];
+  if (hasFlood) {
+    if (rain === 0) {
+      map.setLayoutProperty('flood-fill', 'visibility', 'none');
+    } else {
+      const cb = document.querySelector('[data-layer="flood"]');
+      if (cb?.checked) map.setLayoutProperty('flood-fill', 'visibility', 'visible');
+      map.setFilter('flood-fill', ['<=', ['get', 'min_rain_in'], rain]);
+    }
+  }
+
+  // Recolor buildings: flooded → water blue; dry → vulnerability tier (grey/amber/crimson)
+  if (loadedLayers['buildings']) {
+    const floodColor = rain === 0 ? BLDG_RISK_COLOR : [
+      'case',
+      ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9], rain], 'rgba(0,105,148,0.9)',
+      ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9], 1.0], '#c0392b',
+      ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9], 3.0], '#d4870a',
+      '#94a3b8'
+    ];
+    map.setPaintProperty('buildings-ext', 'fill-extrusion-color', floodColor);
+    // Flooded buildings slightly taller for visual emphasis
+    const floodH = rain === 0 ? BLDG_H : [
+      'case',
+      ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9.0], rain],
+      ['max', BLDG_H, 8],
+      BLDG_H
+    ];
+    map.setPaintProperty('buildings-ext', 'fill-extrusion-height', floodH);
+  }
+
+  // Recolor flat parcels by flood risk (not value)
+  if (loadedLayers['all-parcels']) {
+    const flatColor = rain === 0 ? VALUE_COLOR : [
+      'case',
+      ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9.0], rain],
+      '#1e90ff',
+      VALUE_COLOR
+    ];
+    map.setPaintProperty('all-parcels-fill', 'fill-color', flatColor);
+  }
+
+  updateStats(rain);
+}
+
+document.getElementById('rain-slider').addEventListener('input', function() {
+  applyRain(parseFloat(this.value));
+});
+
+// ── Main load ─────────────────────────────────────────────────────────────────
+map.on('load', async () => {
+  setMsg('Loading flood simulation… (1/6)', 5);
+  const floodData = await fetchLayer('flood_sim');
+
+  setMsg('Loading FEMA flood zones… (2/6)', 20);
+  const fema = await fetchLayer('fema');
+
+  setMsg('Loading karst sinkholes… (3/6)', 35);
+  const sinkholes = await fetchLayer('sinkholes');
+
+  setMsg('Loading rivers & roads… (4/6)', 48);
+  const [riverine, roads] = await Promise.all([fetchLayer('riverine'), fetchLayer('roads')]);
+
+  setMsg('Loading buildings (largest file)… (5/6)', 62);
+  const bldgs = await fetchLayer('buildings');
+
+  setMsg('Loading parcels… (6/6)', 80);
+  const allParcels = await fetchLayer('all_parcels');
+
+  buildingsData = bldgs;
+  allParcelsData = allParcels;
+
+  setMsg('Rendering all layers…', 92);
+
+  // ── Flood simulation (controlled by slider) ───────────────────────────────
+  if (floodData) {
+    map.addSource('flood-src', { type: 'geojson', data: floodData });
+    map.addLayer({
+      id: 'flood-fill', type: 'fill', source: 'flood-src',
+      filter: ['<=', ['get', 'min_rain_in'], 0],
+      // Water color: RGBA(0, 105, 148, 0.65) as specified
+      paint: { 'fill-color': 'rgba(0,105,148,0.65)', 'fill-outline-color': 'rgba(0,80,120,0.8)', 'fill-opacity': 1 }
+    });
+    map.setLayoutProperty('flood-fill', 'visibility', 'none');
+    loadedLayers['flood'] = true;
+    setCount('cnt-flood', (floodData.features?.length ?? 0) + ' bands');
+  }
+
+  // ── FEMA flood zones — split 100-yr (AE/A) vs 500-yr (X) ─────────────────
+  if (fema) {
+    map.addSource('fema-src', { type: 'geojson', data: fema });
+    const ae100 = ['in', ['get', 'FLD_ZONE'], ['literal', ['AE','A','AO','AH']]];
+    const x500  = ['in', ['get', 'FLD_ZONE'], ['literal', ['X','X500']]];
+    // 100-year (crimson)
+    map.addLayer({ id: 'fema-ae-fill', type: 'fill', source: 'fema-src', filter: ae100,
+      paint: { 'fill-color': '#c0392b', 'fill-opacity': 0.35 } });
+    map.addLayer({ id: 'fema-ae-line', type: 'line', source: 'fema-src', filter: ae100,
+      paint: { 'line-color': '#e74c3c', 'line-width': 1.5, 'line-opacity': 0.8 } });
+    // 500-year (amber)
+    map.addLayer({ id: 'fema-x-fill', type: 'fill', source: 'fema-src', filter: x500,
+      paint: { 'fill-color': '#d4870a', 'fill-opacity': 0.25 } });
+    map.addLayer({ id: 'fema-x-line', type: 'line', source: 'fema-src', filter: x500,
+      paint: { 'line-color': '#e67e22', 'line-width': 1, 'line-opacity': 0.6 } });
+    loadedLayers['fema-ae'] = true;
+    loadedLayers['fema-x'] = true;
+    const ae_n = fema.features?.filter(f => ['AE','A','AO','AH'].includes(f.properties?.FLD_ZONE)).length ?? 0;
+    const x_n  = fema.features?.filter(f => ['X','X500'].includes(f.properties?.FLD_ZONE)).length ?? 0;
+    setCount('cnt-fema-ae', ae_n);
+    setCount('cnt-fema-x', x_n);
+  }
+
+  // ── Karst sinkholes — depth-coded by risk tier ───────────────────────────
+  if (sinkholes) {
+    map.addSource('sinkholes-src', { type: 'geojson', data: sinkholes });
+    const sinkColor = ['match',
+      ['coalesce',['get','risk_tier'],['get','flood_risk_tier'],'low'],
+      'critical','#7d3c98','high','#9b59b6','moderate','#c39bd3','low','#e8daef','#e8daef'];
+    map.addLayer({ id: 'sinkholes-fill', type: 'fill', source: 'sinkholes-src',
+      paint: { 'fill-color': sinkColor, 'fill-opacity': 0.55 } });
+    map.addLayer({ id: 'sinkholes-line', type: 'line', source: 'sinkholes-src',
+      paint: { 'line-color': '#c39bd3', 'line-width': 0.7, 'line-opacity': 0.8 } });
+    loadedLayers['sinkholes'] = true;
+    setCount('cnt-sinkholes', sinkholes.features?.length);
+  }
+
+  // ── Riverine ──────────────────────────────────────────────────────────────
+  if (riverine) {
+    map.addSource('riverine-src', { type: 'geojson', data: riverine });
+    map.addLayer({ id: 'riverine-fill', type: 'fill', source: 'riverine-src',
+      paint: { 'fill-color': '#3498db', 'fill-opacity': 0.3 } });
+    map.addLayer({ id: 'riverine-line', type: 'line', source: 'riverine-src',
+      paint: { 'line-color': '#5dade2', 'line-width': 1 } });
+    loadedLayers['riverine'] = true;
+    setCount('cnt-riverine', riverine.features?.length);
+  }
+
+  // ── At-risk roads ─────────────────────────────────────────────────────────
+  if (roads) {
+    map.addSource('roads-src', { type: 'geojson', data: roads });
+    map.addLayer({ id: 'roads-line', type: 'line', source: 'roads-src',
+      paint: { 'line-color': RISK_COLOR, 'line-width': 3, 'line-opacity': 0.9,
+               'line-cap': 'round', 'line-join': 'round' } });
+    loadedLayers['roads'] = true;
+    setCount('cnt-roads', roads.features?.length);
+  }
+
+  // ── All parcels (flat fill, off by default) ────────────────────────────────
+  if (allParcels) {
+    map.addSource('all-parcels-src', { type: 'geojson', data: allParcels });
+    map.addLayer({ id: 'all-parcels-fill', type: 'fill', source: 'all-parcels-src',
+      layout: { visibility: 'none' },
+      paint: { 'fill-color': VALUE_COLOR, 'fill-opacity': 0.5,
+               'fill-outline-color': 'rgba(255,255,255,0.05)' } });
+    loadedLayers['all-parcels'] = true;
+    setCount('cnt-all-parcels', allParcels.features?.length);
+  }
+
+  // ── OSM buildings (fill-extrusion — smooth footprints) ────────────────────
+  if (bldgs) {
+    map.addSource('buildings-src', { type: 'geojson', data: bldgs });
+    map.addLayer({
+      id: 'buildings-ext', type: 'fill-extrusion', source: 'buildings-src',
+      paint: {
+        'fill-extrusion-color': BLDG_RISK_COLOR,
+        'fill-extrusion-height': BLDG_H,
+        'fill-extrusion-base': 0,
+        'fill-extrusion-opacity': 0.85
+      }
+    });
+    loadedLayers['buildings'] = true;
+    setCount('cnt-buildings', bldgs.features?.length);
+  }
+
+  setMsg('All layers loaded — ready!', 100);
+  await new Promise(r => setTimeout(r, 600));
+  document.getElementById('loading').style.display = 'none';
+
+  // ── Layer toggles ──────────────────────────────────────────────────────────
+  document.querySelectorAll('[data-layer]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const vis = cb.checked ? 'visible' : 'none';
+      (layerGroups[cb.dataset.layer] || []).forEach(id => {
+        if (map.getLayer(id)) {
+          // Flood layer: only show when rain > 0
+          if (id === 'flood-fill' && currentRain === 0 && cb.checked) return;
+          map.setLayoutProperty(id, 'visibility', vis);
+        }
+      });
+    });
+  });
+
+  // ── Terrain exaggeration (1.0–3.0×, default 1.75×) ───────────────────────
+  const exSlider = document.getElementById('exag-slider');
+  exSlider.addEventListener('input', () => {
+    const v = parseFloat(exSlider.value);
+    document.getElementById('exag-val').textContent = v.toFixed(2) + '×';
+    map.setTerrain({ source: 'terrain', exaggeration: v });
+  });
+
+  // ── Flood elevation slider (new) ─────────────────────────────────────────
+  const elevSlider = document.getElementById('elev-slider');
+  const rainSlider = document.getElementById('rain-slider');
+  elevSlider.addEventListener('input', () => {
+    const elevFt = parseFloat(elevSlider.value);
+    document.getElementById('elev-val').textContent = elevFt.toFixed(0) + ' ft';
+    const rain = elevToRain(elevFt);
+    rainSlider.value = String(rain);
+    applyRain(rain);
+  });
+  // Keep elevation slider in sync when rain slider moves
+  rainSlider.addEventListener('input', function() {
+    const rain = parseFloat(this.value);
+    const matchElev = ELEV_THRESHOLDS.find(([,r]) => r >= rain)?.[0] ?? 663;
+    elevSlider.value = String(matchElev);
+    document.getElementById('elev-val').textContent = matchElev.toFixed(0) + ' ft';
+  });
+
+  // ── Hillshade ─────────────────────────────────────────────────────────────
+  function addHillshadeLayer(azimuth) {
+    if (map.getLayer('hillshade')) map.removeLayer('hillshade');
+    map.addLayer({
+      id: 'hillshade', type: 'hillshade', source: 'terrain',
+      paint: { 'hillshade-exaggeration': 0.45, 'hillshade-illumination-direction': azimuth,
+               'hillshade-highlight-color': '#f0f0f0', 'hillshade-shadow-color': '#1a1a2e',
+               'hillshade-illumination-anchor': 'map' }
+    }, 'osm');
+  }
+  const hsCb  = document.getElementById('hillshade-cb');
+  const hsDirRow = document.getElementById('hs-dir-row');
+  const hsDirSel = document.getElementById('hs-dir');
+  hsCb.addEventListener('change', () => {
+    hsDirRow.style.display = hsCb.checked ? 'flex' : 'none';
+    if (hsCb.checked) addHillshadeLayer(parseInt(hsDirSel.value));
+    else if (map.getLayer('hillshade')) map.removeLayer('hillshade');
+  });
+  hsDirSel.addEventListener('change', () => { if (hsCb.checked) addHillshadeLayer(parseInt(hsDirSel.value)); });
+
+  // ── Per-layer opacity sliders ─────────────────────────────────────────────
+  document.querySelectorAll('[data-opacity-layer]').forEach(slider => {
+    slider.addEventListener('input', () => {
+      const id = slider.dataset.opacityLayer;
+      const prop = slider.dataset.prop || 'fill-opacity';
+      const val = parseFloat(slider.value);
+      if (map.getLayer(id)) try { map.setPaintProperty(id, prop, val); } catch(e) {}
+    });
+  });
+  const femaOpacitySlider = document.querySelector('[data-opacity-group="fema"]');
+  if (femaOpacitySlider) {
+    femaOpacitySlider.addEventListener('input', () => {
+      const val = parseFloat(femaOpacitySlider.value);
+      ['fema-ae-fill','fema-x-fill'].forEach(id => { if (map.getLayer(id)) map.setPaintProperty(id,'fill-opacity',val*0.9); });
+      ['fema-ae-line','fema-x-line'].forEach(id => { if (map.getLayer(id)) map.setPaintProperty(id,'line-opacity',val); });
+    });
+  }
+  const sinkOpacitySlider = document.querySelector('[data-opacity-group="sinkholes"]');
+  if (sinkOpacitySlider) {
+    sinkOpacitySlider.addEventListener('input', () => {
+      const val = parseFloat(sinkOpacitySlider.value);
+      if (map.getLayer('sinkholes-fill')) map.setPaintProperty('sinkholes-fill','fill-opacity',val);
+    });
+  }
+
+  // ── Click handlers ─────────────────────────────────────────────────────────
+  const CLICKABLE = ['buildings-ext','all-parcels-fill',
+                     'fema-ae-fill','fema-x-fill',
+                     'sinkholes-fill','riverine-fill','roads-line','flood-fill'];
+
+  CLICKABLE.forEach(id => {
+    if (!map.getLayer(id)) return;
+    map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
+  });
+
+  map.on('click', e => {
+    const feats = map.queryRenderedFeatures(e.point, { layers: CLICKABLE.filter(id => map.getLayer(id)) });
+    if (!feats.length) { document.getElementById('info').style.display = 'none'; return; }
+
+    // Query terrain elevation at click point (meters above sea level)
+    const elevM = map.queryTerrainElevation(e.lngLat, { exaggerated: false });
+    showInfo(feats[0], elevM);
+  });
+
+  document.getElementById('info-close').addEventListener('click', () => {
+    document.getElementById('info').style.display = 'none';
+  });
+
+  // ── Flood Science modal ────────────────────────────────────────────────────
+  document.getElementById('sci-btn').addEventListener('click', () => {
+    document.getElementById('sci-modal').classList.add('open');
+  });
+  document.getElementById('sci-close').addEventListener('click', () => {
+    document.getElementById('sci-modal').classList.remove('open');
+  });
+  document.getElementById('sci-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('sci-modal'))
+      document.getElementById('sci-modal').classList.remove('open');
+  });
+});
+
+map.on('error', e => console.warn('MapLibre:', e.error?.message || e));
+</script>
+</body>
+</html>

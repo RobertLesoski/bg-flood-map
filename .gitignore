@@ -1,0 +1,21 @@
+# Large data files
+*.tif
+*.gpkg
+*.pbf
+*.osm
+
+# Cache and generated layers
+cache/
+layers/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Local server logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
