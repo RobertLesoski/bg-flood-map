@@ -88,6 +88,7 @@ Undergraduate Researcher — Disaster Science Operations Center (DSOC) & AI Rese
 
 Western Kentucky University · Meteorology, Freshman
 
+Made with help from Claude Code + Claude Sonnet 4.6
 ---
 
 ### Principal Investigator
