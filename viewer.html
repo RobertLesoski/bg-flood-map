@@ -26,17 +26,17 @@
     #header h1 { font-size: 14px; font-weight: 700; color: #fff; white-space: nowrap; }
     #header .sub { font-size: 10px; color: var(--mute); }
 
-    /* ── Header sliders ── */
-    #rain-ctrl, #elev-ctrl {
-      background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
-      padding: 8px 12px; display: flex; align-items: center; gap: 10px; max-width: 260px; flex: 1;
+    /* ── Vista run info panel ── */
+    #vista-info {
+      background: var(--bg2); border: 1px solid #1a3a5a; border-radius: 8px;
+      padding: 7px 14px; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0;
     }
-    #rain-ctrl .label, #elev-ctrl .label { font-size: 10px; color: var(--mute); white-space: nowrap; line-height: 1.3; }
-    #rain-ctrl input[type=range], #elev-ctrl input[type=range] { flex: 1; accent-color: #4dabf7; cursor: pointer; }
-    #rain-val { font-size: 20px; font-weight: 800; color: var(--accent);
-                white-space: nowrap; min-width: 48px; text-align: right; }
-    #elev-val { font-size: 16px; font-weight: 800; color: rgba(0,185,220,1);
-                white-space: nowrap; min-width: 58px; text-align: right; }
+    .vi-label { font-size: 11px; font-weight: 800; color: #74c0fc; white-space: nowrap; }
+    .vi-detail { font-size: 9px; color: #445; white-space: nowrap; }
+    #vi-hour-stats { display: flex; gap: 8px; margin-top: 3px; font-size: 11px; font-weight: 700; color: #74c0fc; white-space: nowrap; flex-wrap: wrap; }
+    #vi-rain  { color: #4dabf7; }
+    #vi-rate  { color: #00c9c9; }
+    #vi-depth { color: #ff8c00; }
 
     /* ── Stats bar ── */
     #stats {
@@ -221,6 +221,28 @@
                   border-radius: 4px; padding: 2px 7px; font-size: 11px; color: #74c0fc;
                   margin-top: 4px; font-weight: 600; }
 
+    /* ── Flooded buildings list ── */
+    #fl-panel { margin: 4px 0; }
+    #fl-header {
+      display: flex; align-items: center; gap: 6px; padding: 5px 4px;
+      cursor: pointer; border-radius: 4px; user-select: none;
+    }
+    #fl-header:hover { background: var(--bg2); }
+    #fl-toggle-arrow { font-size: 10px; color: #555; transition: transform 0.2s; }
+    #fl-toggle-arrow.open { transform: rotate(90deg); }
+    #fl-title { font-size: 12px; font-weight: 700; color: #74c0fc; flex: 1; }
+    #fl-list-count { font-size: 10px; color: #555; }
+    #fl-list-body { max-height: 260px; overflow-y: auto; display: none; }
+    #fl-list-body.open { display: block; }
+    .fl-item {
+      display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 10px;
+      border-radius: 3px; cursor: pointer; border-bottom: 1px solid #0d0d1a;
+    }
+    .fl-item:hover { background: var(--bg2); }
+    .fl-tier-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .fl-addr { font-size: 11px; color: #bbb; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fl-tier-label { font-size: 9px; color: #555; text-transform: uppercase; flex-shrink: 0; }
+
     /* ── HPC tooltip bar ── */
     #hpc-now-bar {
       position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
@@ -240,22 +262,22 @@
     <div class="sub">Warren County PVA · FEMA NFHL · KyFromAbove DEM · OSM Buildings · TACC Vista H100 &nbsp;|&nbsp; <a href="https://www.wku.edu" target="_blank" style="color:var(--accent);text-decoration:none;">Robert Lesoski &mdash; Disaster Science Operations Center (DSOC) | AI Research Lab (AIR) &mdash; Western Kentucky University</a></div>
   </div>
 
-  <div id="rain-ctrl">
-    <span class="label">Rainfall<br/>Scenario</span>
-    <input type="range" id="rain-slider" min="0" max="3.0" step="0.25" value="0" />
-    <div id="rain-val">0.00"</div>
-  </div>
-
-  <div id="elev-ctrl">
-    <span class="label">Water Surface<br/>Elevation</span>
-    <input type="range" id="elev-slider" min="391" max="700" step="1" value="391" />
-    <div id="elev-val">391 ft</div>
+  <div id="vista-info">
+    <div class="vi-label">TACC Vista Run · 2-Year Storm</div>
+    <div class="vi-detail">3.5&quot; / 24-hr · SCS Type II · NOAA Atlas 14</div>
+    <div id="vi-hour-stats">
+      <span id="vi-rain">Rain: —</span>
+      <span style="color:#334">·</span>
+      <span id="vi-rate">Rate: —</span>
+      <span style="color:#334">·</span>
+      <span id="vi-depth">Max Depth: —</span>
+    </div>
   </div>
 
   <div id="stats">
-    <div class="stat"><div class="val" id="stat-bldg">—</div><div class="key">Bldgs at Risk</div></div>
-    <div class="stat"><div class="val" id="stat-parcels">—</div><div class="key">Parcels at Risk</div></div>
-    <div class="stat"><div class="val" id="stat-hpc-bldg" style="color:#74c0fc">—</div><div class="key">HPC Flooded</div></div>
+    <div class="stat"><div class="val" id="stat-hpc-bldg" style="color:#74c0fc">—</div><div class="key">Flooded Bldgs</div></div>
+    <div class="stat"><div class="val" id="stat-max-depth" style="color:#ff8c00">—</div><div class="key">Max Depth</div></div>
+    <div class="stat"><div class="val" id="stat-feat-cnt" style="color:#aaa">—</div><div class="key">Flood Cells</div></div>
   </div>
 
   <button id="sci-btn">How Floods Work ▸</button>
@@ -282,8 +304,8 @@
       <tr><td>Severe</td><td>&gt;1.2 m</td><td style="color:#e74c3c">Red</td><td>Life-threatening; evacuation</td></tr>
     </table>
 
-    <h3>3. The Rainfall Slider (0" – 3")</h3>
-    <p>The slider simulates a single storm event dropping between 0 and 3 inches of rain. The blue flood overlay expands as rainfall increases, showing which areas inundate at each threshold based on terrain elevation percentile thresholds.</p>
+    <h3>3. Rainfall Input (SCS Type II)</h3>
+    <p>The Vista simulation applies a <strong>3.5" / 24-hour</strong> rainfall event distributed via the SCS Type II hyetograph (NOAA Atlas 14, Warren County). Peak intensity occurs at hour 12. The viewer shows hours 1–9, covering the rising limb. Cumulative rainfall and instantaneous rate are displayed in the header for each simulation hour.</p>
 
     <h3>4. FEMA Flood Zones</h3>
     <p>The red/orange FEMA overlay is the official National Flood Hazard Layer (NFHL) for Warren County:</p>
@@ -322,7 +344,6 @@
     <div class="sec">HPC Flood Simulation</div>
     <div id="hpc-panel">
       <div id="hpc-header">
-        <input type="checkbox" id="hpc-toggle" />
         <span id="hpc-title">2-Year Storm · TACC Vista H100</span>
         <span id="hpc-badge">2YR</span>
       </div>
@@ -332,23 +353,23 @@
           <span id="hpc-hour-label">Hour 1 of 9</span>
           <span id="hpc-sim-time">t = 1:00:00</span>
         </div>
-        <input type="range" id="hpc-hour-slider" min="1" max="9" step="1" value="1" disabled />
+        <input type="range" id="hpc-hour-slider" min="1" max="9" step="1" value="1" />
       </div>
 
       <div id="hpc-controls">
-        <button id="hpc-play-btn" title="Play/Pause animation" disabled>▶</button>
-        <select id="hpc-speed-sel" disabled>
+        <button id="hpc-play-btn" title="Play/Pause animation">▶</button>
+        <select id="hpc-speed-sel">
           <option value="2000">Slow (2s/hr)</option>
           <option value="1000" selected>Normal (1s/hr)</option>
           <option value="500">Fast (0.5s/hr)</option>
           <option value="200">Fastest (0.2s/hr)</option>
         </select>
-        <input type="checkbox" id="hpc-3d-cb" disabled />
+        <input type="checkbox" id="hpc-3d-cb" checked />
         <label for="hpc-3d-cb" id="hpc-3d-label">3D</label>
       </div>
 
       <div id="hpc-progress"><div id="hpc-progress-bar"></div></div>
-      <div id="hpc-status">Enable to load simulation data</div>
+      <div id="hpc-status">Loading simulation…</div>
 
       <div id="hpc-stats">
         <div class="hpc-stat"><div class="v" id="hpc-feat-cnt">—</div><div class="k">Features</div></div>
@@ -363,6 +384,17 @@
       <div class="leg-r"><div class="tier-swatch" style="background:#00c9c9"></div><span>Moderate · 0.3–0.6 m</span></div>
       <div class="leg-r"><div class="tier-swatch" style="background:#ff8c00"></div><span>Deep · 0.6–1.2 m</span></div>
       <div class="leg-r"><div class="tier-swatch" style="background:#e74c3c"></div><span>Severe · &gt;1.2 m</span></div>
+    </div>
+
+    <!-- Flooded Buildings List -->
+    <hr />
+    <div id="fl-panel">
+      <div id="fl-header">
+        <span id="fl-toggle-arrow">▶</span>
+        <span id="fl-title">At-Risk Buildings</span>
+        <span id="fl-list-count">—</span>
+      </div>
+      <div id="fl-list-body"></div>
     </div>
 
     <hr />
@@ -383,8 +415,6 @@
 
     <hr />
     <div class="sec">Flood Hazard</div>
-    <label class="lr"><input type="checkbox" checked data-layer="flood" /><div class="sw" style="background:rgba(0,105,148,0.85);"></div><span class="lbl">Rainfall Flood Zones</span><span class="cnt" id="cnt-flood"></span></label>
-    <div class="opacity-row"><span>Opacity</span><input type="range" min="0" max="1" step="0.05" value="0.65" data-opacity-layer="flood-fill" data-prop="fill-opacity" /></div>
     <label class="lr"><input type="checkbox" checked data-layer="fema-ae" /><div class="sw" style="background:#c0392b;"></div><span class="lbl">FEMA 100-yr (AE/A)</span><span class="cnt" id="cnt-fema-ae"></span></label>
     <label class="lr"><input type="checkbox" checked data-layer="fema-x" /><div class="sw" style="background:#d4870a;"></div><span class="lbl">FEMA 500-yr (X)</span><span class="cnt" id="cnt-fema-x"></span></label>
     <div class="opacity-row"><span>FEMA Opacity</span><input type="range" min="0" max="1" step="0.05" value="0.4" data-opacity-group="fema" /></div>
@@ -403,12 +433,15 @@
     <label class="lr"><input type="checkbox" data-layer="all-parcels" /><div class="sw" style="background:#2ecc71; opacity:0.6;"></div><span class="lbl">All Parcels (flat)</span><span class="cnt" id="cnt-all-parcels"></span></label>
 
     <hr />
-    <div class="sec">Building Vulnerability</div>
+    <div class="sec">Building Status (Vista Run)</div>
     <div class="leg">
-      <div class="leg-r"><div class="sw" style="background:#c0392b;"></div><span>Crimson — 100-yr zone (≤1" rain)</span></div>
-      <div class="leg-r"><div class="sw" style="background:#d4870a;"></div><span>Amber — 500-yr / karst (1–3")</span></div>
+      <div class="leg-r"><div class="sw" style="background:#c0392b;"></div><span>Crimson — FEMA 100-yr zone</span></div>
+      <div class="leg-r"><div class="sw" style="background:#d4870a;"></div><span>Amber — FEMA 500-yr / karst</span></div>
       <div class="leg-r"><div class="sw" style="background:#94a3b8;"></div><span>Grey — above flood line</span></div>
-      <div class="leg-r"><div class="sw" style="background:rgba(0,105,148,0.85);"></div><span>Blue — currently inundated</span></div>
+      <div class="leg-r"><div class="tier-swatch" style="background:#4dabf7"></div><span>Blue — HPC shallow flood</span></div>
+      <div class="leg-r"><div class="tier-swatch" style="background:#00c9c9"></div><span>Cyan — HPC moderate flood</span></div>
+      <div class="leg-r"><div class="tier-swatch" style="background:#ff8c00"></div><span>Orange — HPC deep flood</span></div>
+      <div class="leg-r"><div class="tier-swatch" style="background:#e74c3c"></div><span>Red — HPC severe flood</span></div>
     </div>
 
     <hr />
@@ -418,15 +451,6 @@
       <div class="leg-r"><div class="sw" style="background:#d4870a;"></div><span>X — 500-yr (0.2% annual)</span></div>
     </div>
 
-    <hr />
-    <div class="sec">Flood Rainfall Bands</div>
-    <div class="leg">
-      <div class="leg-r"><div class="sw" style="background:#1e90ff;opacity:0.3;"></div><span>0.25" — Active floodplain</span></div>
-      <div class="leg-r"><div class="sw" style="background:#1e90ff;opacity:0.45;"></div><span>0.75" — Sinkhole basins</span></div>
-      <div class="leg-r"><div class="sw" style="background:#1e90ff;opacity:0.6;"></div><span>1.50" — Low neighborhoods</span></div>
-      <div class="leg-r"><div class="sw" style="background:#1e90ff;opacity:0.8;"></div><span>2.00" — Thunderstorm level</span></div>
-      <div class="leg-r"><div class="sw" style="background:#1e90ff;"></div><span>3.00" — Extreme event</span></div>
-    </div>
 
     <hr />
     <div class="sec">Altitude Info</div>
@@ -460,11 +484,24 @@
 // ─── Constants ───────────────────────────────────────────────────────────────
 const L = './layers/';
 const CENTER   = [-86.419, 36.972];
-const RAIN_MAX = 3.0;
 
 // HPC hourly files living in layers/flood_hpc/
 const HPC_HOURS = [1,2,3,4,5,6,7,8,9];
 const HPC_SECS  = {1:3600,2:7200,3:10800,4:14400,5:18000,6:21600,7:25200,8:28800,9:32400};
+
+// SCS Type II cumulative rainfall (3.5" total, 24-hr storm) at each simulated hour
+// Values derived from NOAA Atlas 14 / SCS Type II dimensionless hyetograph
+const HPC_CUMRAIN = {
+  1: { cum: 0.016, rate: 0.016 },
+  2: { cum: 0.033, rate: 0.017 },
+  3: { cum: 0.054, rate: 0.021 },
+  4: { cum: 0.078, rate: 0.024 },
+  5: { cum: 0.106, rate: 0.028 },
+  6: { cum: 0.147, rate: 0.041 },
+  7: { cum: 0.188, rate: 0.041 },
+  8: { cum: 0.239, rate: 0.051 },
+  9: { cum: 0.294, rate: 0.055 },
+};
 
 // Depth tier → extrusion height (meters, visible on 3D map)
 const TIER_HEIGHT = { shallow: 3, moderate: 8, deep: 20, severe: 50 };
@@ -510,35 +547,65 @@ const BLDG_RISK_COLOR = ['case',
 ];
 const BLDG_H = ['coalesce',['get','height_m'],4];
 
-// Elevation thresholds
-const ELEV_THRESHOLDS = [
-  [403, 0.25],[419, 0.50],[440, 0.75],[464, 1.00],
-  [493, 1.25],[525, 1.50],[565, 2.00],[614, 2.50],[663, 3.00],
-];
-function elevToRain(elevFt) {
-  for (const [thresh, rain] of ELEV_THRESHOLDS) if (elevFt <= thresh) return rain;
-  return 3.0;
+// ─── Spatial grid for fast HPC-building intersection ──────────────────────────
+class SpatialGrid {
+  constructor(bboxes, cols = 50, rows = 50) {
+    this.cols = cols; this.rows = rows;
+    let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+    for (const b of bboxes) {
+      if (!b) continue;
+      if (b[0]<x0) x0=b[0]; if (b[2]>x1) x1=b[2];
+      if (b[1]<y0) y0=b[1]; if (b[3]>y1) y1=b[3];
+    }
+    this.x0=x0; this.y0=y0;
+    this.cw=(x1-x0)/cols||0.001; this.ch=(y1-y0)/rows||0.001;
+    this.cells=Array.from({length:cols*rows},()=>[]);
+    bboxes.forEach((b,i)=>{
+      if(!b)return;
+      const c0=Math.max(0,Math.floor((b[0]-x0)/this.cw));
+      const c1=Math.min(cols-1,Math.floor((b[2]-x0)/this.cw));
+      const r0=Math.max(0,Math.floor((b[1]-y0)/this.ch));
+      const r1=Math.min(rows-1,Math.floor((b[3]-y0)/this.ch));
+      for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++) this.cells[r*cols+c].push(i);
+    });
+  }
+  candidates(b) {
+    const {x0,y0,cw,ch,cols,rows,cells}=this;
+    const c0=Math.max(0,Math.floor((b[0]-x0)/cw));
+    const c1=Math.min(cols-1,Math.floor((b[2]-x0)/cw));
+    const r0=Math.max(0,Math.floor((b[1]-y0)/ch));
+    const r1=Math.min(rows-1,Math.floor((b[3]-y0)/ch));
+    const seen=new Set(), out=[];
+    for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++)
+      for(const i of cells[r*cols+c]) if(!seen.has(i)){seen.add(i);out.push(i);}
+    return out;
+  }
+}
+
+const TIER_RANK = { shallow:1, moderate:2, deep:3, severe:4 };
+function worstTier(a,b){ if(!a)return b; if(!b)return a; return TIER_RANK[a]>=TIER_RANK[b]?a:b; }
+function polygonCentroid(coords){
+  const ring=coords[0]; let sx=0,sy=0;
+  for(const[x,y]of ring){sx+=x;sy+=y;} return[sx/ring.length,sy/ring.length];
 }
 
 // ─── State ────────────────────────────────────────────────────────────────────
-let currentRain = 0;
 let buildingsData = null;
 let allParcelsData = null;
 let loadedLayers = {};
 
 // HPC state
-let hpcEnabled    = false;
+let hpcEnabled    = true;
 let hpcCurrentHour = 1;
 let hpcPlaying    = false;
 let hpcPlayTimer  = null;
 let hpcCache      = {};   // hour → GeoJSON data (preloaded/cached)
 let hpcLoading    = false;
-let hpc3dMode     = false;
-let hpcBuildingBBoxes = null; // precomputed bboxes for buildings
-let hpcRoadBBoxes     = null;
+let hpc3dMode     = true;
+let hpcBuildingBBoxes = null;
+let hpcFloodedList    = [];  // current flooded buildings [{index, address, tier, centroid}]
 
 const layerGroups = {
-  flood:        ['flood-fill'],
   'fema-ae':    ['fema-ae-fill','fema-ae-line'],
   'fema-x':     ['fema-x-fill','fema-x-line'],
   sinkholes:    ['sinkholes-fill','sinkholes-line'],
@@ -653,21 +720,100 @@ function hpcUpdateStats(data) {
   if (!data) return;
   const feats = data.features || [];
   document.getElementById('hpc-feat-cnt').textContent = feats.length.toLocaleString();
+  document.getElementById('stat-feat-cnt').textContent = feats.length.toLocaleString();
 
-  // Count buildings overlapping HPC flood extent using bbox test
-  let bldgHit = 0, roadHit = 0;
+  // Max depth from Vista output
+  let maxDepth = 0;
+  for (const f of feats) {
+    const d = parseFloat(f.properties?.depth_max_m) || 0;
+    if (d > maxDepth) maxDepth = d;
+  }
+  const depthStr = maxDepth > 0 ? maxDepth.toFixed(2) + ' m' : '—';
+  document.getElementById('stat-max-depth').textContent = depthStr;
+  document.getElementById('vi-depth').textContent = 'Max Depth: ' + depthStr;
+
+  // Build spatial grid over HPC polygons for fast building detection
+  const hpcBboxes = feats.map(f => geomBbox(f.geometry));
+  const grid = new SpatialGrid(hpcBboxes);
+
+  const floodedBldgs = [];
   if (buildingsData && hpcBuildingBBoxes) {
-    const hpcBboxes = feats.map(f => geomBbox(f.geometry)).filter(Boolean);
     for (let i = 0; i < hpcBuildingBBoxes.length; i++) {
-      if (bboxesOverlapAny(hpcBuildingBBoxes[i], hpcBboxes)) bldgHit++;
+      const bbox = hpcBuildingBBoxes[i];
+      if (!bbox) continue;
+      const cands = grid.candidates(bbox);
+      let bestTier = null;
+      for (const ci of cands) {
+        const hb = hpcBboxes[ci];
+        if (hb && bboxOverlap(bbox, hb)) bestTier = worstTier(bestTier, feats[ci].properties?.tier);
+      }
+      if (bestTier) {
+        const feat = buildingsData.features[i];
+        const geom = feat.geometry;
+        const centroid = geom?.type === 'Polygon' ? polygonCentroid(geom.coordinates)
+                       : geom?.type === 'MultiPolygon' ? polygonCentroid(geom.coordinates[0]) : null;
+        const p = feat.properties || {};
+        const addr = (p['addr:housenumber'] && p['addr:street'])
+          ? p['addr:housenumber'] + ' ' + p['addr:street']
+          : p.ADDRESS || p.SiteAddress || p.name || ('Building ' + (i + 1));
+        floodedBldgs.push({ index: i, address: addr, tier: bestTier, centroid });
+      }
     }
   }
 
+  // Sort: severe → deep → moderate → shallow, then alpha
+  const tierOrder = { severe:0, deep:1, moderate:2, shallow:3 };
+  floodedBldgs.sort((a,b)=>(tierOrder[a.tier]||4)-(tierOrder[b.tier]||4)||a.address.localeCompare(b.address));
+  hpcFloodedList = floodedBldgs;
+
   const total = buildingsData?.features?.length || 20284;
-  const pct = total > 0 ? ((bldgHit / total) * 100).toFixed(1) + '%' : '—';
+  const bldgHit = floodedBldgs.length;
+  const pct = total > 0 ? ((bldgHit/total)*100).toFixed(1)+'%' : '—';
   document.getElementById('hpc-bldg-pct').textContent = pct;
-  document.getElementById('stat-hpc-bldg').textContent = bldgHit > 0 ? bldgHit.toLocaleString() : '—';
-  document.getElementById('hpc-road-pct').textContent = '—'; // roads need line intersection
+  document.getElementById('stat-hpc-bldg').textContent = bldgHit > 0 ? bldgHit.toLocaleString() : '0';
+  document.getElementById('hpc-road-pct').textContent = '—';
+
+  updateFloodedBuildingList(floodedBldgs);
+  updateFloodedBuildingsLayer(floodedBldgs);
+}
+
+function updateFloodedBuildingList(list) {
+  const body = document.getElementById('fl-list-body');
+  const countEl = document.getElementById('fl-list-count');
+  if (!body) return;
+  countEl.textContent = list.length > 0 ? list.length.toLocaleString() + ' bldgs' : 'none';
+  const TC = { shallow:'#4dabf7', moderate:'#00c9c9', deep:'#ff8c00', severe:'#e74c3c' };
+  const cap = list.slice(0, 600);
+  body.innerHTML = cap.map((b,i)=>
+    `<div class="fl-item" data-idx="${i}">
+       <div class="fl-tier-dot" style="background:${TC[b.tier]||'#888'}"></div>
+       <div class="fl-addr" title="${b.address}">${b.address}</div>
+       <div class="fl-tier-label">${b.tier}</div>
+     </div>`
+  ).join('') + (list.length > 600
+    ? `<div style="font-size:10px;color:#555;padding:4px;text-align:center">…and ${list.length-600} more</div>`
+    : '');
+  body.querySelectorAll('.fl-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const b = list[parseInt(el.dataset.idx)];
+      if (b?.centroid) {
+        map.flyTo({ center: b.centroid, zoom: 18, pitch: 60, bearing: -14, duration: 1200 });
+        const feat = { ...buildingsData.features[b.index], layer: { id: 'buildings-ext' } };
+        showInfo(feat, null);
+      }
+    });
+  });
+}
+
+function updateFloodedBuildingsLayer(list) {
+  const src = map.getSource('hpc-bldgs-src');
+  if (!src) return;
+  const feats = list.map(b => {
+    const f = buildingsData?.features[b.index];
+    if (!f) return null;
+    return { ...f, properties: { ...f.properties, hpc_tier: b.tier } };
+  }).filter(Boolean);
+  src.setData({ type: 'FeatureCollection', features: feats });
 }
 
 function geomBbox(geom) {
@@ -713,6 +859,12 @@ async function hpcGoToHour(hour, silent = false) {
   document.getElementById('hpc-hour-label').textContent = `Hour ${hour} of ${HPC_HOURS.length}`;
   document.getElementById('hpc-sim-time').textContent = `t = ${fmtSimTime(hour)}`;
   document.getElementById('hpc-now-bar').textContent = `⏱ Hour ${hour} of 9 · t = ${fmtSimTime(hour)}`;
+  // Update Vista header rainfall stats
+  const cr = HPC_CUMRAIN[hour];
+  if (cr) {
+    document.getElementById('vi-rain').textContent  = `Rain: ${cr.cum.toFixed(3)}"`;
+    document.getElementById('vi-rate').textContent  = `Rate: ${cr.rate.toFixed(3)}"/hr`;
+  }
   document.getElementById('hpc-progress-bar').style.width = ((hour / HPC_HOURS.length) * 100) + '%';
 
   if (!silent) document.getElementById('hpc-status').textContent = `Loading Hour ${hour}…`;
@@ -757,29 +909,9 @@ function hpcPause() {
 
 async function hpcEnable() {
   hpcEnabled = true;
-  document.getElementById('hpc-hour-slider').disabled = false;
-  document.getElementById('hpc-play-btn').disabled = false;
-  document.getElementById('hpc-speed-sel').disabled = false;
-  document.getElementById('hpc-3d-cb').disabled = false;
   document.getElementById('hpc-now-bar').style.display = 'block';
   document.getElementById('hpc-status').textContent = 'Loading Hour 1…';
   await hpcGoToHour(1);
-}
-
-function hpcDisable() {
-  hpcEnabled = false;
-  hpcPause();
-  hpcRemoveLayers();
-  hpcCache = {};
-  document.getElementById('hpc-hour-slider').disabled = true;
-  document.getElementById('hpc-play-btn').disabled = true;
-  document.getElementById('hpc-speed-sel').disabled = true;
-  document.getElementById('hpc-3d-cb').disabled = true;
-  document.getElementById('hpc-now-bar').style.display = 'none';
-  document.getElementById('hpc-status').textContent = 'Enable to load simulation data';
-  document.getElementById('hpc-feat-cnt').textContent = '—';
-  document.getElementById('hpc-bldg-pct').textContent = '—';
-  document.getElementById('stat-hpc-bldg').textContent = '—';
 }
 
 // ─── Info panel helpers ────────────────────────────────────────────────────────
@@ -797,6 +929,7 @@ const LAYER_NAME = {
   'all-parcels-fill':'Parcel',
   'hpc-fill':       'HPC Flood Polygon',
   'hpc-3d':         'HPC Flood Polygon (3D)',
+  'hpc-bldgs-ext':  'Flooded Building (Vista Run)',
 };
 
 function fmt(k, v) {
@@ -859,8 +992,11 @@ function showInfo(feature, elevM) {
   const badge = (p.flood_at_rain_in != null) ? riskBadge(p.flood_at_rain_in) : '';
 
   // HPC depth badge
-  const isHpcFeat = lyr === 'hpc-fill' || lyr === 'hpc-3d';
-  const hpcBadge = (isHpcFeat && p.tier) ? depthBadge(p.tier) : '';
+  const isHpcFeat = lyr === 'hpc-fill' || lyr === 'hpc-3d' || lyr === 'hpc-bldgs-ext';
+  const tier = p.tier || p.hpc_tier;
+  const hpcBadge = (isHpcFeat && tier) ? depthBadge(tier) : '';
+  // for HPC context in building popup
+  const hpcHrCtxLyr = lyr === 'buildings-ext' || lyr === 'hpc-bldgs-ext';
 
   // Ground elevation badge
   let elevBadge = '';
@@ -870,21 +1006,12 @@ function showInfo(feature, elevM) {
     elevBadge = `<tr><td colspan="2"><span class="elev-badge">Ground Elevation: ${elevFt} ft (${elevMR} m) MSL</span></td></tr>`;
   }
 
-  // Water depth badge (elevation slider)
   let depthBadge2 = '';
-  const wsElev = parseFloat(document.getElementById('elev-slider')?.value ?? '391');
-  if (wsElev > 391 && elevM != null && isFinite(elevM)) {
-    const terrainFt = elevM * 3.28084;
-    const depth = Math.max(0, wsElev - terrainFt);
-    if (depth > 0) {
-      depthBadge2 = `<tr><td colspan="2"><span class="elev-badge" style="color:#4dd9f5;border-color:rgba(0,105,148,0.6);background:rgba(0,105,148,0.2)">Water Depth: ${depth.toFixed(1)} ft above ground</span></td></tr>`;
-    }
-  }
 
   // HPC hour context
   let hpcContext = '';
-  if (lyr === 'buildings-ext' && hpcEnabled) {
-    hpcContext = `<tr><td colspan="2"><span class="elev-badge" style="color:#74c0fc;border-color:#74c0fc">HPC Hour ${hpcCurrentHour} active — click flood polygon for depth</span></td></tr>`;
+  if (hpcHrCtxLyr && hpcEnabled) {
+    hpcContext = `<tr><td colspan="2"><span class="elev-badge" style="color:#74c0fc;border-color:#74c0fc">Vista Run · Hour ${hpcCurrentHour} · ${(HPC_CUMRAIN[hpcCurrentHour]?.cum||0).toFixed(3)}" cumulative</span></td></tr>`;
   }
 
   let facingRow = '';
@@ -926,85 +1053,23 @@ function showInfo(feature, elevM) {
   document.getElementById('info').style.display = 'block';
 }
 
-// ─── Live stats ────────────────────────────────────────────────────────────────
-function updateStats(rain) {
-  let bldgRisk = 0, parcelRisk = 0;
-  for (const f of (buildingsData?.features || [])) {
-    const floodAt = (f.properties || {}).flood_at_rain_in ?? 9;
-    if (floodAt <= rain) bldgRisk++;
-  }
-  for (const f of (allParcelsData?.features || [])) {
-    const floodAt = (f.properties || {}).flood_at_rain_in ?? 9;
-    if (floodAt <= rain) parcelRisk++;
-  }
-  const bldgEl   = document.getElementById('stat-bldg');
-  const parcelEl = document.getElementById('stat-parcels');
-  if (bldgEl)   bldgEl.textContent   = rain === 0 ? '—' : bldgRisk.toLocaleString();
-  if (parcelEl) parcelEl.textContent = rain === 0 ? '—' : parcelRisk.toLocaleString();
-}
-
-// ─── Rainfall slider ──────────────────────────────────────────────────────────
-function applyRain(rain) {
-  currentRain = rain;
-  document.getElementById('rain-val').textContent = rain.toFixed(2) + '"';
-  const hasFlood = loadedLayers['flood'];
-  if (hasFlood) {
-    if (rain === 0) { map.setLayoutProperty('flood-fill', 'visibility', 'none'); }
-    else {
-      const cb = document.querySelector('[data-layer="flood"]');
-      if (cb?.checked) map.setLayoutProperty('flood-fill', 'visibility', 'visible');
-      map.setFilter('flood-fill', ['<=', ['get', 'min_rain_in'], rain]);
-    }
-  }
-  if (loadedLayers['buildings']) {
-    const floodColor = rain === 0 ? BLDG_RISK_COLOR : [
-      'case',
-      ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9], rain], 'rgba(0,105,148,0.9)',
-      ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9], 1.0], '#c0392b',
-      ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9], 3.0], '#d4870a',
-      '#94a3b8'
-    ];
-    map.setPaintProperty('buildings-ext', 'fill-extrusion-color', floodColor);
-    const floodH = rain === 0 ? BLDG_H : [
-      'case',
-      ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9.0], rain], ['max', BLDG_H, 8],
-      BLDG_H
-    ];
-    map.setPaintProperty('buildings-ext', 'fill-extrusion-height', floodH);
-  }
-  if (loadedLayers['all-parcels']) {
-    const flatColor = rain === 0 ? VALUE_COLOR : [
-      'case',
-      ['<=', ['coalesce', ['get', 'flood_at_rain_in'], 9.0], rain], '#1e90ff',
-      VALUE_COLOR
-    ];
-    map.setPaintProperty('all-parcels-fill', 'fill-color', flatColor);
-  }
-  updateStats(rain);
-}
-
-document.getElementById('rain-slider').addEventListener('input', function() {
-  applyRain(parseFloat(this.value));
-});
+// rainfall slider removed — Vista HPC run is sole flood source
 
 // ─── Main load ────────────────────────────────────────────────────────────────
 map.on('load', async () => {
-  setMsg('Loading flood simulation… (1/6)', 5);
-  const floodData = await fetchLayer('flood_sim');
-
-  setMsg('Loading FEMA flood zones… (2/6)', 20);
+  setMsg('Loading FEMA flood zones… (1/5)', 10);
   const fema = await fetchLayer('fema');
 
-  setMsg('Loading karst sinkholes… (3/6)', 35);
+  setMsg('Loading karst sinkholes… (2/5)', 28);
   const sinkholes = await fetchLayer('sinkholes');
 
-  setMsg('Loading rivers & roads… (4/6)', 48);
+  setMsg('Loading rivers & roads… (3/5)', 46);
   const [riverine, roads] = await Promise.all([fetchLayer('riverine'), fetchLayer('roads')]);
 
-  setMsg('Loading buildings… (5/6)', 62);
+  setMsg('Loading buildings… (4/5)', 64);
   const bldgs = await fetchLayer('buildings');
 
-  setMsg('Loading parcels… (6/6)', 80);
+  setMsg('Loading parcels… (5/5)', 82);
   const allParcels = await fetchLayer('all_parcels');
 
   buildingsData  = bldgs;
@@ -1014,19 +1079,6 @@ map.on('load', async () => {
   precomputeBuildingBBoxes();
 
   setMsg('Rendering all layers…', 92);
-
-  // ── Flood simulation (rainfall slider) ────────────────────────────────────
-  if (floodData) {
-    map.addSource('flood-src', { type: 'geojson', data: floodData });
-    map.addLayer({
-      id: 'flood-fill', type: 'fill', source: 'flood-src',
-      filter: ['<=', ['get', 'min_rain_in'], 0],
-      paint: { 'fill-color': 'rgba(0,105,148,0.65)', 'fill-outline-color': 'rgba(0,80,120,0.8)', 'fill-opacity': 1 }
-    });
-    map.setLayoutProperty('flood-fill', 'visibility', 'none');
-    loadedLayers['flood'] = true;
-    setCount('cnt-flood', (floodData.features?.length ?? 0) + ' bands');
-  }
 
   // ── FEMA ──────────────────────────────────────────────────────────────────
   if (fema) {
@@ -1111,8 +1163,22 @@ map.on('load', async () => {
     setCount('cnt-buildings', bldgs.features?.length);
   }
 
+  // ── HPC flooded-buildings overlay (filled by hpcUpdateStats) ──────────────
+  map.addSource('hpc-bldgs-src', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({
+    id: 'hpc-bldgs-ext', type: 'fill-extrusion', source: 'hpc-bldgs-src',
+    paint: {
+      'fill-extrusion-color': ['match', ['get','hpc_tier'],
+        'shallow','#4dabf7','moderate','#00c9c9','deep','#ff8c00','severe','#e74c3c','#4dabf7'],
+      'fill-extrusion-height': ['match', ['get','hpc_tier'],
+        'shallow',3,'moderate',8,'deep',20,'severe',50,3],
+      'fill-extrusion-base': 0,
+      'fill-extrusion-opacity': 0.9
+    }
+  });
+
   setMsg('All layers loaded — ready!', 100);
-  await new Promise(r => setTimeout(r, 600));
+  await new Promise(r => setTimeout(r, 500));
   document.getElementById('loading').style.display = 'none';
 
   // ── Layer toggles ──────────────────────────────────────────────────────────
@@ -1120,17 +1186,21 @@ map.on('load', async () => {
     cb.addEventListener('change', () => {
       const vis = cb.checked ? 'visible' : 'none';
       (layerGroups[cb.dataset.layer] || []).forEach(id => {
-        if (map.getLayer(id)) {
-          if (id === 'flood-fill' && currentRain === 0 && cb.checked) return;
-          map.setLayoutProperty(id, 'visibility', vis);
-        }
+        if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
       });
     });
   });
 
-  // ── HPC toggle ────────────────────────────────────────────────────────────
-  document.getElementById('hpc-toggle').addEventListener('change', function() {
-    if (this.checked) hpcEnable(); else hpcDisable();
+  // ── HPC auto-enable (always on, 3D default) ───────────────────────────────
+  hpc3dMode = document.getElementById('hpc-3d-cb').checked;
+  hpcEnable();
+
+  // ── Flooded buildings list toggle ─────────────────────────────────────────
+  document.getElementById('fl-header').addEventListener('click', () => {
+    const body = document.getElementById('fl-list-body');
+    const arrow = document.getElementById('fl-toggle-arrow');
+    const open = body.classList.toggle('open');
+    arrow.classList.toggle('open', open);
   });
 
   // ── HPC time slider ───────────────────────────────────────────────────────
@@ -1159,23 +1229,6 @@ map.on('load', async () => {
     const v = parseFloat(exSlider.value);
     document.getElementById('exag-val').textContent = v.toFixed(2) + '×';
     map.setTerrain({ source: 'terrain', exaggeration: v });
-  });
-
-  // ── Elevation slider ──────────────────────────────────────────────────────
-  const elevSlider = document.getElementById('elev-slider');
-  const rainSlider = document.getElementById('rain-slider');
-  elevSlider.addEventListener('input', () => {
-    const elevFt = parseFloat(elevSlider.value);
-    document.getElementById('elev-val').textContent = elevFt.toFixed(0) + ' ft';
-    const rain = elevToRain(elevFt);
-    rainSlider.value = String(rain);
-    applyRain(rain);
-  });
-  rainSlider.addEventListener('input', function() {
-    const rain = parseFloat(this.value);
-    const matchElev = ELEV_THRESHOLDS.find(([,r]) => r >= rain)?.[0] ?? 663;
-    elevSlider.value = String(matchElev);
-    document.getElementById('elev-val').textContent = matchElev.toFixed(0) + ' ft';
   });
 
   // ── Hillshade ─────────────────────────────────────────────────────────────
@@ -1224,10 +1277,10 @@ map.on('load', async () => {
   }
 
   // ── Click handlers ────────────────────────────────────────────────────────
-  const CLICKABLE = ['buildings-ext','all-parcels-fill',
+  const CLICKABLE = ['hpc-bldgs-ext','buildings-ext','all-parcels-fill',
                      'fema-ae-fill','fema-x-fill',
                      'sinkholes-fill','riverine-fill',
-                     'roads-line','flood-fill',
+                     'roads-line',
                      'hpc-fill','hpc-3d'];
 
   CLICKABLE.forEach(id => {
