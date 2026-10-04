@@ -53,17 +53,24 @@ Planned storm return periods: **2, 5, 10, 25, 50, and 100-year** events using NO
 
 ---
 
-## ✦ Tech Stack
+## ✦ Running Locally
 
-![MapLibre](https://img.shields.io/badge/MapLibre_GL_JS-4.7-blue?style=flat-square)
-![CuPy](https://img.shields.io/badge/CuPy-CUDA_12-green?style=flat-square)
-![Python](https://img.shields.io/badge/Python-3.x-yellow?style=flat-square)
-![GDAL](https://img.shields.io/badge/rasterio-GDAL-orange?style=flat-square)
-![SLURM](https://img.shields.io/badge/SLURM-Array_Jobs-red?style=flat-square)
+> **Note:** This repo contains the viewer and scripts only. The data files (GeoJSON layers, DEM, GPKG) are not included due to size. Follow the steps below to rebuild them.
 
----
+### Requirements
+- Python 3.x with: `rasterio`, `geopandas`, `shapely`, `numpy`, `requests`
+- GDAL command-line tools
+- A local HTTP server (`python -m http.server 8000`)
 
-## ✦ Credits
+### Data Setup
+
+| File needed | Source | How to get it |
+|---|---|---|
+| `layers/fema.geojson` | FEMA NFHL | Run `fetch_fema.py` |
+| `layers/buildings.geojson` | OpenStreetMap | Run `osm_roads.py` after downloading `kentucky-latest.osm.pbf` from [Geofabrik](https://download.geofabrik.de/north-america/us/kentucky.html) |
+
+
+**CREDITS**
 
 ![Developer](https://img.shields.io/badge/Developer-Robert_G._Lesoski-C8102E?style=for-the-badge)
 **Robert G. Lesoski**
