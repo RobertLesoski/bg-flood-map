@@ -81,25 +81,36 @@ Planned storm return periods: **2, 5, 10, 25, 50, and 100-year** events using NO
 **CREDITS**
 
 ![Developer](https://img.shields.io/badge/Developer-Robert_G._Lesoski-C8102E?style=for-the-badge)
+
 **Robert G. Lesoski**
-Disaster Science Operations Center
-Western Kentucky University
-Meteorology-Freshman
+
+Undergraduate Researcher — Disaster Science Operations Center (DSOC) & AI Research Lab (AIR)
+
+Western Kentucky University · Meteorology, Freshman
+
+---
+
+### Principal Investigator
 
 ![PI](https://img.shields.io/badge/Principal_Investigator-Dr._Manmeet_Singh-4a90d9?style=for-the-badge)
 
 **Dr. Manmeet Singh**
-Disaster Science Operations Center 
+
+Disaster Science Operations Center (DSOC)
+
 Western Kentucky University
 
 ---
 
+### Research Contributor
+
 ![Contributor](https://img.shields.io/badge/Research_Contributor-Somnath_Liutel-555555?style=for-the-badge)
 
 **Somnath Liutel**
-Disaster Science Operations Center
-Western Kentucky University
-Graduate Student
+
+Disaster Science Operations Center (DSOC)
+
+Western Kentucky University · Graduate Student
 
 
 *Disaster Science Operations Center (DSOC) · AI Research Lab (AIR) · Western Kentucky University*
