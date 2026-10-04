@@ -1,4 +1,7 @@
-<img width="1087" height="495" alt="image" src="https://github.com/user-attachments/assets/53e21275-aa64-4c94-bd7a-7757b4739293" />
+![DSOC](https://img.shields.io/badge/DSOC-AI_Research_Lab-C8102E?style=for-the-badge)
+![WKU](https://img.shields.io/badge/Western_Kentucky_University-Meteorology-CC0000?style=for-the-badge)
+![TACC](https://img.shields.io/badge/TACC_Vista-H100_GPU-4a90d9?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Active_Research-green?style=for-the-badge)
 
 ---
 
