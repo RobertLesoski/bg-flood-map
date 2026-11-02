@@ -67,3 +67,8 @@ the optimisations behind them are in `docs/PERF.md`; architecture and the layer 
 - The current flow data are the **depth-tier preview** (`"source": "tiers"`), labelled "Preview from depth tiers" in the
   app. The 5-year to 100-year storms are available; county-wide Vista output is not convertible yet.
 - Tested only on one laptop (GTX 1650, Vulkan) with scripted input, not a physical mouse.
+
+## Presentation
+
+A 20-slide technical deck with live-render video clips was made from this app (private link: https://claude.ai/artifact/L7J2yCrkuLEzmww9VBDxCL). `docs/make_media.py` re-renders the clips: it loads the 100-year storm, renders three camera paths (flood rising over 24 hours, fly-through, orbit) as JPEG frames in `docs/media/<clip>/`, ready to encode with ffmpeg (`-framerate 24 -i %04d.jpg -c:v libx264 -pix_fmt yuv420p`).
+
