@@ -263,7 +263,7 @@
         <thead><tr>
           <th data-col="address">Address</th>
           <th data-col="tier">Depth Tier</th>
-          <th data-col="depth_max_m">Max Depth (m)</th>
+
           <th data-col="LAND_USE">Land Use</th>
           <th data-col="sale_price">Sale Price</th>
         </tr></thead>
@@ -493,6 +493,29 @@ function geomBbox(geom){
 function bboxOverlap(a,b){return a[0]<=b[2]&&a[2]>=b[0]&&a[1]<=b[3]&&a[3]>=b[1];}
 const TIER_RANK={shallow:1,moderate:2,deep:3,severe:4};
 function worstTier(a,b){if(!a)return b;if(!b)return a;return TIER_RANK[a]>=TIER_RANK[b]?a:b;}
+const TIER_BAND={shallow:'0.1–0.3 m',moderate:'0.3–0.6 m',deep:'0.6–1.2 m',severe:'> 1.2 m'};
+function polysOf(g){return !g?[]:g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];}
+function ringContains(ring,x,y){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)inside=!inside;}return inside;}
+function polyContains(poly,x,y){if(!ringContains(poly[0],x,y))return false;for(let h=1;h<poly.length;h++)if(ringContains(poly[h],x,y))return false;return true;}
+function segsCross(ax,ay,bx,by,cx,cy,dx,dy){const d1=(bx-ax)*(cy-ay)-(by-ay)*(cx-ax),d2=(bx-ax)*(dy-ay)-(by-ay)*(dx-ax),d3=(dx-cx)*(ay-cy)-(dy-cy)*(ax-cx),d4=(dx-cx)*(by-cy)-(dy-cy)*(bx-cx);return (d1>0)!==(d2>0)&&(d3>0)!==(d4>0);}
+function footprintHitsFlood(bGeom,bBox,fGeom){
+  const fPolys=polysOf(fGeom);
+  for(const bp of polysOf(bGeom)){
+    const bRing=bp[0];
+    for(const fp of fPolys){
+      for(const[x,y]of bRing)if(polyContains(fp,x,y))return true;
+      for(const fr of fp){
+        for(let i=0;i<fr.length-1;i++){
+          const ax=fr[i][0],ay=fr[i][1],bx=fr[i+1][0],by=fr[i+1][1];
+          if(Math.max(ax,bx)<bBox[0]||Math.min(ax,bx)>bBox[2]||Math.max(ay,by)<bBox[1]||Math.min(ay,by)>bBox[3])continue;
+          if(ringContains(bRing,ax,ay))return true;
+          for(let k=0;k<bRing.length-1;k++)if(segsCross(ax,ay,bx,by,bRing[k][0],bRing[k][1],bRing[k+1][0],bRing[k+1][1]))return true;
+        }
+      }
+    }
+  }
+  return false;
+}
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let allBuildings = [];
@@ -547,7 +570,7 @@ function renderVista() {
     return `<tr>
       <td>${b.address}</td>
       <td><span style="color:${c};font-weight:700;font-size:10px">${TIER_LABEL[b.tier]||b.tier}</span></td>
-      <td style="color:${c}">${b.depth_max_m != null ? b.depth_max_m.toFixed(2) + ' m' : '—'}</td>
+
       <td>${b.LAND_USE || '—'}</td>
       <td>${fmtPrice(b.sale_price)}</td>
     </tr>`;
@@ -716,7 +739,7 @@ function exportReport() {
     txt += pad('ADDRESS',38) + pad('DEPTH TIER',22) + pad('MAX DEPTH',12) + 'LAND USE\n';
     txt += dash + '\n';
     for(const b of vRows){
-      const depthStr = b.depth_max_m != null ? b.depth_max_m.toFixed(2)+'m' : '—';
+      const depthStr = b.depth_band || '—';
       txt += pad(b.address||'Unknown',38) + pad((b.tier||'—').toUpperCase(),22) + pad(depthStr,12) + (b.LAND_USE||'—') + '\n';
     }
     txt += '\n';
@@ -894,15 +917,13 @@ function downloadMethodology() {
         const bbox = bldgBboxes[i];
         if (!bbox) return;
         const cands = grid.candidates(bbox);
-        let bestTier = null, bestDepth = null;
+        let bestTier = null;
         for (const ci of cands) {
           const hb = hpcBboxes[ci];
-          if (hb && bboxOverlap(bbox, hb)) {
-            const t = hpcFeats[ci].properties?.tier;
-            const d = parseFloat(hpcFeats[ci].properties?.depth_max_m) || 0;
-            bestTier = worstTier(bestTier, t);
-            if (bestDepth === null || d > bestDepth) bestDepth = d;
-          }
+          if (!hb || !bboxOverlap(bbox, hb)) continue;
+          const t = hpcFeats[ci].properties?.tier;
+          if (bestTier && TIER_RANK[t] <= TIER_RANK[bestTier]) continue;
+          if (footprintHitsFlood(feat.geometry, bbox, hpcFeats[ci].geometry)) bestTier = worstTier(bestTier, t);
         }
         if (bestTier) {
           const p = feat.properties || {};
@@ -910,14 +931,14 @@ function downloadMethodology() {
             ? p['addr:housenumber'] + ' ' + p['addr:street']
             : p.ADDRESS || p.SiteAddress || p.name || ('Building ' + (i + 1));
           allVistaBuildings.push({
-            address: addr, tier: bestTier, depth_max_m: bestDepth,
+            address: addr, tier: bestTier, depth_band: TIER_BAND[bestTier],
             LAND_USE: p.LAND_USE, sale_price: p.sale_price
           });
         }
       });
     } else {
       document.getElementById('vista-body').innerHTML =
-        '<tr><td colspan="5" class="empty" style="color:#c0392b">Vista HPC data not found — run <code>python scripts/reproject_hpc.py</code> and serve from local server.</td></tr>';
+        '<tr><td colspan="4" class="empty" style="color:#c0392b">Vista HPC data not found — run <code>python scripts/reproject_hpc.py</code> and serve from local server.</td></tr>';
       document.getElementById('vista-count').textContent = 'unavailable';
     }
 

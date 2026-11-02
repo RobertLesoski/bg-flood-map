@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fluid layer harness</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0c1015; color: #d6dde6; font: 13px/1.35 system-ui, "Segoe UI", sans-serif; }
+  #map { position: absolute; inset: 0; }
+  #panel { position: absolute; left: 8px; top: 8px; z-index: 5; width: 330px; max-height: calc(100% - 16px); overflow: auto;
+    background: rgba(15, 20, 27, 0.92); border: 1px solid #263140; border-radius: 6px; padding: 8px 10px; }
+  #panel h1 { font-size: 14px; margin: 0 0 6px; font-weight: 600; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 4px 0; }
+  .row > span { color: #7f8c9b; min-width: 54px; }
+  button, select { background: #1f2a37; color: #d6dde6; border: 1px solid #33425a; border-radius: 4px; padding: 2px 7px; font: inherit; cursor: pointer; }
+  button:hover { background: #28384c; }
+  button.on { background: #2b5d8f; border-color: #4a8fd0; }
+  input[type=range] { width: 180px; }
+  label { display: inline-flex; align-items: center; gap: 3px; }
+  #status { color: #8fb4d8; font-variant-numeric: tabular-nums; margin-top: 4px; word-break: break-word; }
+  #badge { color: #f0c674; margin-top: 2px; font-size: 12px; }
+  #summary { font-weight: 600; margin: 6px 0 2px; }
+  #list { font: 11px/1.3 ui-monospace, Consolas, monospace; max-height: 40vh; overflow: auto; }
+  #list .t { padding: 1px 0; border-bottom: 1px solid #1b232d; word-break: break-word; }
+  #list .t.pass b { color: #5fd38a; }
+  #list .t.fail b { color: #ff6b6b; }
+  #list .t i { color: #7f8c9b; font-style: normal; }
+  #panel.min > :not(h1) { display: none; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="panel">
+  <h1>Fluid layer harness <button id="min" title="collapse">_</button></h1>
+  <div class="row"><span>storm</span><select id="storm"><option>5yr</option><option>10yr</option><option selected>25yr</option><option>50yr</option><option>100yr</option></select>
+    <label><input type="checkbox" id="terrain" checked>terrain</label></div>
+  <div class="row"><span>hour</span><input id="hour" type="range" min="0" max="24" step="0.01" value="14"><b id="hourv">14.00</b></div>
+  <div class="row"><span></span><button id="play">play</button><button id="freeze">freeze</button><button id="vis" class="on">visible</button></div>
+  <div class="row"><span>view</span><span id="views"></span></div>
+  <div class="row"><span>layers</span>
+    <label><input type="checkbox" id="oDepth" checked>depth</label><label><input type="checkbox" id="oFlow" checked>flow</label>
+    <label><input type="checkbox" id="oPart" checked>streaks</label><label><input type="checkbox" id="oArr" checked>arrows</label>
+    <label><input type="checkbox" id="oFp">paths</label></div>
+  <div class="row"><button id="runTests">run tests</button><button id="toggleList">results</button></div>
+  <div id="badge"></div>
+  <div id="status">starting...</div>
+  <div id="summary"></div>
+  <div id="list"></div>
+</div>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script type="module" src="./layer-harness.js"></script>
+</body>
+</html>

@@ -16,7 +16,7 @@ MIN_RAIN_TIF = Path(r"C:\Users\Minec\Documents\BG_3D_Map\layers\min_rain.tif")
 OUT_DIR      = Path(r"C:\Users\Minec\Documents\BG_3D_Map\layers")
 UTM16N       = "EPSG:32616"
 WGS84        = "EPSG:4326"
-BG_BBOX      = (-86.536, 36.896, -86.303, 37.048)
+BG_BBOX      = (-86.695, 36.673, -86.160, 37.173)  # full Warren County
 
 # ── Helper: sample raster at GeoDataFrame centroids (vectorized, any CRS) ────
 def sample_raster_at_centroids(gdf, tif_path, col_name, nodata_fill=999.0):

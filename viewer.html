@@ -6,6 +6,7 @@
   <title>Bowling Green KY — 3D Flood Risk &amp; Property Map</title>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -126,6 +127,17 @@
     .hpc-stat { flex: 1; text-align: center; background: rgba(0,0,0,0.3); border-radius: 4px; padding: 4px 2px; }
     .hpc-stat .v { font-size: 13px; font-weight: 800; color: #74c0fc; }
     .hpc-stat .k { font-size: 8px; color: #445; text-transform: uppercase; letter-spacing: 0.07em; margin-top: 1px; }
+
+    /* Fluid probe tooltip: never takes the pointer */
+    #fx-tip { position: fixed; left: 0; top: 0; z-index: 30; display: none; pointer-events: none; padding: 5px 8px;
+      background: rgba(10,16,28,0.92); border: 1px solid #2a4560; border-radius: 5px; font-size: 11px; line-height: 1.45;
+      color: #cfe3f5; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+    #fx-tip b { color: #74c0fc; }
+    #fx-tip .dim { color: #7a8ea3; }
+    #fx-tip .arrow { font-size: 14px; line-height: 1; vertical-align: -1px; }
+    .stat .val.small { font-size: 12px; }
+    .fl-depth { font-size: 10px; color: #8fb3d4; white-space: nowrap; }
+    .fl-empty { font-size: 11px; color: #667; padding: 8px 6px; text-align: center; }
 
     /* depth tier legend */
     .tier-swatch { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
@@ -251,6 +263,60 @@
       font-size: 13px; font-weight: 700; color: #74c0fc;
       display: none; z-index: 30; pointer-events: none; white-space: nowrap;
     }
+
+    /* ── Fluid flow mode ── */
+    :focus-visible { outline: 2px solid #74c0fc; outline-offset: 1px; }
+    #hpc-mode-row { display: flex; margin: 8px 0 2px; border: 1px solid #1a3a5a; border-radius: 6px; overflow: hidden; }
+    #hpc-mode-row button {
+      flex: 1; background: rgba(0,0,0,0.25); border: 0; color: #8a9bb0; font: inherit; font-size: 11px;
+      font-weight: 700; padding: 5px 4px; cursor: pointer; white-space: nowrap;
+    }
+    #hpc-mode-row button + button { border-left: 1px solid #1a3a5a; }
+    #hpc-mode-row button:hover { background: rgba(116,192,252,0.12); }
+    #hpc-mode-row button[aria-checked="true"] { background: rgba(116,192,252,0.25); color: #e3f2ff; }
+    #hpc-mode-row button:focus-visible { outline-offset: -2px; }
+    #hpc-mode-note { font-size: 10px; color: #e8b04a; height: 13px; line-height: 13px; margin: 2px 0 4px;
+                     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #hpc-mode-note:empty::before { content: '\00a0'; }
+    #hpc-status { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #hpc-status.err { color: #ff8a80; }
+    #hpc-status.warn { color: #e8b04a; }
+    .fx-off { opacity: 0.4; pointer-events: none; }
+    #fx-source { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #9ab; margin: 6px 0 2px; }
+    #fx-source-badge { font-size: 9px; font-weight: 800; border-radius: 3px; padding: 1px 5px; border: 1px solid; white-space: nowrap; }
+    #fx-source-badge.full { color: #51cf66; border-color: #51cf66; background: rgba(81,207,102,.12); }
+    #fx-source-badge.prev { color: #fcc419; border-color: #fcc419; background: rgba(252,196,25,.12); }
+    #fx-source-more { background: none; border: 0; color: var(--accent); font: inherit; font-size: 10px; cursor: pointer; text-decoration: underline; margin-left: auto; }
+    #fx-source-note { font-size: 10px; color: #8a97a8; line-height: 1.45; margin: 2px 0 4px; max-height: 120px; overflow-y: auto; }
+    #fx-panel { background: rgba(10,15,30,0.7); border: 1px solid #1a3a5a; border-radius: 8px; margin: 6px 0; }
+    #fx-panel > summary { cursor: pointer; font-size: 11px; font-weight: 700; color: #74c0fc; padding: 7px 10px; user-select: none; }
+    #fx-panel[open] > summary { border-bottom: 1px solid #1a3a5a; }
+    #fx-body { padding: 6px 10px 8px; }
+    .fx-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #aab; padding: 2px 0; min-height: 22px; }
+    .fx-row > span:first-child { flex: 0 0 96px; }
+    .fx-row input[type=range] { flex: 1; min-width: 0; accent-color: #74c0fc; }
+    .fx-row .fx-v { flex: 0 0 34px; text-align: right; font-size: 10px; color: #778; }
+    .fx-row select { flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text); border-radius: 4px; padding: 2px 4px; font-size: 10px; }
+    .fx-chk { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #bbc; padding: 2px 0; cursor: pointer; user-select: none; }
+    .fx-chk input { accent-color: #74c0fc; cursor: pointer; }
+    #fx-quality-info { font-size: 9px; color: #667; flex: 0 0 auto; }
+    .fx-reset { background: none; border: 1px solid #234; color: #89a; font: inherit; font-size: 10px; border-radius: 4px; padding: 2px 8px; cursor: pointer; margin-top: 4px; }
+    .fx-reset:hover { color: #cde; border-color: #468; }
+    #leg-box { min-height: 176px; }
+    .grad-bar { height: 10px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.12); margin: 3px 0 2px; }
+    .grad-ticks { display: flex; justify-content: space-between; font-size: 9px; color: #889; }
+    .grad-ticks span { text-align: center; line-height: 1.25; }
+    .leg-sub { font-size: 10px; color: #99a; margin-top: 7px; }
+    .leg-arrow { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #99a; margin-top: 5px; }
+    .leg-note { font-size: 10px; color: #8b95a5; line-height: 1.45; margin-top: 8px; padding: 5px 7px;
+                border-left: 2px solid #3a6a9a; background: rgba(77,171,247,0.06); border-radius: 0 4px 4px 0; }
+    #sci-box .sci-fx-mini { font-size: 12px; color: #999; line-height: 1.7; }
+    #vi-source { font-size: 9px; color: #6b8; white-space: nowrap; height: 12px; line-height: 12px; cursor: help; }
+    #vi-source.prev { color: #fcc419; }
+    #hpc-scenario { min-width: 0; text-overflow: ellipsis; }
+    #sidebar { overflow-x: hidden; }
+    #header > div:not(#vista-info):not(#stats) { flex: 1 1 300px; min-width: 0; }
+    @media (max-width: 1000px) { #sidebar { width: 238px; } #header { gap: 8px; } }
   </style>
 </head>
 <body>
@@ -263,8 +329,9 @@
   </div>
 
   <div id="vista-info">
-    <div class="vi-label">TACC Vista Run · 2-Year Storm</div>
-    <div class="vi-detail">3.5&quot; / 24-hr · SCS Type II · NOAA Atlas 14</div>
+    <div class="vi-label" id="vi-label">TACC Vista Run · 2-Year Storm</div>
+    <div class="vi-detail" id="vi-detail">3.5&quot; / 24-hr · NOAA Atlas 14</div>
+    <div id="vi-source" title="">Source: depth-tier polygons (solver output)</div>
     <div id="vi-hour-stats">
       <span id="vi-rain">Rain: —</span>
       <span style="color:#334">·</span>
@@ -274,10 +341,11 @@
     </div>
   </div>
 
+  <div id="fx-tip" role="tooltip"></div>
   <div id="stats">
-    <div class="stat"><div class="val" id="stat-hpc-bldg" style="color:#74c0fc">—</div><div class="key">Flooded Bldgs</div></div>
-    <div class="stat"><div class="val" id="stat-max-depth" style="color:#ff8c00">—</div><div class="key">Max Depth</div></div>
-    <div class="stat"><div class="val" id="stat-feat-cnt" style="color:#aaa">—</div><div class="key">Flood Cells</div></div>
+    <div class="stat"><div class="val" id="stat-hpc-bldg" style="color:#74c0fc">—</div><div class="key" id="stat-key-bldg">Flooded Bldgs</div></div>
+    <div class="stat"><div class="val" id="stat-max-depth" style="color:#ff8c00">—</div><div class="key" id="stat-key-depth">Max Depth</div></div>
+    <div class="stat"><div class="val" id="stat-feat-cnt" style="color:#aaa">—</div><div class="key" id="stat-key-cnt">Flood Cells</div></div>
   </div>
 
   <button id="sci-btn">How Floods Work ▸</button>
@@ -305,7 +373,7 @@
     </table>
 
     <h3>3. Rainfall Input (SCS Type II)</h3>
-    <p>The Vista simulation applies a <strong>3.5" / 24-hour</strong> rainfall event distributed via the SCS Type II hyetograph (NOAA Atlas 14, Warren County). Peak intensity occurs at hour 12. The viewer shows hours 1–9, covering the rising limb. Cumulative rainfall and instantaneous rate are displayed in the header for each simulation hour.</p>
+    <p>Each Vista run applies a <strong>24-hour</strong> rainfall of the NOAA Atlas 14 depth for its return period (2-year 3.5 in up to 100-year 7.6 in, Warren County), distributed in time with the same cumulative curve for every storm (the heaviest rain falls around hours 10–14). Use the <strong>Storm</strong> menu to switch runs. The 2-year run is shown for hours 1–11; the others for all 24 hours. Cumulative rainfall and the rate for each hour are shown in the header.</p>
 
     <h3>4. FEMA Flood Zones</h3>
     <p>The red/orange FEMA overlay is the official National Flood Hazard Layer (NFHL) for Warren County:</p>
@@ -334,6 +402,18 @@
       <li><strong>FEMA:</strong> NFHL via ArcGIS REST API</li>
       <li><strong>HPC Solver:</strong> Custom CuPy/CUDA LIA solver, TACC Vista NVIDIA H100</li>
     </ul>
+
+    <h3>7. The Fluid Flow View</h3>
+    <p>The <strong>Fluid flow</strong> mode shows the simulated water as a moving surface instead of flat coloured polygons. It is drawn by your graphics card from flow grids (one picture of the flood per simulated hour) and blends smoothly between hours as time plays.</p>
+    <ul>
+      <li><strong>Depth colour:</strong> the solver saved water depth only, as four tiers (0.1&ndash;0.3, 0.3&ndash;0.6, 0.6&ndash;1.2 and over 1.2 m). Colour goes from pale blue (shallow) to dark blue (deep). Nothing below 0.1 m is shown.</li>
+      <li><strong>How speed and direction are obtained:</strong> the solver did not save velocities. They are derived afterwards from the slope of the water surface (water level = ground height + depth): water runs downhill along that surface, and its speed follows from the slope and the depth with Manning&rsquo;s equation for open-channel flow. They are therefore an estimate of the flow, not the solver&rsquo;s own output.</li>
+      <li><strong>Streaks:</strong> thin lines that drift with the flow. Direction is the way the water goes; colour runs from pale cyan (slow) to white (fast, about 1 m/s and above).</li>
+      <li><strong>Arrows:</strong> point the way the water flows; a longer arrow means faster water, and amber arrows mark speeds above about 2 m/s.</li>
+      <li><strong>Drainage paths:</strong> optional overlay of where flowing water collects into channels (cumulative discharge).</li>
+      <li><strong>Preview or full precision:</strong> a badge shows what the grids were built from. <em>Preview from depth tiers</em> is rebuilt from the four-tier polygons: depth is the smoothest surface that fits the tiers, so levels are only known to about 0.1 m. <em>Full-precision</em> grids come from the solver&rsquo;s depth rasters and show the real depth values.</li>
+    </ul>
+    <div class="sci-note"><p><strong>Limits.</strong> Derived speeds are indicative only. Very flat water (ponds, the river, wide floodplain) is drawn at rest because its slope cannot be resolved. Karst drainage, sinkholes and underground conduits are not modelled by the velocity method, so flow into sinkholes is not shown and water near them can appear to pond or move in ways it would not underground.</p></div>
   </div>
 </div>
 
@@ -347,13 +427,30 @@
         <span id="hpc-title">2-Year Storm · TACC Vista H100</span>
         <span id="hpc-badge">2YR</span>
       </div>
+      <div style="margin:6px 0 2px;display:flex;align-items:center;gap:6px;font-size:10px;color:#aaa">
+        <span>Storm</span>
+        <select id="hpc-scenario" style="flex:1;background:#12122a;color:#d0d0e0;border:1px solid #2a2a4a;border-radius:4px;padding:3px 4px;font-size:11px">
+          <option value="2yr" selected>2-Year · 3.5 in (first run, no infiltration)</option>
+          <option value="v2_5yr">5-Year · 4.2 in (infiltration)</option>
+          <option value="v2_10yr">10-Year · 4.9 in (infiltration)</option>
+          <option value="v2_25yr">25-Year · 5.9 in (infiltration)</option>
+          <option value="v2_50yr">50-Year · 6.7 in (infiltration)</option>
+          <option value="v2_100yr">100-Year · 7.6 in (infiltration)</option>
+        </select>
+      </div>
+
+      <div id="hpc-mode-row" role="radiogroup" aria-label="Display mode">
+        <button type="button" role="radio" id="mode-fluid" data-mode="fluid" aria-checked="false">Fluid flow</button>
+        <button type="button" role="radio" id="mode-polygons" data-mode="polygons" aria-checked="true">Polygons (classic)</button>
+      </div>
+      <div id="hpc-mode-note" aria-live="polite"></div>
 
       <div id="hpc-time-row">
         <div id="hpc-time-label">
-          <span id="hpc-hour-label">Hour 1 of 9</span>
+          <span id="hpc-hour-label">Hour 1 of 11</span>
           <span id="hpc-sim-time">t = 1:00:00</span>
         </div>
-        <input type="range" id="hpc-hour-slider" min="1" max="9" step="1" value="1" />
+        <input type="range" id="hpc-hour-slider" min="1" max="11" step="1" value="1" />
       </div>
 
       <div id="hpc-controls">
@@ -367,9 +464,19 @@
         <input type="checkbox" id="hpc-3d-cb" checked />
         <label for="hpc-3d-cb" id="hpc-3d-label">3D</label>
       </div>
+      <div id="hpc-exag-row" style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:10px;color:#aaa">
+        <span>Water height</span>
+        <input type="range" id="hpc-exag" min="1" max="50" step="1" value="8" style="flex:1" />
+        <span id="hpc-exag-val" style="min-width:28px;text-align:right">8×</span>
+      </div>
 
       <div id="hpc-progress"><div id="hpc-progress-bar"></div></div>
-      <div id="hpc-status">Loading simulation…</div>
+      <div id="hpc-status" aria-live="polite">Loading simulation…</div>
+      <div id="fx-source" style="visibility:hidden">
+        <span id="fx-source-badge">—</span><span id="fx-source-text"></span>
+        <button type="button" id="fx-source-more" aria-expanded="false">details</button>
+      </div>
+      <div id="fx-source-note" style="display:none"></div>
 
       <div id="hpc-stats">
         <div class="hpc-stat"><div class="v" id="hpc-feat-cnt">—</div><div class="k">Features</div></div>
@@ -378,12 +485,52 @@
       </div>
     </div>
 
-    <!-- Depth tier legend -->
-    <div class="leg" style="margin-top:4px">
-      <div class="leg-r"><div class="tier-swatch" style="background:#4dabf7"></div><span>Shallow · 0.1–0.3 m</span></div>
-      <div class="leg-r"><div class="tier-swatch" style="background:#00c9c9"></div><span>Moderate · 0.3–0.6 m</span></div>
-      <div class="leg-r"><div class="tier-swatch" style="background:#ff8c00"></div><span>Deep · 0.6–1.2 m</span></div>
-      <div class="leg-r"><div class="tier-swatch" style="background:#e74c3c"></div><span>Severe · &gt;1.2 m</span></div>
+    <!-- Fluid controls (Fluid flow mode only) -->
+    <details id="fx-panel" class="fx-off">
+      <summary>Fluid controls</summary>
+      <div id="fx-body">
+        <label class="fx-chk"><input type="checkbox" data-fx="showDepth" /> Depth colour</label>
+        <label class="fx-chk"><input type="checkbox" data-fx="showFlow" /> Moving water</label>
+        <label class="fx-chk"><input type="checkbox" data-fx="showParticles" /> Flow streaks</label>
+        <label class="fx-chk"><input type="checkbox" data-fx="showArrows" /> Direction arrows</label>
+        <label class="fx-chk"><input type="checkbox" data-fx="showFlowpaths" /> Drainage paths</label>
+        <label class="fx-chk"><input type="checkbox" data-fx="freeze" /> Freeze animation</label>
+        <div class="fx-row"><span>Water opacity</span><input type="range" data-fx="opacity" min="0.2" max="1" step="0.05" aria-label="Water opacity" /><span class="fx-v"></span></div>
+        <div class="fx-row"><span>Streak density</span><input type="range" data-fx="density" min="0.1" max="2" step="0.05" aria-label="Streak density" /><span class="fx-v"></span></div>
+        <div class="fx-row"><span>Flow speed</span><input type="range" data-fx="speed" min="0.25" max="3" step="0.05" aria-label="Flow animation speed" /><span class="fx-v"></span></div>
+        <div class="fx-row"><span>Arrow spacing</span><input type="range" data-fx="arrowSpacing" min="24" max="140" step="2" aria-label="Arrow spacing" /><span class="fx-v"></span></div>
+        <div class="fx-row"><span>Quality</span>
+          <select data-fx="quality" aria-label="Quality"><option value="auto">Auto</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+          <span id="fx-quality-info"></span></div>
+        <button type="button" class="fx-reset" id="fx-reset">Reset to defaults</button>
+      </div>
+    </details>
+
+    <!-- Legend -->
+    <div class="leg" id="leg-box" style="margin-top:4px">
+      <div id="leg-poly">
+        <div class="leg-r"><div class="tier-swatch" style="background:#8fd3f4"></div><span>Water · shallow · 0.1–0.3 m</span></div>
+        <div class="leg-r"><div class="tier-swatch" style="background:#3aa0e0"></div><span>Water · moderate · 0.3–0.6 m</span></div>
+        <div class="leg-r"><div class="tier-swatch" style="background:#1560b8"></div><span>Water · deep · 0.6–1.2 m</span></div>
+        <div class="leg-r"><div class="tier-swatch" style="background:#0a2f7a"></div><span>Water · severe · &gt;1.2 m</span></div>
+      </div>
+      <div id="leg-fluid" style="display:none">
+        <div class="leg-sub" style="margin-top:0">Water depth</div>
+        <div class="grad-bar" id="leg-depth-bar"></div>
+        <div class="grad-ticks"><span>0.1 m<br>0.3 ft</span><span>0.3 m<br>1 ft</span><span>0.6 m<br>2 ft</span><span>1.2 m +<br>4 ft +</span></div>
+        <div class="leg-sub">Flow speed (streaks and arrows)</div>
+        <div class="grad-bar" id="leg-speed-bar"></div>
+        <div class="grad-ticks"><span>slow</span><span>1 m/s (3.3 ft/s)</span><span>fast 2 m/s +</span></div>
+        <div class="leg-arrow">
+          <svg width="26" height="12" viewBox="0 0 26 12" aria-hidden="true"><path d="M1 4.5h14V1l9 5-9 5V7.5H1z" fill="#b8f0ff" stroke="#05122e" stroke-width="1"/></svg>
+          <span>Arrow: direction of flow; longer = faster; amber above about 2 m/s</span>
+        </div>
+        <div class="leg-arrow" id="leg-paths-key" style="display:none">
+          <span style="display:inline-block;width:26px;height:6px;border-radius:3px;background:linear-gradient(90deg,#003357,#0fdbff,#fff)"></span>
+          <span>Drainage paths: more water collects here</span>
+        </div>
+      </div>
+      <div class="leg-note" id="leg-note" style="display:none">Flow direction and speed are derived from the simulated water-surface slope (Manning), not direct solver output.</div>
     </div>
 
     <!-- Flooded Buildings List -->
@@ -415,12 +562,12 @@
 
     <hr />
     <div class="sec">Flood Hazard</div>
-    <label class="lr"><input type="checkbox" checked data-layer="fema-ae" /><div class="sw" style="background:#c0392b;"></div><span class="lbl">FEMA 100-yr (AE/A)</span><span class="cnt" id="cnt-fema-ae"></span></label>
-    <label class="lr"><input type="checkbox" checked data-layer="fema-x" /><div class="sw" style="background:#d4870a;"></div><span class="lbl">FEMA 500-yr (X)</span><span class="cnt" id="cnt-fema-x"></span></label>
+    <label class="lr"><input type="checkbox" data-layer="fema-ae" /><div class="sw" style="background:#c0392b;"></div><span class="lbl">FEMA 100-yr (AE/A)</span><span class="cnt" id="cnt-fema-ae"></span></label>
+    <label class="lr"><input type="checkbox" data-layer="fema-x" /><div class="sw" style="background:#d4870a;"></div><span class="lbl">FEMA 500-yr (X)</span><span class="cnt" id="cnt-fema-x"></span></label>
     <div class="opacity-row"><span>FEMA Opacity</span><input type="range" min="0" max="1" step="0.05" value="0.4" data-opacity-group="fema" /></div>
-    <label class="lr"><input type="checkbox" checked data-layer="sinkholes" /><div class="sw" style="background:#7d3c98;"></div><span class="lbl">Karst Sinkholes (depth)</span><span class="cnt" id="cnt-sinkholes"></span></label>
+    <label class="lr"><input type="checkbox" data-layer="sinkholes" /><div class="sw" style="background:#7d3c98;"></div><span class="lbl">Karst Sinkholes (depth)</span><span class="cnt" id="cnt-sinkholes"></span></label>
     <div class="opacity-row"><span>Opacity</span><input type="range" min="0" max="1" step="0.05" value="0.55" data-opacity-group="sinkholes" /></div>
-    <label class="lr"><input type="checkbox" checked data-layer="riverine" /><div class="sw" style="background:#3498db;"></div><span class="lbl">Riverine Flood Zones</span><span class="cnt" id="cnt-riverine"></span></label>
+    <label class="lr"><input type="checkbox" data-layer="riverine" /><div class="sw" style="background:#3498db;"></div><span class="lbl">Riverine Flood Zones</span><span class="cnt" id="cnt-riverine"></span></label>
 
     <hr />
     <div class="sec">Infrastructure</div>
@@ -438,10 +585,10 @@
       <div class="leg-r"><div class="sw" style="background:#c0392b;"></div><span>Crimson — FEMA 100-yr zone</span></div>
       <div class="leg-r"><div class="sw" style="background:#d4870a;"></div><span>Amber — FEMA 500-yr / karst</span></div>
       <div class="leg-r"><div class="sw" style="background:#94a3b8;"></div><span>Grey — above flood line</span></div>
-      <div class="leg-r"><div class="tier-swatch" style="background:#4dabf7"></div><span>Blue — HPC shallow flood</span></div>
-      <div class="leg-r"><div class="tier-swatch" style="background:#00c9c9"></div><span>Cyan — HPC moderate flood</span></div>
-      <div class="leg-r"><div class="tier-swatch" style="background:#ff8c00"></div><span>Orange — HPC deep flood</span></div>
-      <div class="leg-r"><div class="tier-swatch" style="background:#e74c3c"></div><span>Red — HPC severe flood</span></div>
+      <div class="leg-r"><div class="tier-swatch" style="background:#4dabf7"></div><span>Flooded bldg — shallow</span></div>
+      <div class="leg-r"><div class="tier-swatch" style="background:#00c9c9"></div><span>Flooded bldg — moderate</span></div>
+      <div class="leg-r"><div class="tier-swatch" style="background:#ff8c00"></div><span>Flooded bldg — deep</span></div>
+      <div class="leg-r"><div class="tier-swatch" style="background:#e74c3c"></div><span>Flooded bldg — severe</span></div>
     </div>
 
     <hr />
@@ -485,24 +632,33 @@
 const L = './layers/';
 const CENTER   = [-86.419, 36.972];
 
-// HPC hourly files living in layers/flood_hpc/
-const HPC_HOURS = [1,2,3,4,5,6,7,8,9];
-const HPC_SECS  = {1:3600,2:7200,3:10800,4:14400,5:18000,6:21600,7:25200,8:28800,9:32400};
-
-// SCS Type II cumulative rainfall (3.5" total, 24-hr storm) at each simulated hour
-// Values derived from NOAA Atlas 14 / SCS Type II dimensionless hyetograph
-const HPC_CUMRAIN = {
-  1: { cum: 0.016, rate: 0.016 },
-  2: { cum: 0.033, rate: 0.017 },
-  3: { cum: 0.054, rate: 0.021 },
-  4: { cum: 0.078, rate: 0.024 },
-  5: { cum: 0.106, rate: 0.028 },
-  6: { cum: 0.147, rate: 0.041 },
-  7: { cum: 0.188, rate: 0.041 },
-  8: { cum: 0.239, rate: 0.051 },
-  9: { cum: 0.294, rate: 0.055 },
+// HPC hourly files living in layers/flood_hpc/<scenario>/flood_hNN.geojson
+const HPC_SCENARIOS = {
+  '2yr':      { label: '2-Year',   badge: '2YR',   depth: 3.5, hours: 11, note: 'first run: all rain becomes runoff, closed edges' },
+  'v2_5yr':   { label: '5-Year',   badge: '5YR',   depth: 4.2, hours: 24, note: 'SCS infiltration + edge outflow' },
+  'v2_10yr':  { label: '10-Year',  badge: '10YR',  depth: 4.9, hours: 24, note: 'SCS infiltration + edge outflow' },
+  'v2_25yr':  { label: '25-Year',  badge: '25YR',  depth: 5.9, hours: 24, note: 'SCS infiltration + edge outflow' },
+  'v2_50yr':  { label: '50-Year',  badge: '50YR',  depth: 6.7, hours: 24, note: 'SCS infiltration + edge outflow' },
+  'v2_100yr': { label: '100-Year', badge: '100YR', depth: 7.6, hours: 24, note: 'SCS infiltration + edge outflow' },
 };
+let HPC_SCENARIO = '2yr';
+let HPC_STORM_IN = HPC_SCENARIOS['2yr'].depth;   // 24-h storm depth, inches (NOAA Atlas 14, Warren Co. KY)
+let HPC_HOURS = Array.from({ length: HPC_SCENARIOS['2yr'].hours }, (_, i) => i + 1);
+const HPC_SECS = {};                              // sim seconds default to hour * 3600
 
+// Temporal distribution shared by every run (the curve the solver used): cumulative fraction of the storm total.
+// Verified on the 2yr rasters: mean depth at hours 10/11 = 30.3 / 37.2 mm vs 30.4 / 37.4 mm predicted by this curve.
+const HPC_TF = [0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1.0];
+const HPC_PF = [0, .04, .10, .19, .31, .50, .70, .79, .86, .92, 1.0];
+function hpcCumFrac(h) {
+  const x = Math.max(0, Math.min(1, h / 24));
+  for (let i = 0; i < HPC_TF.length - 1; i++)
+    if (x >= HPC_TF[i] && x <= HPC_TF[i + 1])
+      return HPC_PF[i] + (HPC_PF[i + 1] - HPC_PF[i]) * (x - HPC_TF[i]) / (HPC_TF[i + 1] - HPC_TF[i]);
+  return 1;
+}
+// cum / rate as FRACTIONS of the storm total (cumulative and for that hour); multiply by HPC_STORM_IN for inches
+function hpcRain(h) { return { cum: hpcCumFrac(h), rate: hpcCumFrac(h) - hpcCumFrac(h - 1) }; }
 // Depth tier → extrusion height (meters, visible on 3D map)
 const TIER_HEIGHT = { shallow: 3, moderate: 8, deep: 20, severe: 50 };
 const TIER_COLOR  = { shallow: '#4dabf7', moderate: '#00c9c9', deep: '#ff8c00', severe: '#e74c3c' };
@@ -515,9 +671,22 @@ const HPC_COLOR_EXPR = ['match', ['get','tier'],
   'severe',   '#e74c3c',
   '#4dabf7'
 ];
-const HPC_HEIGHT_EXPR = ['match', ['get','tier'],
-  'shallow', 3, 'moderate', 8, 'deep', 20, 'severe', 50, 3
+// Water surface: blue shades by depth tier, height = real depth × vertical exaggeration
+const HPC_WATER_EXPR = ['match', ['get','tier'],
+  'shallow',  '#8fd3f4',
+  'moderate', '#3aa0e0',
+  'deep',     '#1560b8',
+  'severe',   '#0a2f7a',
+  '#8fd3f4'
 ];
+// Tier depth in metres: bin midpoint (severe = lower bound, its upper end is unbounded)
+const TIER_DEPTH_M = { shallow: 0.2, moderate: 0.45, deep: 0.9, severe: 1.2 };
+let hpcExag = 8;
+function hpcHeightExpr() {
+  return ['*', hpcExag, ['match', ['get','tier'],
+    'shallow', TIER_DEPTH_M.shallow, 'moderate', TIER_DEPTH_M.moderate,
+    'deep', TIER_DEPTH_M.deep, 'severe', TIER_DEPTH_M.severe, TIER_DEPTH_M.shallow]];
+}
 
 // ─── Color expressions (existing) ────────────────────────────────────────────
 const FEMA_COLOR = ['match', ['get', 'FLD_ZONE'],
@@ -670,19 +839,25 @@ async function fetchLayer(name) {
 
 async function fetchHpcHour(hour) {
   if (hpcCache[hour]) return hpcCache[hour];
-  const url = `${L}flood_hpc/flood_h${String(hour).padStart(2,'0')}.geojson`;
-  try {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
-    hpcCache[hour] = data;
-    return data;
-  } catch(e) {
-    console.warn(`[hpc] Hour ${hour} failed:`, e.message || e);
-    return null;
+  const pad = String(hour).padStart(2,'0');
+  const missKey = HPC_SCENARIO + '/' + hour, signal = hpcAbort.signal;
+  if (hpcMissing.has(missKey)) return null;
+  const urls = [`${L}flood_hpc/${HPC_SCENARIO}/flood_h${pad}.geojson`];
+  if (HPC_SCENARIO === '2yr') urls.push(`${L}flood_hpc/flood_h${pad}.geojson`);   // legacy flat copy of the 2yr run ONLY; never for another storm
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, { signal });
+      if (!r.ok) continue;
+      const data = await r.json();
+      if (signal.aborted) return null;
+      hpcCache[hour] = data;
+      return data;
+    } catch(e) { if (signal.aborted) return null; /* else try next location */ }
   }
+  hpcMissing.add(missKey);
+  console.warn(`[hpc] Hour ${hour} not found for scenario ${HPC_SCENARIO}`);
+  return null;
 }
-
 // ─── HPC layer management ─────────────────────────────────────────────────────
 function hpcRemoveLayers() {
   ['hpc-fill','hpc-3d','hpc-outline'].forEach(id => {
@@ -698,20 +873,21 @@ function hpcAddLayers(data) {
     map.addLayer({
       id: 'hpc-3d', type: 'fill-extrusion', source: 'hpc-src',
       paint: {
-        'fill-extrusion-color': HPC_COLOR_EXPR,
-        'fill-extrusion-height': HPC_HEIGHT_EXPR,
+        'fill-extrusion-color': HPC_WATER_EXPR,
+        'fill-extrusion-height': hpcHeightExpr(),
         'fill-extrusion-base': 0,
-        'fill-extrusion-opacity': 0.82
+        'fill-extrusion-opacity': 0.78,
+        'fill-extrusion-vertical-gradient': false
       }
     });
   } else {
     map.addLayer({
       id: 'hpc-fill', type: 'fill', source: 'hpc-src',
-      paint: { 'fill-color': HPC_COLOR_EXPR, 'fill-opacity': 0.72 }
+      paint: { 'fill-color': HPC_WATER_EXPR, 'fill-opacity': 0.75 }
     });
     map.addLayer({
       id: 'hpc-outline', type: 'line', source: 'hpc-src',
-      paint: { 'line-color': HPC_COLOR_EXPR, 'line-width': 0.5, 'line-opacity': 0.4 }
+      paint: { 'line-color': HPC_WATER_EXPR, 'line-width': 0.5, 'line-opacity': 0.5 }
     });
   }
 }
@@ -723,21 +899,23 @@ function hpcUpdateStats(data) {
   document.getElementById('stat-feat-cnt').textContent = feats.length.toLocaleString();
 
   // Max depth from Vista output
-  let maxDepth = 0;
+  // Tier files only store depth bins; the severe bin's 5.0 m upper bound is a placeholder, not a measurement
+  let maxDepth = 0, hasSevere = false;
   for (const f of feats) {
+    if (f.properties?.tier === 'severe') { hasSevere = true; continue; }
     const d = parseFloat(f.properties?.depth_max_m) || 0;
     if (d > maxDepth) maxDepth = d;
   }
-  const depthStr = maxDepth > 0 ? maxDepth.toFixed(2) + ' m' : '—';
+  const depthStr = hasSevere ? '> 1.2 m' : (maxDepth > 0 ? maxDepth.toFixed(2) + ' m' : '—');
   document.getElementById('stat-max-depth').textContent = depthStr;
   document.getElementById('vi-depth').textContent = 'Max Depth: ' + depthStr;
 
   // Build spatial grid over HPC polygons for fast building detection
   const hpcBboxes = feats.map(f => geomBbox(f.geometry));
-  const grid = new SpatialGrid(hpcBboxes);
+  const grid = hpcBboxes.length ? new SpatialGrid(hpcBboxes) : null;   // a dry hour has no polygons
 
   const floodedBldgs = [];
-  if (buildingsData && hpcBuildingBBoxes) {
+  if (grid && buildingsData && hpcBuildingBBoxes) {
     for (let i = 0; i < hpcBuildingBBoxes.length; i++) {
       const bbox = hpcBuildingBBoxes[i];
       if (!bbox) continue;
@@ -745,7 +923,10 @@ function hpcUpdateStats(data) {
       let bestTier = null;
       for (const ci of cands) {
         const hb = hpcBboxes[ci];
-        if (hb && bboxOverlap(bbox, hb)) bestTier = worstTier(bestTier, feats[ci].properties?.tier);
+        if (!hb || !bboxOverlap(bbox, hb)) continue;
+        const t = feats[ci].properties?.tier;
+        if (bestTier && TIER_RANK[t] <= TIER_RANK[bestTier]) continue;
+        if (footprintHitsFlood(buildingsData.features[i].geometry, bbox, feats[ci].geometry)) bestTier = worstTier(bestTier, t);
       }
       if (bestTier) {
         const feat = buildingsData.features[i];
@@ -838,7 +1019,52 @@ function bboxesOverlapAny(bbox, list) {
 
 function precomputeBuildingBBoxes() {
   if (!buildingsData) return;
-  hpcBuildingBBoxes = buildingsData.features.map(f => geomBbox(f.geometry)).filter(Boolean);
+  hpcBuildingBBoxes = buildingsData.features.map(f => geomBbox(f.geometry));
+}
+
+// ─── Exact footprint-vs-flood-polygon test (bbox overlap alone over-counts ring-shaped polygons) ──
+function polysOf(g) {
+  return !g ? [] : g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+}
+function ringContains(ring, x, y) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function polyContains(poly, x, y) {
+  if (!ringContains(poly[0], x, y)) return false;
+  for (let h = 1; h < poly.length; h++) if (ringContains(poly[h], x, y)) return false;
+  return true;
+}
+function segsCross(ax, ay, bx, by, cx, cy, dx, dy) {
+  const d1 = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+  const d2 = (bx - ax) * (dy - ay) - (by - ay) * (dx - ax);
+  const d3 = (dx - cx) * (ay - cy) - (dy - cy) * (ax - cx);
+  const d4 = (dx - cx) * (by - cy) - (dy - cy) * (bx - cx);
+  return (d1 > 0) !== (d2 > 0) && (d3 > 0) !== (d4 > 0);
+}
+function footprintHitsFlood(bGeom, bBox, fGeom) {
+  const fPolys = polysOf(fGeom);
+  for (const bp of polysOf(bGeom)) {
+    const bRing = bp[0];
+    for (const fp of fPolys) {
+      for (const [x, y] of bRing) if (polyContains(fp, x, y)) return true;
+      for (const fr of fp) {
+        for (let i = 0; i < fr.length - 1; i++) {
+          const ax = fr[i][0], ay = fr[i][1], bx = fr[i + 1][0], by = fr[i + 1][1];
+          if (Math.max(ax, bx) < bBox[0] || Math.min(ax, bx) > bBox[2] ||
+              Math.max(ay, by) < bBox[1] || Math.min(ay, by) > bBox[3]) continue;
+          if (ringContains(bRing, ax, ay)) return true;
+          for (let k = 0; k < bRing.length - 1; k++)
+            if (segsCross(ax, ay, bx, by, bRing[k][0], bRing[k][1], bRing[k + 1][0], bRing[k + 1][1])) return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 // Format sim time HH:MM
@@ -852,31 +1078,39 @@ function fmtSimTime(hour) {
 async function hpcGoToHour(hour, silent = false) {
   if (!hpcEnabled || hpcLoading) return;
   hpcLoading = true;
+  const epoch = hpcEpoch;                    // Fluid mode bumps this: a polygon load that finishes later must not draw
   hpcCurrentHour = hour;
 
   // Update UI
   document.getElementById('hpc-hour-slider').value = hour;
   document.getElementById('hpc-hour-label').textContent = `Hour ${hour} of ${HPC_HOURS.length}`;
   document.getElementById('hpc-sim-time').textContent = `t = ${fmtSimTime(hour)}`;
-  document.getElementById('hpc-now-bar').textContent = `⏱ Hour ${hour} of 9 · t = ${fmtSimTime(hour)}`;
+  document.getElementById('hpc-now-bar').textContent = `⏱ Hour ${hour} of ${HPC_HOURS.length} · t = ${fmtSimTime(hour)}`;
   // Update Vista header rainfall stats
-  const cr = HPC_CUMRAIN[hour];
+  const cr = hpcRain(hour);
   if (cr) {
-    document.getElementById('vi-rain').textContent  = `Rain: ${cr.cum.toFixed(3)}"`;
-    document.getElementById('vi-rate').textContent  = `Rate: ${cr.rate.toFixed(3)}"/hr`;
+    document.getElementById('vi-rain').textContent  = `Rain: ${(cr.cum * HPC_STORM_IN).toFixed(2)}"`;
+    document.getElementById('vi-rate').textContent  = `Rate: ${(cr.rate * HPC_STORM_IN).toFixed(2)}"/hr`;
+  } else {
+    document.getElementById('vi-rain').textContent  = 'Rain: —';
+    document.getElementById('vi-rate').textContent  = 'Rate: —';
   }
   document.getElementById('hpc-progress-bar').style.width = ((hour / HPC_HOURS.length) * 100) + '%';
 
-  if (!silent) document.getElementById('hpc-status').textContent = `Loading Hour ${hour}…`;
+  if (!silent) setStatus(`Loading Hour ${hour}…`);
 
   const data = await fetchHpcHour(hour);
+  if (epoch !== hpcEpoch || viewMode !== 'polygons') { hpcLoading = false; return; }
   if (data) {
     hpcAddLayers(data);
     hpcUpdateStats(data);
-    if (!silent) document.getElementById('hpc-status').textContent =
-      `Hour ${hour} · ${(data.features?.length||0).toLocaleString()} flood polygons`;
+    if (!silent) setStatus(`Hour ${hour} · ${(data.features?.length||0).toLocaleString()} flood polygons`);
   } else {
-    document.getElementById('hpc-status').textContent = `Hour ${hour} — file not yet available`;
+    hpcRemoveLayers();                       // never leave another storm's water on the map under this storm's label
+    hpcUpdateStats({ features: [] });
+    const sc = HPC_SCENARIOS[HPC_SCENARIO];
+    setStatus(HPC_SCENARIO === '2yr' ? `Hour ${hour} — file not yet available`
+      : `Hour ${hour}: no polygon file for the ${sc.label} run (layers/flood_hpc/${HPC_SCENARIO}/ is not generated yet)`, 'warn');
   }
 
   // Preload adjacent hours
@@ -917,7 +1151,7 @@ async function hpcEnable() {
 // ─── Info panel helpers ────────────────────────────────────────────────────────
 const HIDE_PROPS = new Set(['height_m','geometry','index','__index_level_0__',
   'damage_pct_2in','damage_usd_2in','prop_value_usd',
-  'ead_usd','damage_risk_tier','color','file','rp']);
+  'ead_usd','damage_risk_tier','color','file','rp','depth_m','fx_hour']);
 const LAYER_NAME = {
   'buildings-ext':  'Building',
   'fema-ae-fill':   'FEMA 100-yr Zone (AE/A)',
@@ -1011,8 +1245,11 @@ function showInfo(feature, elevM) {
   // HPC hour context
   let hpcContext = '';
   if (hpcHrCtxLyr && hpcEnabled) {
-    hpcContext = `<tr><td colspan="2"><span class="elev-badge" style="color:#74c0fc;border-color:#74c0fc">Vista Run · Hour ${hpcCurrentHour} · ${(HPC_CUMRAIN[hpcCurrentHour]?.cum||0).toFixed(3)}" cumulative</span></td></tr>`;
+    hpcContext = `<tr><td colspan="2"><span class="elev-badge" style="color:#74c0fc;border-color:#74c0fc">Vista Run · Hour ${viewMode === 'fluid' ? fmtHour(fluidTime) : hpcCurrentHour} · ${(hpcRain(viewMode === 'fluid' ? fluidTime : hpcCurrentHour).cum * HPC_STORM_IN).toFixed(2)}" cumulative</span></td></tr>`;
   }
+
+  const fxDepthRow = (viewMode === 'fluid' && Number.isFinite(p.depth_m) && hpcHrCtxLyr)
+    ? `<tr><td>Flood depth at building</td><td>${fxDepthText(p.depth_m)}, hour ${p.fx_hour}</td></tr>` : '';
 
   let facingRow = '';
   if (lyr === 'buildings-ext' && feature.geometry?.type === 'Polygon') {
@@ -1048,13 +1285,638 @@ function showInfo(feature, elevM) {
   document.getElementById('info-table').innerHTML =
     (badge ? `<tr><td colspan="2">${badge}</td></tr>` : '') +
     (hpcBadge ? `<tr><td colspan="2">${hpcBadge}</td></tr>` : '') +
-    elevBadge + depthBadge2 + hpcContext + facingRow +
+    elevBadge + depthBadge2 + hpcContext + fxDepthRow + facingRow +
     (rows || '<tr><td colspan="2" style="color:#555">No attributes</td></tr>');
   document.getElementById('info').style.display = 'block';
 }
 
 // rainfall slider removed — Vista HPC run is sole flood source
 
+// ─── Fluid flow mode ──────────────────────────────────────────────────────────
+// fluid/fluid-layer.js is loaded with import() on first use. Polygons (classic) is the fallback whenever flow
+// data, WebGL2 or the module are missing. The flow grids only hold depth-derived velocities (Manning), see FLOW_FORMAT.md.
+const QP = new URLSearchParams(location.search);
+const FLOW_BASE = QP.get('flowbase') || './layers/flow';
+const FX_STORE = 'bgflood.fluid.v1';
+const FX_DEFAULTS = Object.freeze({ showDepth: true, showFlow: true, showParticles: true, showArrows: true,
+  showFlowpaths: false, freeze: false, opacity: 0.9, density: 1, speed: 1, arrowSpacing: 56, quality: 'auto' });
+const FX_BASE = { particleCount: 60000, flowSpeed: 8, particleSpeed: 40 };   // renderer defaults the sliders scale
+const FX_QUALITY_MODES = ['auto', 'high', 'medium', 'low'];   // the layer maps these to its own levels and particle factor
+const $ = id => document.getElementById(id);
+
+function fxLoad() {
+  const out = { ...FX_DEFAULTS };
+  try {
+    const raw = JSON.parse(localStorage.getItem(FX_STORE) || 'null');
+    if (raw && typeof raw === 'object') for (const k of Object.keys(FX_DEFAULTS)) {
+      if (typeof raw[k] === typeof FX_DEFAULTS[k]) out[k] = raw[k];
+    }
+  } catch (e) { /* storage blocked or corrupt: defaults */ }
+  if (!FX_QUALITY_MODES.includes(out.quality)) out.quality = 'auto';
+  return out;
+}
+function fxSave() { try { localStorage.setItem(FX_STORE, JSON.stringify(fx)); } catch (e) { /* private window */ } }
+const fx = fxLoad();
+
+// Flow-grid folder name for a scenario key (v2_25yr -> 25yr); the first 2-year run has none.
+function flowKeyOf(scn) { const m = /^v2_(\d+yr)$/.exec(scn); return m ? m[1] : null; }
+
+let viewMode = 'polygons';      // what is on the map now
+let modeWanted = 'fluid';       // what the user asked for (polygons is the fallback)
+let modeSeq = 0;                // request token: only the newest switch may touch the map
+let fluidLayer = null, fluidMod = null, fluidModPromise = null, fluidMeta = null;
+let fluidTime = 12;             // simulated hour (fractional) shown in Fluid mode
+let hpcEpoch = 0;               // bumped when Fluid mode starts: in-flight polygon loads must not draw afterwards
+let hpcAbort = new AbortController();
+const hpcMissing = new Set();   // "scenario/hour" polygon files that returned 404
+
+function fxLayerOptions() {
+  return {
+    showDepth: fx.showDepth, showFlow: fx.showFlow, showParticles: fx.showParticles, showArrows: fx.showArrows,
+    showFlowpaths: fx.showFlowpaths, freeze: fx.freeze, opacity: fx.opacity,
+    particleCount: Math.round(FX_BASE.particleCount * fx.density),
+    flowSpeed: FX_BASE.flowSpeed * fx.speed, particleSpeed: FX_BASE.particleSpeed * fx.speed,
+    arrowSpacingPx: fx.arrowSpacing, qualityMode: fx.quality,
+    msPerHour: speedMs(),
+  };
+}
+function speedMs() { return parseInt($('hpc-speed-sel').value) || 1000; }
+function fmtClock(t) {
+  const s = Math.max(0, Math.round(t * 3600));
+  return `${Math.floor(s / 3600)}:${String(Math.floor(s % 3600 / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
+function fmtHour(t) { return Math.abs(t - Math.round(t)) < 0.005 ? String(Math.round(t)) : t.toFixed(2).replace(/0$/, ''); }
+function setStatus(msg, cls) { const el = $('hpc-status'); el.textContent = msg; el.title = msg; el.className = cls || ''; }
+function setModeNote(msg) { const el = $('hpc-mode-note'); el.textContent = msg || ''; el.title = msg || ''; }
+
+// Hooks for the statistics code (V2): call with any of {bldgs, maxDepth, area, features, bldgPct, roadPct}, strings or null.
+function setFluidStats(s = {}) {
+  if (!fluidLayer) return;
+  const put = (id, v) => { if (v !== undefined) $(id).textContent = v == null ? '—' : v; };
+  put('stat-hpc-bldg', s.bldgs); put('stat-max-depth', s.maxDepth); put('stat-feat-cnt', s.area);
+  put('hpc-feat-cnt', s.features); put('hpc-bldg-pct', s.bldgPct); put('hpc-road-pct', s.roadPct);
+  if (s.maxDepth !== undefined) $('vi-depth').textContent = 'Max Depth: ' + (s.maxDepth == null ? '—' : s.maxDepth);
+}
+function resetStatPlaceholders(fluid) {
+  for (const id of ['stat-hpc-bldg', 'stat-max-depth', 'stat-feat-cnt', 'hpc-feat-cnt', 'hpc-bldg-pct', 'hpc-road-pct']) $(id).textContent = '—';
+  $('vi-depth').textContent = 'Max Depth: —';
+  $('stat-key-cnt').textContent = fluid ? 'Flooded Area' : 'Flood Cells';
+  $('stat-key-bldg').textContent = 'Flooded Bldgs';
+  $('stat-key-depth').textContent = 'Max Depth';
+  const hk = document.querySelectorAll('#hpc-stats .hpc-stat .k');
+  hk[0].textContent = fluid ? 'Wet area' : 'Features';
+  hk[1].textContent = fluid ? 'Bldgs hit %' : 'Bldgs Hit';
+  hk[2].textContent = fluid ? 'Roads hit %' : 'Roads Hit';
+  fxListKey = ''; fxLast = null;
+  $('stat-max-depth').classList.remove('small');
+  hideFluidTip();
+  updateFloodedBuildingList([]);
+  hpcFloodedList = [];
+  const src = map.getSource('hpc-bldgs-src');
+  if (src) src.setData({ type: 'FeatureCollection', features: [] });
+}
+
+// Depth ramp and speed key are drawn with the renderer's own palette and speed curve.
+function initLegends() {
+  $('leg-depth-bar').style.background = 'linear-gradient(90deg,#8fd3f4 0%,#3aa0e0 33%,#1560b8 66%,#0a2f7a 100%)';
+  const ss = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const stops = [];
+  for (let i = 0; i <= 10; i++) {
+    const v = i * 0.2, m = ss(0.1, 2.0, v);                       // 0..2 m/s, same smoothstep as the streak shader
+    const c = [148, 227, 255].map(x => Math.round(x + (255 - x) * m));
+    stops.push(`rgb(${c}) ${i * 10}%`);
+  }
+  $('leg-speed-bar').style.background = `linear-gradient(90deg,${stops.join(',')})`;
+}
+
+// ── time labels (Fluid mode: continuous time) ──
+let scrubUntil = 0, timeTouched = QP.has('hour'), lastUrlTimer = 0, fluidErr = '';
+function fluidTimeUI(t, setSlider = true) {
+  fluidTime = t;
+  const tmax = HPC_HOURS.length, clock = fmtClock(t), hl = `Hour ${fmtHour(t)} of ${tmax}`;
+  if (setSlider && performance.now() > scrubUntil) $('hpc-hour-slider').value = t;
+  $('hpc-hour-label').textContent = hl;
+  $('hpc-sim-time').textContent = `t = ${clock}`;
+  $('hpc-now-bar').textContent = `⏱ ${hl} · t = ${clock}`;
+  const cr = hpcRain(t);
+  $('vi-rain').textContent = `Rain: ${(cr.cum * HPC_STORM_IN).toFixed(2)}"`;
+  $('vi-rate').textContent = `Rate: ${(cr.rate * HPC_STORM_IN).toFixed(2)}"/hr`;
+  $('hpc-progress-bar').style.width = (t / tmax * 100) + '%';
+  refreshFluidStatus();
+}
+
+function refreshFluidStatus() {
+  const L = fluidLayer;
+  if (!L || viewMode !== 'fluid') return;
+  const st = L.status.state;
+  if (fluidErr) return setStatus(fluidErr, 'err');
+  if (st === 'loading') return setStatus('Loading flow data…');
+  if (st === 'buffering') return setStatus('Buffering hour grids…');
+  if (st === 'error') return setStatus(L.status.message || 'Flow data error', 'err');
+  const first = fluidMeta && fluidMeta.hours.length ? Math.min(...fluidMeta.hours) : 1;
+  if (fluidTime < first - 0.001) return setStatus(`Dry so far: water first appears at hour ${first}`, 'warn');
+  const s = L.source;
+  setStatus(`Fluid view · ${fluidMeta.label || L.storm} · ${s && s.kind === 'rasters' ? 'full precision' : 'preview'}`);
+}
+
+function updateQualityInfo() {
+  const el = $('fx-quality-info');
+  if (!fluidLayer) { el.textContent = ''; return; }
+  const qi = fluidLayer.qualityInfo;
+  el.textContent = fx.quality === 'auto' ? `level ${qi.level}/${qi.maxLevel}` : fx.quality;
+}
+
+function syncUrl() {
+  clearTimeout(lastUrlTimer);
+  try {
+    const q = new URLSearchParams(location.search);
+    q.set('storm', HPC_SCENARIO.replace(/^v2_/, ''));
+    q.set('mode', modeWanted);
+    q.set('hour', String(Math.round(curTime() * 100) / 100));
+    history.replaceState(history.state, '', `${location.pathname}?${q}${location.hash}`);
+  } catch (e) { /* sandboxed frame: no URL sync */ }
+}
+function syncUrlSoon() { clearTimeout(lastUrlTimer); lastUrlTimer = setTimeout(syncUrl, 400); }
+
+// ── playback, shared by both modes ──
+function setPlayBtn(p) { $('hpc-play-btn').textContent = p ? '⏸' : '▶'; }
+function isPlaying() { return viewMode === 'fluid' ? Boolean(fluidLayer && fluidLayer.isPlaying) : hpcPlaying; }
+function pausePlayback() {
+  if (fluidLayer && fluidLayer.isPlaying) fluidLayer.pause();
+  if (hpcPlaying) hpcPause();
+  setPlayBtn(false);
+  syncUrlSoon();
+}
+function startPlayback() {
+  timeTouched = true;
+  if (viewMode === 'fluid' && fluidLayer) { fluidLayer.play(speedMs()); setPlayBtn(true); }
+  else if (viewMode === 'polygons') hpcPlay();
+}
+function seekTo(t) {                       // user-driven time change in either mode
+  timeTouched = true;
+  const tmax = HPC_HOURS.length;
+  t = Math.min(tmax, Math.max(1, t));
+  if (viewMode === 'fluid') { if (fluidLayer) fluidLayer.setTime(t); fluidTimeUI(t); }
+  else { fluidTime = Math.round(t); hpcGoToHour(fluidTime); }
+  syncUrlSoon();
+}
+function curTime() { return viewMode === 'polygons' ? hpcCurrentHour : fluidTime; }   // polygon playback moves hpcCurrentHour only
+function stepHour(dir) {
+  pausePlayback();
+  const t = curTime(), e = 1e-6;
+  seekTo(dir > 0 ? Math.floor(t + e) + 1 : Math.ceil(t - e) - 1);
+}
+
+// ── mode UI ──
+function applyModeUI(mode) {
+  const fluid = mode === 'fluid';
+  document.querySelectorAll('#hpc-mode-row button').forEach(b => b.setAttribute('aria-checked', String(b.dataset.mode === mode)));
+  const sl = $('hpc-hour-slider');
+  sl.min = 1; sl.max = HPC_HOURS.length; sl.step = fluid ? 0.01 : 1;
+  sl.value = fluid ? fluidTime : Math.round(fluidTime);
+  for (const id of ['hpc-3d-cb', 'hpc-3d-label', 'hpc-exag-row']) $(id).classList.toggle('fx-off', fluid);
+  $('hpc-3d-cb').title = fluid ? 'Polygons mode only' : '';
+  $('leg-poly').style.display = fluid ? 'none' : '';
+  $('leg-fluid').style.display = fluid ? '' : 'none';
+  $('leg-note').style.display = fluid ? '' : 'none';
+  $('leg-paths-key').style.display = fluid && fx.showFlowpaths ? '' : 'none';
+  const fp = $('fx-panel');
+  fp.classList.toggle('fx-off', !fluid);
+  if (!fluid) fp.open = false; else { try { fp.open = localStorage.getItem('bgflood.fluid.open') === '1'; } catch (e) {} }
+  $('fx-source').style.visibility = fluid ? 'visible' : 'hidden';
+  if (!fluid) { $('fx-source-note').style.display = 'none'; $('fx-source-more').setAttribute('aria-expanded', 'false'); }
+  const vs = $('vi-source');
+  if (!fluid) { vs.textContent = 'Source: depth-tier polygons (solver output)'; vs.title = ''; vs.className = ''; }
+  $('hpc-now-bar').style.display = 'block';
+  viewMode = mode;
+  document.dispatchEvent(new CustomEvent('viewer-mode', { detail: { mode, layer: fluid ? fluidLayer : null } }));
+}
+
+function applySource(layer) {
+  const s = layer.source || { kind: 'tiers', label: 'Preview from depth tiers', note: '' };
+  const full = s.kind === 'rasters';
+  const note = s.note || (fluidMeta && fluidMeta.source_note) || '';
+  const b = $('fx-source-badge');
+  b.textContent = full ? 'FULL' : 'PREVIEW'; b.className = full ? 'full' : 'prev';
+  $('fx-source-text').textContent = s.label; $('fx-source').title = note;
+  $('fx-source-note').textContent = note;
+  const vs = $('vi-source');
+  vs.textContent = 'Source: ' + s.label; vs.title = note; vs.className = full ? '' : 'prev';
+}
+
+function disposeFluid() {
+  const L = fluidLayer;
+  fluidLayer = null; fluidMeta = null; fluidErr = '';
+  if (L) { try { L.dispose(); } catch (e) { console.warn('[fluid] dispose failed', e); } }
+  $('fx-quality-info').textContent = '';
+}
+
+function loadFluidModule() {
+  if (!fluidModPromise) fluidModPromise = import('./fluid/fluid-layer.js').then(m => (fluidMod = m), e => { fluidModPromise = null; throw e; });
+  return fluidModPromise;
+}
+
+function wireLayer(L) {
+  L.on('time', e => { if (L === fluidLayer && viewMode === 'fluid') { fluidTimeUI(e.hour); syncUrlSoon(); if (fxMouse.on) scheduleFluidTip(); } });
+  L.on('stats', e => fluidOnStats(L, e));
+  L.on('status', e => { if (L !== fluidLayer) return; if (e.state === 'ready') fluidErr = ''; refreshFluidStatus(); });
+  L.on('quality', () => { if (L === fluidLayer) updateQualityInfo(); });
+  L.on('error', e => {
+    if (L !== fluidLayer || e.phase === 'storm') return;
+    fluidErr = `Flow ${e.phase === 'grid' ? 'grid for hour ' + e.hour : e.phase} problem: ${(e.error && e.error.message) || e.error}`;
+    console.warn('[fluid]', fluidErr);
+    refreshFluidStatus();
+    // No polygon fallback here: the 5 to 100-year runs have no polygon files, so a fallback would leave an empty map.
+    // The layer retries a failed grid itself and reports 'ready' again when it recovers.
+  });
+}
+
+// ── Fluid statistics, at-risk list, flooded-buildings overlay (all fed by the layer's 'stats' events) ──
+// The layer evaluates the buildings and roads against the grid of the whole hour (floor of the time), see
+// fluid/fluid-stats.js. Everything shown here comes from that one payload, so counts, rows and overlay agree.
+let roadsData = null;
+let fxListKey = '';             // storm|hour of the list on screen: the list is rebuilt only when it changes
+let fxRows = [];                // rows on screen [{index, depthM, tier}] (at most FX_LIST_CAP)
+let fxLast = null;              // {hour, order, depthM} copy of the last payload, for click lookups
+let fxStormHour = null;        // {storm, hour} of the last payload (info panel text)
+const fxAttached = new WeakSet();
+const FX_LIST_CAP = 600;
+const M2FT = 3.28084, MS2MPH = 2.23694;
+const fxAddr = new Map();
+
+function fxTier(d) { return d >= 1.2 ? 'severe' : d >= 0.6 ? 'deep' : d >= 0.3 ? 'moderate' : 'shallow'; }   // fluid-stats TIER_BINS_M
+function fxDepthText(m) { return `${m.toFixed(2)} m (${(m * M2FT).toFixed(1)} ft)`; }
+function escHtml(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function buildingAddress(i) {
+  let a = fxAddr.get(i);
+  if (a === undefined) {
+    const p = buildingsData.features[i].properties || {};
+    a = (p['addr:housenumber'] && p['addr:street']) ? p['addr:housenumber'] + ' ' + p['addr:street']
+      : p.ADDRESS || p.SiteAddress || p.name || ('Building ' + (i + 1));
+    fxAddr.set(i, a);
+  }
+  return a;
+}
+function fxBuildingFeature(row, hour) {
+  const f = buildingsData.features[row.index];
+  return { ...f, properties: { ...f.properties, hpc_tier: row.tier, depth_m: row.depthM, fx_hour: hour }, layer: { id: 'hpc-bldgs-ext' } };
+}
+
+// The plain building layer can sit on top of the flooded overlay, so a click may return the plain feature: find
+// the flooded building it belongs to (mean vertex of the clicked footprint inside a flooded footprint).
+function fluidFlooded(feature) {
+  if (!fxLast || !hpcBuildingBBoxes) return null;
+  const g = feature.geometry, pts = polysOf(g).flatMap(p => p[0]);
+  if (!pts.length) return null;
+  let x = 0, y = 0;
+  for (const q of pts) { x += q[0]; y += q[1]; }
+  x /= pts.length; y /= pts.length;
+  for (let k = 0; k < fxLast.order.length; k++) {
+    const i = fxLast.order[k], b = hpcBuildingBBoxes[i];
+    if (!b || x < b[0] || x > b[2] || y < b[1] || y > b[3]) continue;
+    if (polysOf(buildingsData.features[i].geometry).some(p => polyContains(p, x, y))) {
+      const d = fxLast.depthM[i];
+      return fxBuildingFeature({ index: i, depthM: d, tier: fxTier(d) }, fxLast.hour);
+    }
+  }
+  return null;
+}
+
+// The numbers describe the grid of one whole hour (floor of the time), not the continuous time on the clock.
+function labelStatHour(h) {
+  const tag = ` · hr ${h}`;
+  $('stat-key-bldg').textContent = 'Flooded Bldgs' + tag;
+  $('stat-key-depth').textContent = 'Max Depth' + tag;
+  $('stat-key-cnt').textContent = 'Flooded Area' + tag;
+  const hk = document.querySelectorAll('#hpc-stats .hpc-stat .k');
+  hk[0].textContent = 'Wet area' + tag; hk[1].textContent = 'Bldgs hit %' + tag; hk[2].textContent = 'Roads hit %' + tag;
+  const vd = $('vi-depth'); vd.textContent = vd.textContent.replace(/^Max Depth( \(hr \d+\))?/, `Max Depth (hr ${h})`);
+  $('stat-hpc-bldg').title = $('stat-max-depth').title = $('stat-feat-cnt').title = `Statistics are computed for the hour ${h} grid (whole simulated hour), not the exact time on the clock.`;
+}
+
+function fluidOnStats(L, e) {
+  if (L !== fluidLayer || viewMode !== 'fluid' || e.storm !== L.storm) return;
+  const g = e.grid, hasB = e.floodedCount !== null;
+  const fixed = (v, n) => (Number.isFinite(v) ? v.toFixed(n) : '—');
+  const maxD = g && g.maxDepthM > 0 ? `${g.maxDepthM.toFixed(2)} m · ${(g.maxDepthM * M2FT).toFixed(1)} ft` : '—';
+  const area = g ? `${g.wetAreaKm2.toFixed(g.wetAreaKm2 < 10 ? 2 : 1)} km²` : '—';
+  setFluidStats({
+    bldgs: hasB ? e.floodedCount.toLocaleString() : '—',
+    maxDepth: maxD,
+    area,
+    features: area,
+    bldgPct: hasB && e.buildingCount ? fixed(100 * e.floodedCount / e.buildingCount, 1) + '%' : '—',
+    roadPct: e.roads ? fixed(e.roads.pctFlooded, 1) + '%' : '—',
+  });
+  $('stat-max-depth').classList.toggle('small', maxD.length > 7);
+  fxStormHour = { storm: e.storm, hour: e.hour };
+  labelStatHour(e.hour);
+  if (!hasB) return;
+  fxLast = { hour: e.hour, order: e.order.slice(), depthM: e.depthM.slice() };
+
+  const key = `${e.storm}|${e.hour}|${e.floodedCount}`;
+  if (key === fxListKey) return;
+  fxListKey = key;
+  const n = e.order.length, shown = Math.min(n, FX_LIST_CAP);
+  fxRows = new Array(shown);
+  for (let k = 0; k < shown; k++) { const i = e.order[k], d = e.depthM[i]; fxRows[k] = { index: i, depthM: d, tier: fxTier(d) }; }
+  renderFluidList(n, e.hour);
+  updateFluidBuildingsLayer(e);
+}
+
+function renderFluidList(total, hour) {
+  $('fl-list-count').textContent = (total > 0 ? total.toLocaleString() + ' bldgs' : 'none') + ` · as of hr ${hour}`;
+  const body = $('fl-list-body');
+  if (!total) { body.innerHTML = `<div class="fl-empty">No buildings are flooded (0.1 m or more) at hour ${hour}.</div>`; return; }
+  body.innerHTML = fxRows.map((r, k) => {
+    const a = escHtml(buildingAddress(r.index));
+    return `<div class="fl-item" data-fi="${k}"><div class="fl-tier-dot" style="background:${TIER_COLOR[r.tier]}"></div>` +
+      `<div class="fl-addr" title="${a}">${a}</div><div class="fl-depth">${fxDepthText(r.depthM)}</div></div>`;
+  }).join('') + (total > FX_LIST_CAP
+    ? `<div style="font-size:10px;color:#667;padding:4px;text-align:center">…and ${(total - FX_LIST_CAP).toLocaleString()} more</div>` : '');
+}
+
+function updateFluidBuildingsLayer(e) {
+  const src = map.getSource('hpc-bldgs-src');
+  if (!src) return;
+  const feats = new Array(e.order.length);
+  for (let k = 0; k < feats.length; k++) {
+    const i = e.order[k], f = buildingsData.features[i], d = e.depthM[i];
+    feats[k] = { type: 'Feature', geometry: f.geometry, properties: { ...f.properties, hpc_tier: fxTier(d), depth_m: d, fx_hour: e.hour } };
+  }
+  src.setData({ type: 'FeatureCollection', features: feats });
+}
+
+// ── Probe tooltip (hover) and water info (click) ──
+const ARROWS = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+const fxProbe = { valid: false, depthM: 0, speedMs: 0, u: 0, v: 0, bearingDeg: 0, cardinal: '', moving: false, hour: 0 };
+const fxMouse = { x: 0, y: 0, ll: [0, 0], on: false };
+let fxTipRaf = 0;
+
+function fluidProbeActive() {
+  const L = fluidLayer;
+  return viewMode === 'fluid' && Boolean(L) && L.visible && L.hasPicture && fx.showDepth;
+}
+function fluidWet(L, ll, out) {
+  const r = L.probe(ll, out);
+  return r.valid && r.depthM >= (L.getOptions().minDepthShown || 0.02);
+}
+function flowText(r) {
+  return r.moving ? `<span class="arrow">${ARROWS[Math.round(r.bearingDeg / 45) % 8]}</span> ${r.cardinal} (${Math.round(r.bearingDeg)}°)` : 'still';
+}
+function hideFluidTip() {
+  fxMouse.on = false;
+  const tip = $('fx-tip');
+  if (tip && tip.style.display !== 'none') tip.style.display = 'none';
+}
+function scheduleFluidTip() { if (!fxTipRaf) fxTipRaf = requestAnimationFrame(drawFluidTip); }
+function drawFluidTip() {
+  fxTipRaf = 0;
+  if (!fxMouse.on || !fluidProbeActive() || map.isMoving() || !fluidWet(fluidLayer, fxMouse.ll, fxProbe)) { $('fx-tip').style.display = 'none'; return; }
+  const r = fxProbe, tip = $('fx-tip');
+  tip.innerHTML =
+    `<b>${r.depthM.toFixed(2)} m</b> <span class="dim">(${(r.depthM * M2FT).toFixed(1)} ft) deep</span><br>` +
+    `${r.speedMs.toFixed(2)} m/s <span class="dim">(${(r.speedMs * MS2MPH).toFixed(1)} mph)</span> ${flowText(r)}<br>` +
+    `<span class="dim">Simulated time ${fmtClock(r.hour)}</span>`;
+  tip.style.display = 'block';
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = fxMouse.x + 16, y = fxMouse.y + 18;
+  if (x + w > innerWidth - 6) x = fxMouse.x - w - 12;
+  if (y + h > innerHeight - 6) y = fxMouse.y - h - 12;
+  tip.style.transform = `translate(${Math.max(4, x)}px,${Math.max(4, y)}px)`;
+}
+function initFluidProbe() {
+  map.on('mousemove', e => {
+    const o = e.originalEvent;
+    fxMouse.x = o.clientX; fxMouse.y = o.clientY; fxMouse.ll[0] = e.lngLat.lng; fxMouse.ll[1] = e.lngLat.lat; fxMouse.on = true;
+    if (viewMode === 'fluid') scheduleFluidTip();
+  });
+  map.on('mouseout', hideFluidTip);
+  map.on('movestart', hideFluidTip);             // drag, rotate, pitch, zoom, fly: nothing floats over a moving map
+  document.addEventListener('mouseleave', hideFluidTip);
+  window.addEventListener('blur', hideFluidTip);
+  $('fl-list-body').addEventListener('click', ev => {
+    const el = ev.target.closest('[data-fi]');
+    const row = el && fxRows[parseInt(el.dataset.fi)];
+    if (!row || viewMode !== 'fluid' || !fluidLayer) return;
+    const c = fluidLayer.buildingLngLat(row.index);
+    if (!c) return;
+    map.flyTo({ center: c, zoom: 18, pitch: 60, bearing: -14, duration: 1200 });
+    showInfo(fxBuildingFeature(row, fxStormHour ? fxStormHour.hour : fluidLayer.timeRange.min), null);
+  });
+}
+
+function showWaterInfo(r) {
+  $('info-title').textContent = 'Flood water (derived flow)';
+  const row = (k, v) => `<tr><td>${k}</td><td>${v}</td></tr>`;
+  $('info-table').innerHTML =
+    row('Depth', fxDepthText(r.depthM)) +
+    row('Flow speed', `${r.speedMs.toFixed(2)} m/s (${(r.speedMs * MS2MPH).toFixed(1)} mph)`) +
+    row('Flow toward', flowText(r)) +
+    row('Simulated time', `hour ${fmtHour(r.hour)} (${fmtClock(r.hour)})`) +
+    `<tr><td colspan="2" style="color:#667;font-size:10px;padding-top:6px">Depth comes from the flood simulation. Flow speed and direction are derived from the water-surface slope (Manning), not direct solver output.</td></tr>`;
+  $('info').style.display = 'block';
+}
+
+function describeFlowError(e, key) {
+  if (e && e.name === 'StormNotFoundError') return `No flow data for the ${key} storm yet (${FLOW_BASE}/${key}/)`;
+  if (e && e.name === 'FlowFormatError') return `Flow data for ${key} is damaged: ${e.message}`;
+  if (e && e.name === 'GridMemoryError') return 'Not enough memory for the flow grid on this device';
+  return `Flow data for ${key} could not be loaded: ${(e && e.message) || e}`;
+}
+
+// Resolves to {ok:true} when Fluid mode is on the map, {ok:false, reason} when the caller should show polygons,
+// {stale:true} when a newer mode request took over.
+async function startFluid(seq) {
+  const key = flowKeyOf(HPC_SCENARIO);
+  hpcEpoch++; hpcAbort.abort(); hpcAbort = new AbortController();     // no polygon file may be fetched for this mode
+  if (!key) return { ok: false, reason: 'The 2-year run has no flow data (Fluid flow covers the 5 to 100-year runs); showing polygons.' };
+  resetStatPlaceholders(true);
+  setStatus('Loading flow data…');
+  let mod;
+  try { mod = await loadFluidModule(); }
+  catch (e) {
+    return { ok: false, reason: location.protocol === 'file:'
+      ? 'Fluid flow needs the local server: start the map with Launch Map.bat. Showing polygons.'
+      : `Fluid code could not be loaded (${e.message || e}); showing polygons.` };
+  }
+  if (seq !== modeSeq) return { stale: true };
+  if (!mod.FluidLayer.supported()) return { ok: false, reason: 'This browser lacks WebGL2 or stream decompression; showing polygons.' };
+  let layer = fluidLayer;
+  if (!layer) {
+    try { layer = fluidLayer = new mod.FluidLayer(map, { base: FLOW_BASE, ...fxLayerOptions() }); }
+    catch (e) { return { ok: false, reason: `Fluid layer failed to start (${e.message || e}); showing polygons.` }; }
+    wireLayer(layer);
+  }
+  let meta;
+  try { meta = await layer.setStorm(key, { force: false }); }
+  catch (e) {
+    if (seq !== modeSeq) return { stale: true };
+    return { ok: false, reason: describeFlowError(e, key) + '; showing polygons.' };
+  }
+  if (seq !== modeSeq || layer !== fluidLayer) return { stale: true };
+  fluidMeta = meta;
+  if (hpcPlaying) hpcPause();
+  hpcRemoveLayers();
+  fluidErr = '';
+  const tmax = layer.timeRange.max || HPC_HOURS.length;
+  HPC_HOURS = Array.from({ length: tmax }, (_, i) => i + 1);
+  if (!timeTouched) fluidTime = 12;
+  fluidTime = Math.min(tmax, Math.max(1, fluidTime));
+  setModeNote('');
+  applyModeUI('fluid');
+  applySource(layer);
+  if (!fxAttached.has(layer)) {                  // footprints and roads are indexed once per layer; the stats events follow
+    fxAttached.add(layer);
+    const warn = e => console.warn('[fluid] statistics data', e);
+    if (buildingsData) layer.attachBuildings(buildingsData).catch(warn);
+    if (roadsData) layer.attachRoads(roadsData).catch(warn);
+  }
+  layer.setTime(fluidTime);
+  fluidTimeUI(fluidTime);
+  updateQualityInfo();
+  return { ok: true };
+}
+
+async function polyShowHour(h, seq) {
+  for (let i = 0; i < 200 && hpcLoading; i++) await new Promise(r => setTimeout(r, 50));
+  if (seq !== modeSeq || viewMode !== 'polygons') return;
+  await hpcGoToHour(h);
+}
+
+async function startPolygons(seq, reason) {
+  disposeFluid();
+  hpcEpoch++; hpcAbort.abort(); hpcAbort = new AbortController();     // an older storm's or mode's polygon load must not draw
+  if (hpcPlaying) hpcPause();
+  setPlayBtn(false);
+  const sc = HPC_SCENARIOS[HPC_SCENARIO];
+  HPC_HOURS = Array.from({ length: sc.hours }, (_, i) => i + 1);
+  fluidTime = Math.min(HPC_HOURS.length, Math.max(1, Math.round(fluidTime)));
+  hpcCurrentHour = fluidTime;
+  applyModeUI('polygons');
+  resetStatPlaceholders(false);
+  hpcRemoveLayers();
+  setModeNote(reason || '');
+  setStatus(reason ? 'Polygons (classic)' : `Loading Hour ${fluidTime}…`, reason ? 'warn' : '');
+  await polyShowHour(fluidTime, seq);
+}
+
+// Single entry for every mode or storm change: the newest request wins, older ones stop at their next await.
+async function switchMode(want) {
+  if (viewMode === 'polygons' && hpcCurrentHour !== Math.round(fluidTime)) fluidTime = hpcCurrentHour;
+  modeWanted = want;
+  const seq = ++modeSeq;
+  try {
+    if (want === 'fluid') {
+      const r = await startFluid(seq);
+      if (r.stale || seq !== modeSeq) return;
+      if (!r.ok) await startPolygons(seq, r.reason);
+    } else {
+      await startPolygons(seq, '');
+    }
+  } catch (e) {
+    console.error('[viewer] mode switch failed', e);
+    if (seq === modeSeq) { try { await startPolygons(seq, 'Fluid flow failed unexpectedly; showing polygons.'); } catch (e2) { setStatus('Display error: ' + (e2.message || e2), 'err'); } }
+  }
+  if (seq === modeSeq) syncUrl();
+}
+
+function fallbackToPolygons(reason) {          // keeps modeWanted, so the next storm may use Fluid again
+  const seq = ++modeSeq;
+  startPolygons(seq, reason).then(() => { if (seq === modeSeq) syncUrl(); }, e => console.error('[viewer] fallback failed', e));
+}
+
+function applyScenarioLabels(key) {
+  const sc = HPC_SCENARIOS[key];
+  HPC_SCENARIO = key;
+  HPC_STORM_IN = sc.depth;
+  hpcCache = {};
+  $('hpc-title').textContent = `${sc.label} Storm · TACC Vista H100`;
+  $('hpc-badge').textContent = sc.badge;
+  $('vi-label').textContent = `TACC Vista Run · ${sc.label} Storm`;
+  $('vi-detail').textContent = `${sc.depth.toFixed(1)}" / 24-hr · ${sc.note}`;
+  $('hpc-scenario').value = key;
+}
+
+async function setScenario(key) {
+  if (!HPC_SCENARIOS[key]) return;
+  pausePlayback();
+  if (viewMode === 'polygons' && hpcCurrentHour !== Math.round(fluidTime)) fluidTime = hpcCurrentHour;
+  applyScenarioLabels(key);
+  if (viewMode === 'polygons' && modeWanted === 'polygons') fluidTime = 1;      // classic behaviour: a new storm starts at hour 1
+  const sc = HPC_SCENARIOS[key];
+  if (viewMode === 'polygons' || !fluidLayer) HPC_HOURS = Array.from({ length: sc.hours }, (_, i) => i + 1);
+  const sl = $('hpc-hour-slider'); sl.max = HPC_HOURS.length;
+  await switchMode(modeWanted);
+}
+
+// ── controls ──
+function initFxControls() {
+  const fmt = { opacity: v => Math.round(v * 100) + '%', density: v => Math.round(v * 100) + '%', speed: v => v.toFixed(2) + '×', arrowSpacing: v => v + 'px' };
+  const targets = {
+    density: () => ({ particleCount: fxLayerOptions().particleCount }),
+    speed: () => { const o = fxLayerOptions(); return { flowSpeed: o.flowSpeed, particleSpeed: o.particleSpeed }; },
+    arrowSpacing: () => ({ arrowSpacingPx: fx.arrowSpacing }),
+    quality: () => ({ qualityMode: fx.quality }),
+  };
+  const refresh = () => document.querySelectorAll('[data-fx]').forEach(el => {
+    const k = el.dataset.fx;
+    if (el.type === 'checkbox') el.checked = Boolean(fx[k]); else el.value = fx[k];
+    const v = el.closest('.fx-row') && el.closest('.fx-row').querySelector('.fx-v');
+    if (v && fmt[k]) v.textContent = fmt[k](fx[k]);
+  });
+  refresh();
+  document.querySelectorAll('[data-fx]').forEach(el => {
+    const k = el.dataset.fx;
+    el.addEventListener(el.type === 'range' ? 'input' : 'change', () => {
+      fx[k] = el.type === 'checkbox' ? el.checked : (el.tagName === 'SELECT' ? el.value : parseFloat(el.value));
+      fxSave(); refresh();
+      if (k === 'showFlowpaths') $('leg-paths-key').style.display = fx.showFlowpaths && viewMode === 'fluid' ? '' : 'none';
+      if (fluidLayer) { try { fluidLayer.setOptions(targets[k] ? targets[k]() : { [k]: fx[k] }); } catch (e) { console.warn('[fluid] option', k, e); } }
+      if (k === 'quality') updateQualityInfo();
+    });
+  });
+  $('fx-reset').addEventListener('click', () => {
+    Object.assign(fx, FX_DEFAULTS); fxSave(); refresh();
+    $('leg-paths-key').style.display = 'none';
+    if (fluidLayer) { const o = fxLayerOptions(); delete o.msPerHour; fluidLayer.setOptions(o); updateQualityInfo(); }
+  });
+  $('fx-panel').addEventListener('toggle', () => {
+    if (viewMode === 'fluid') try { localStorage.setItem('bgflood.fluid.open', $('fx-panel').open ? '1' : '0'); } catch (e) {}
+  });
+  $('fx-source-more').addEventListener('click', () => {
+    const n = $('fx-source-note'), open = n.style.display === 'none';
+    n.style.display = open ? '' : 'none';
+    $('fx-source-more').setAttribute('aria-expanded', String(open));
+  });
+}
+
+function initFluidUI() {
+  initLegends();
+  initFluidProbe();
+  initFxControls();
+  document.querySelectorAll('#hpc-mode-row button').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.mode === modeWanted && b.getAttribute('aria-checked') === 'true') return;
+    pausePlayback();
+    switchMode(b.dataset.mode);
+  }));
+  $('hpc-speed-sel').addEventListener('change', () => { if (fluidLayer) fluidLayer.setOptions({ msPerHour: speedMs() }); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && isPlaying()) pausePlayback(); });
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;     // Shift+Arrow stays with MapLibre (rotate, pitch)
+    if ($('sci-modal').classList.contains('open')) return;
+    const t = e.target, tag = t && t.tagName;
+    const typing = tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'SUMMARY' || (t && t.isContentEditable) ||
+      (tag === 'INPUT' && t.id !== 'hpc-hour-slider');                 // every other slider keeps its own arrow keys
+    if (typing) return;
+    if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (isPlaying()) pausePlayback(); else startPlayback(); }
+    else if (e.key === '.' || e.key === ',' || (t && t.id === 'hpc-hour-slider' && (e.key === 'ArrowRight' || e.key === 'ArrowLeft'))) {
+      e.preventDefault(); e.stopImmediatePropagation(); stepHour(e.key === ',' || e.key === 'ArrowLeft' ? -1 : 1);   // arrows pan the map, so they step the hour only on the time slider
+    }
+    if (e.defaultPrevented) e.stopImmediatePropagation();
+  }, true);
+}
+window.viewerApi = { setFluidStats, get mode() { return viewMode; }, get fluidLayer() { return fluidLayer; }, get time() { return curTime(); } };
 // ─── Main load ────────────────────────────────────────────────────────────────
 map.on('load', async () => {
   setMsg('Loading FEMA flood zones… (1/5)', 10);
@@ -1073,6 +1935,7 @@ map.on('load', async () => {
   const allParcels = await fetchLayer('all_parcels');
 
   buildingsData  = bldgs;
+  roadsData      = roads;
   allParcelsData = allParcels;
 
   // Precompute bboxes for HPC building-hit counting
@@ -1085,13 +1948,13 @@ map.on('load', async () => {
     map.addSource('fema-src', { type: 'geojson', data: fema });
     const ae100 = ['in', ['get', 'FLD_ZONE'], ['literal', ['AE','A','AO','AH']]];
     const x500  = ['in', ['get', 'FLD_ZONE'], ['literal', ['X','X500']]];
-    map.addLayer({ id:'fema-ae-fill', type:'fill', source:'fema-src', filter:ae100,
+    map.addLayer({ id:'fema-ae-fill', layout:{'visibility':'none'}, type:'fill', source:'fema-src', filter:ae100,
       paint:{'fill-color':'#c0392b','fill-opacity':0.35} });
-    map.addLayer({ id:'fema-ae-line', type:'line', source:'fema-src', filter:ae100,
+    map.addLayer({ id:'fema-ae-line', layout:{'visibility':'none'}, type:'line', source:'fema-src', filter:ae100,
       paint:{'line-color':'#e74c3c','line-width':1.5,'line-opacity':0.8} });
-    map.addLayer({ id:'fema-x-fill', type:'fill', source:'fema-src', filter:x500,
+    map.addLayer({ id:'fema-x-fill', layout:{'visibility':'none'}, type:'fill', source:'fema-src', filter:x500,
       paint:{'fill-color':'#d4870a','fill-opacity':0.25} });
-    map.addLayer({ id:'fema-x-line', type:'line', source:'fema-src', filter:x500,
+    map.addLayer({ id:'fema-x-line', layout:{'visibility':'none'}, type:'line', source:'fema-src', filter:x500,
       paint:{'line-color':'#e67e22','line-width':1,'line-opacity':0.6} });
     loadedLayers['fema-ae'] = true;
     loadedLayers['fema-x'] = true;
@@ -1107,9 +1970,9 @@ map.on('load', async () => {
     const sinkColor = ['match',
       ['coalesce',['get','risk_tier'],['get','flood_risk_tier'],'low'],
       'critical','#7d3c98','high','#9b59b6','moderate','#c39bd3','low','#e8daef','#e8daef'];
-    map.addLayer({ id:'sinkholes-fill', type:'fill', source:'sinkholes-src',
+    map.addLayer({ id:'sinkholes-fill', layout:{'visibility':'none'}, type:'fill', source:'sinkholes-src',
       paint:{'fill-color':sinkColor,'fill-opacity':0.55} });
-    map.addLayer({ id:'sinkholes-line', type:'line', source:'sinkholes-src',
+    map.addLayer({ id:'sinkholes-line', layout:{'visibility':'none'}, type:'line', source:'sinkholes-src',
       paint:{'line-color':'#c39bd3','line-width':0.7,'line-opacity':0.8} });
     loadedLayers['sinkholes'] = true;
     setCount('cnt-sinkholes', sinkholes.features?.length);
@@ -1118,9 +1981,9 @@ map.on('load', async () => {
   // ── Riverine ──────────────────────────────────────────────────────────────
   if (riverine) {
     map.addSource('riverine-src', { type: 'geojson', data: riverine });
-    map.addLayer({ id:'riverine-fill', type:'fill', source:'riverine-src',
+    map.addLayer({ id:'riverine-fill', layout:{'visibility':'none'}, type:'fill', source:'riverine-src',
       paint:{'fill-color':'#3498db','fill-opacity':0.3} });
-    map.addLayer({ id:'riverine-line', type:'line', source:'riverine-src',
+    map.addLayer({ id:'riverine-line', layout:{'visibility':'none'}, type:'line', source:'riverine-src',
       paint:{'line-color':'#5dade2','line-width':1} });
     loadedLayers['riverine'] = true;
     setCount('cnt-riverine', riverine.features?.length);
@@ -1130,8 +1993,8 @@ map.on('load', async () => {
   if (roads) {
     map.addSource('roads-src', { type: 'geojson', data: roads });
     map.addLayer({ id:'roads-line', type:'line', source:'roads-src',
-      paint:{'line-color':RISK_COLOR,'line-width':3,'line-opacity':0.9,
-             'line-cap':'round','line-join':'round'} });
+      layout:{'line-cap':'round','line-join':'round'},
+      paint:{'line-color':RISK_COLOR,'line-width':3,'line-opacity':0.9} });
     loadedLayers['roads'] = true;
     setCount('cnt-roads', roads.features?.length);
   }
@@ -1193,7 +2056,17 @@ map.on('load', async () => {
 
   // ── HPC auto-enable (always on, 3D default) ───────────────────────────────
   hpc3dMode = document.getElementById('hpc-3d-cb').checked;
-  hpcEnable();
+  hpcEnabled = true;
+  initFluidUI();
+  {
+    const sq = QP.get('storm'), key = sq && HPC_SCENARIOS[sq === '2yr' ? '2yr' : 'v2_' + sq] ? (sq === '2yr' ? '2yr' : 'v2_' + sq) : '2yr';
+    const hr = parseFloat(QP.get('hour'));
+    modeWanted = QP.get('mode') === 'polygons' ? 'polygons' : 'fluid';
+    if (Number.isFinite(hr)) { fluidTime = hr; hpcCurrentHour = Math.round(hr); timeTouched = true; }
+    applyScenarioLabels(key);
+    HPC_HOURS = Array.from({ length: HPC_SCENARIOS[key].hours }, (_, i) => i + 1);
+    switchMode(modeWanted);
+  }
 
   // ── Flooded buildings list toggle ─────────────────────────────────────────
   document.getElementById('fl-header').addEventListener('click', () => {
@@ -1203,15 +2076,21 @@ map.on('load', async () => {
     arrow.classList.toggle('open', open);
   });
 
-  // ── HPC time slider ───────────────────────────────────────────────────────
-  document.getElementById('hpc-hour-slider').addEventListener('input', function() {
-    if (hpcPlaying) hpcPause();
-    hpcGoToHour(parseInt(this.value));
+  // ── HPC storm selector ────────────────────────────────────────────────────
+  $('hpc-scenario').addEventListener('change', function() { setScenario(this.value); });
+
+  // ── HPC time slider (both modes; dragging pauses playback as before) ───────
+  const hourSlider = $('hpc-hour-slider');
+  hourSlider.addEventListener('input', function() {
+    pausePlayback();
+    scrubUntil = performance.now() + 250;
+    seekTo(parseFloat(this.value));
   });
+  hourSlider.addEventListener('change', syncUrl);
 
   // ── HPC play/pause ────────────────────────────────────────────────────────
-  document.getElementById('hpc-play-btn').addEventListener('click', function() {
-    if (hpcPlaying) hpcPause(); else hpcPlay();
+  $('hpc-play-btn').addEventListener('click', function() {
+    if (isPlaying()) pausePlayback(); else startPlayback();
   });
 
   // ── HPC 3D toggle ─────────────────────────────────────────────────────────
@@ -1221,6 +2100,13 @@ map.on('load', async () => {
       const data = hpcCache[hpcCurrentHour];
       if (data) hpcAddLayers(data);
     }
+  });
+
+  // ── Water height exaggeration ─────────────────────────────────────────────
+  document.getElementById('hpc-exag').addEventListener('input', function() {
+    hpcExag = parseFloat(this.value);
+    document.getElementById('hpc-exag-val').textContent = hpcExag + '×';
+    if (map.getLayer('hpc-3d')) map.setPaintProperty('hpc-3d', 'fill-extrusion-height', hpcHeightExpr());
   });
 
   // ── Terrain exaggeration ──────────────────────────────────────────────────
@@ -1291,9 +2177,14 @@ map.on('load', async () => {
   map.on('click', e => {
     const activeLayers = CLICKABLE.filter(id => map.getLayer(id));
     const feats = map.queryRenderedFeatures(e.point, { layers: activeLayers });
+    // Water is the background of parcels and FEMA zones: only a building or road on top of it takes the click.
+    if (fluidProbeActive() && !feats.some(f => f.layer.id === 'hpc-bldgs-ext' || f.layer.id === 'buildings-ext' || f.layer.id === 'roads-line') &&
+        fluidWet(fluidLayer, e.lngLat, fxProbe)) { showWaterInfo(fxProbe); return; }
     if (!feats.length) { document.getElementById('info').style.display = 'none'; return; }
     const elevM = map.queryTerrainElevation(e.lngLat, { exaggerated: false });
-    showInfo(feats[0], elevM);
+    const top = feats[0];
+    const flooded = viewMode === 'fluid' && (top.layer.id === 'buildings-ext' || top.layer.id === 'hpc-bldgs-ext') ? fluidFlooded(top) : null;
+    showInfo(flooded || top, elevM);
   });
 
   document.getElementById('info-close').addEventListener('click', () => {

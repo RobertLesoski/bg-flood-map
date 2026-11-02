@@ -52,16 +52,18 @@ An interactive 3D flood risk visualization for Bowling Green, Kentucky, built us
 
 The flood depth layers are computed using a custom 2D GPU flood solver implementing the **Local Inertial Approximation** (Bates et al., 2010) — the same numerical scheme used by LISFLOOD-FP. The solver runs on TACC Vista's NVIDIA H100 Grace-Hopper nodes via CuPy, processing **80 million grid cells** per timestep at **2-meter resolution** across a 10×10 km domain centered on Bowling Green.
 
-Planned storm return periods: **2, 5, 10, 25, 50, and 100-year** events using NOAA Atlas 14 rainfall depths distributed via the SCS Type II 24-hour hyetograph.
+Planned storm return periods: **2, 5, 10, 25, 50, and 100-year** events. The 24-hour depths are close to NOAA Atlas 14 values (table below) and are spread over 24 hours with an 11-point cumulative curve that was checked against the 2-year run. It is **not** the official NRCS Type II distribution. Rain is applied uniformly over the domain.
 
-| Return Period | Rainfall Depth | Annual Probability |
-|---|---|---|
-| 2-year | 3.5 in | 50% |
-| 5-year | 4.2 in | 20% |
-| 10-year | 4.9 in | 10% |
-| 25-year | 5.9 in | 4% |
-| 50-year | 6.7 in | 2% |
-| 100-year | 7.6 in | 1% |
+| Return Period | Depth used in the runs | NOAA Atlas 14, 24-hr, Vol. 2 v3 (36.9685, -86.4808, PDS) | Difference | Annual Probability |
+|---|---|---|---|---|
+| 2-year | 3.5 in | 3.54 in | -0.04 in (-1.1%) | 50% |
+| 5-year | 4.2 in | 4.32 in | -0.12 in (-2.8%) | 20% |
+| 10-year | 4.9 in | 4.97 in | -0.07 in (-1.4%) | 10% |
+| 25-year | 5.9 in | 5.89 in | +0.01 in (+0.2%) | 4% |
+| 50-year | 6.7 in | 6.65 in | +0.05 in (+0.8%) | 2% |
+| 100-year | 7.6 in | 7.45 in | +0.15 in (+2.0%) | 1% |
+
+NOAA values were retrieved from the Precipitation Frequency Data Server on 2026-10-28 for downtown Bowling Green (partial duration series, depths in inches). The runs used rounded or earlier values, all within 3% of NOAA.
 
 ![Allocation](https://img.shields.io/badge/Allocation-ATM25008-4a90d9?style=flat-square)
 ![Status](https://img.shields.io/badge/2yr_Storm-Complete-brightgreen?style=flat-square)
@@ -168,3 +170,7 @@ Western Kentucky University · Graduate Student
 *Disaster Science Operations Center (DSOC) · AI Research Lab (AIR) · Western Kentucky University*
 
 > *"Every storm is a dataset waiting to be solved; think global, model local."*
+
+## Running on your own computer
+
+Double-click `Launch Map.bat` (needs Python); `Run Checks.bat` verifies the install. See [RUN_LOCALLY.md](RUN_LOCALLY.md) for the fluid/flow view and [FLOW_FORMAT.md](FLOW_FORMAT.md) for the data format. Flow vectors are derived from the simulated water-surface slope (Manning), not raw solver output.

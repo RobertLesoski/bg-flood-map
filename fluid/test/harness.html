@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fluid renderer harness</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0c1015; color: #d6dde6; font: 13px/1.35 system-ui, "Segoe UI", sans-serif; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 8px 12px; background: #151b23; border-bottom: 1px solid #263140; }
+  header h1 { font-size: 14px; margin: 0 8px 0 0; font-weight: 600; }
+  .group { display: flex; align-items: center; gap: 4px; }
+  .group > span { color: #7f8c9b; margin-right: 2px; }
+  button { background: #1f2a37; color: #d6dde6; border: 1px solid #33425a; border-radius: 4px; padding: 3px 8px; font: inherit; cursor: pointer; }
+  button:hover { background: #28384c; }
+  button.on { background: #2b5d8f; border-color: #4a8fd0; }
+  input[type=range] { width: 130px; }
+  #status { color: #8fb4d8; margin-left: auto; font-variant-numeric: tabular-nums; }
+  main { display: flex; align-items: flex-start; }
+  #stage { position: relative; flex: none; background: #000; }
+  #stage canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+  #results { flex: 1; min-width: 0; max-height: calc(100vh - 44px); overflow: auto; padding: 8px 10px; font: 12px/1.3 ui-monospace, Consolas, monospace; }
+  #results.hidden { display: none; }
+  .row { padding: 1px 0; border-bottom: 1px solid #1b232d; word-break: break-word; }
+  .row.pass b { color: #5fd38a; }
+  .row.fail b { color: #ff6b6b; }
+  .row i { color: #7f8c9b; font-style: normal; }
+  #summary { font-weight: 600; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fluid renderer harness</h1>
+  <div class="group"><span>layers</span><span id="layerBtns"></span></div>
+  <div class="group"><span>view</span><span id="viewBtns"></span></div>
+  <div class="group"><span>backdrop</span><span id="bgBtns"></span></div>
+  <div class="group"><span>hour</span><input id="hour" type="range" min="0" max="5" step="0.01" value="4.2"><button id="play">play</button></div>
+  <div class="group"><button id="runTests">run tests</button><button id="toggleResults">results</button></div>
+  <div id="status">loading...</div>
+</header>
+<main>
+  <div id="stage"></div>
+  <div id="results" class="hidden"><div id="summary"></div><div id="list"></div></div>
+</main>
+<script type="module" src="./harness.js"></script>
+</body>
+</html>
