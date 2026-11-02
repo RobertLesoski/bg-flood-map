@@ -18,6 +18,12 @@ connection (see "Troubleshooting" for why).
 Everything is served only to your own computer (`127.0.0.1`). Nobody else on your network can open it, and Windows
 will not ask about the firewall.
 
+## The desktop app (faster, no browser)
+
+There is also a standalone desktop viewer in the code folder: double-click **`desktop\Launch Desktop Viewer.bat`** (or the
+"BG Flood Viewer" desktop shortcut). It reads the data from the app folder below and needs no server. Controls, the
+command line and its limits are in `desktop\README.md`.
+
 ## Two folders
 
 | Folder | What it is |

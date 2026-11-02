@@ -1,0 +1,69 @@
+# BG Flood Viewer (desktop)
+
+A standalone GPU application for exploring the Bowling Green flood simulations: 3D terrain, animated water, buildings
+and roads, flood-depth tiers, at-risk building list, statistics and a timeline. It replaces the browser viewer for
+day-to-day use and needs no server and no internet connection.
+
+## Start it
+
+Double-click **`Launch Desktop Viewer.bat`** (there is also a shortcut on the desktop). Variants:
+
+| File | Purpose |
+|---|---|
+| `Launch Desktop Viewer.bat` | Normal start, no console window (pythonw). Shows a message box if Python or a package is missing. |
+| `Launch Desktop Viewer (console).bat` | Same, with a console so you can read messages. |
+| `Run Desktop Checks.bat` | Runs the tests and a headless smoke render; prints PASS or FAIL. |
+
+Requirements: Windows 10/11, Python 3 (Anaconda is fine), a Vulkan-capable GPU, and
+`python -m pip install wgpu rendercanvas glfw imgui-bundle numpy numba scipy rasterio shapely mapbox_earcut pillow requests`.
+The app prefers the high-performance (discrete) GPU. It does not change Windows graphics settings.
+
+Data: it reads the same app folder as the web viewer (`layers\flow\<storm>\...`, `layers\*.geojson`). The default is
+`C:\Users\Minec\Desktop\DSOC AI\Bowling Green Flood Map`; override with `--data <folder>` or the `BGV_DATA` environment
+variable. Caches go to `desktop\cache` (override `BGV_CACHE`); the log is `desktop\logs\bgv.log`.
+
+## Controls
+
+| Input | Action |
+|---|---|
+| Left-drag | Pan (the ground point under the cursor stays under it) |
+| Right- or middle-drag | Orbit and tilt |
+| Wheel, `+` `-` | Zoom toward the cursor |
+| W A S D / arrows, Q E, R | Move, rotate, tilt; hold Shift for 3x speed; keys glide to a stop; Home resets the view |
+| Click a building / row in the list | Select; **F** flies to the selection (tilt otherwise), **Esc** deselects |
+| Space, `[` `]` | Play/pause, step an hour back/forward |
+| 1 to 9 | Pick storm |
+| H | Hide/show the interface |
+| F1 / F3 | Help / performance overlay |
+| F11 | Fullscreen |
+| F12, Shift+F12 | Screenshot (folder: `BGV_SCREENSHOT_DIR`) |
+
+The side panels hold storm and time, layers (terrain, roads, buildings, water, flow arrows, particles, flow paths,
+optional map background), water and flow settings, quality, and statistics. The quality governor is **Auto** by default
+and adapts render scale and detail to keep the frame rate up; clicking a preset switches to manual.
+
+## Command line
+
+```
+python -m bgv                                   open the window
+python -m bgv --storm 100yr --msaa 4            start on a storm
+python -m bgv --render out.png --storm 25yr --hour 12 --size 1600x900 --ui [--camera "x,y,dist,yaw,pitch" | --at "lng,lat"]
+python -m bgv --benchmark --seconds 12 --size 1920x1080 [--json]
+python -m bgv --selftest                        open a window, script mouse/keys, measure frames, exit (rc 0 = pass)
+python -m pytest desktop/tests -q               306 tests (about 3.5 minutes)
+```
+
+Run these from the `desktop` folder (or set `PYTHONPATH` to it).
+
+## What it measured (GTX 1650, 1600x900 window)
+
+About 90 fps with the full UI, about 3.4 s from launch to fully loaded (window visible in about 0.5 s). Details and
+the optimisations behind them are in `docs/PERF.md`; architecture and the layer API are in `DESIGN.md`.
+
+## Know what you are looking at
+
+- **Velocity is derived**, not solver output: Manning's equation on the simulated water-surface slope (same as the web
+  viewer; see `FLOW_FORMAT.md`).
+- The current flow data are the **depth-tier preview** (`"source": "tiers"`), labelled "Preview from depth tiers" in the
+  app. The 5-year to 100-year storms are available; county-wide Vista output is not convertible yet.
+- Tested only on one laptop (GTX 1650, Vulkan) with scripted input, not a physical mouse.

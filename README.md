@@ -71,6 +71,12 @@ NOAA values were retrieved from the Precipitation Frequency Data Server on 2026-
 
 ---
 
+## ✦ Desktop Viewer (native GPU app)
+
+A standalone Vulkan/wgpu application lives in [`desktop/`](desktop/README.md): the same flood data with terrain, animated
+water, buildings, roads, statistics and a timeline, at about 90 fps and with no server or internet needed. Start it with
+`desktop/Launch Desktop Viewer.bat`. See [`desktop/README.md`](desktop/README.md) for controls, command line and limits.
+
 ## ✦ Running Locally
 
 > **Note:** This repo contains the viewer and scripts. Most data files (GeoJSON layers, DEM, GPKG) are included; HPC simulation outputs are excluded due to size. Follow the steps below to rebuild them.
