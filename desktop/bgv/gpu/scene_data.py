@@ -277,11 +277,16 @@ def build_pick(b, roads) -> PickData:
 
 # ------------------------------------------------------------------------------------------------ the loader
 class SceneData:
-    def __init__(self, root, frame, heights: np.ndarray, sampler=None):
+    def __init__(self, root, frame, heights: np.ndarray, sampler=None, domain=None):
+        """`domain`: a bgv.domain.Domain; it says where the building / road GeoJSON files come from (the city's files, or
+        the county's, cut from the OpenStreetMap extract on first use).  None = the city's files under `root`."""
         self.root = root
         self.frame = frame
         self.heights = heights
         self.sampler = sampler
+        self.domain = domain
+        self.osm_info: dict = {}
+        self._lo, self._hi = 0.0, 1.0
         self.state = "loading"
         self.message = "starting"
         self.frac = 0.0
@@ -300,7 +305,7 @@ class SceneData:
     def _progress(self, msg, frac):
         self.message = str(msg)
         if frac is not None:
-            self.frac = min(0.9, 0.9 * float(frac))
+            self.frac = min(0.9, 0.9 * (self._lo + (self._hi - self._lo) * float(frac)))
 
     def _run(self):
         from .bgthread import lower_priority
@@ -309,7 +314,12 @@ class SceneData:
         try:
             from ..data import buildings as bmod
             from ..data import prep
-            res = prep.ensure_all(self.root, self.frame, self._progress)
+            bpath = rpath = None
+            if self.domain is not None and self.domain.key != "city":
+                self._lo, self._hi = 0.0, 0.5            # reading the OpenStreetMap extract (first run only)
+                bpath, rpath, self.osm_info = self.domain.scene_paths(self.frame, self._progress)
+                self._lo, self._hi = 0.5, 1.0
+            res = prep.ensure_all(self.root, self.frame, self._progress, buildings_path=bpath, roads_path=rpath)
             b, r = res["buildings"], res["roads"]
             self.timings["data_s"] = time.perf_counter() - t0
             self.message = "preparing meshes"
@@ -356,6 +366,6 @@ def get_scene(app) -> SceneData:
     sc = getattr(app, "_scene_data", None)
     frame = app.terrain.frame
     if sc is None or sc.frame != frame or sc.heights is not app.terrain.heights:
-        sc = SceneData(app.root, frame, app.terrain.heights, app.terrain.sampler)
+        sc = SceneData(app.root, frame, app.terrain.heights, app.terrain.sampler, getattr(app, "domain", None))
         app._scene_data = sc
     return sc

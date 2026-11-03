@@ -72,3 +72,14 @@ the optimisations behind them are in `docs/PERF.md`; architecture and the layer 
 
 A 20-slide technical deck with live-render video clips was made from this app (private link: https://claude.ai/artifact/L7J2yCrkuLEzmww9VBDxCL). `docs/make_media.py` re-renders the clips: it loads the 100-year storm, renders three camera paths (flood rising over 24 hours, fly-through, orbit) as JPEG frames in `docs/media/<clip>/`, ready to encode with ffmpeg (`-framerate 24 -i %04d.jpg -c:v libx264 -pix_fmt yuv420p`).
 
+## City and county
+
+The viewer has two **domains**: the city (Bowling Green, default) and Warren County (about 52 x 60 km). Pick one on the loading
+screen (two big buttons; the remembered choice continues after a 3 s countdown you can cancel, `--domain` skips it, the Domain menu
+has "Ask which view at start-up"), or any time in the **Domain** menu / the "Area" box in Storm & Time. The county needs
+`layerslow_county\<storm>` (converted flow grids) and the terrain `layers\dem_warren_5m.tif` (UTM 16N, metres; or `--county-dem <file>`);
+buildings and roads come from `kentucky-latest.osm.pbf` (read once, about a minute, then cached). Without them the County button is greyed
+out and its tooltip says what is missing. Command line: `--domain city|county`, `--county-dem`, `--county-pbf`, `--county-demo`.
+
+`python -m bgv --make-county-demo <folder>` writes SYNTHETIC county terrain + 2 storms (marked DEMO DATA everywhere, screenshots stamped);
+view with `python -m bgv --domain county --county-demo <folder>`. Real data always takes precedence.

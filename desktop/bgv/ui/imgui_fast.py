@@ -103,6 +103,9 @@ def patch(renderer, lite=None) -> bool:
     try:
         be = renderer.backend
         if getattr(be, "_fast_installed", False):
+            holder = getattr(renderer, "_fast_lite", None)
+            if holder is not None and lite is not None:
+                holder[0] = lite                      # a new UI manager (domain switch): its lite_frame takes over
             return True
         orig = be.render
         be._fast_bg_cache = {}
@@ -120,10 +123,11 @@ def patch(renderer, lite=None) -> bool:
         be._fast_installed = True
         if lite is not None:
             orig_frame = renderer.render
+            holder = renderer._fast_lite = [lite]
 
             def render_frame():
                 try:
-                    if lite() and _replay(renderer):
+                    if holder[0]() and _replay(renderer):
                         return
                 except Exception:
                     pass

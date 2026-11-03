@@ -118,9 +118,10 @@ def _about(ui):
             dim("Desktop GPU viewer (wgpu / Vulkan)")
             imgui.spacing()
             imgui.push_text_wrap_pos(0.0)
-            imgui.text_wrapped("Interactive 3D flood visualisation for Bowling Green, Kentucky: simulated water depth, "
-                               "derived flow velocity, buildings and roads coloured by flooding, and live statistics for "
-                               "each storm and hour.")
+            imgui.text_wrapped("Interactive 3D flood visualisation for Bowling Green and Warren County, Kentucky: simulated "
+                               "water depth, derived flow velocity, buildings and roads coloured by flooding, and live "
+                               "statistics for each storm and hour.  Switch between the city and the whole county in the "
+                               "Domain menu.")
             imgui.pop_text_wrap_pos()
             imgui.spacing()
             bold("Data and credits", theme.ACCENT2)

@@ -10,7 +10,9 @@
 //   FluidLayer.supported()                 WebGL2 + DecompressionStream + fetch present (no map needed)
 //   new FluidLayer(map, opts)              nothing is added to the map until the first setStorm resolves
 //   await layer.setStorm('25yr')           loads meta, prepares the renderer, shows the first picture.
-//        {force:true} reloads the same storm. Resolves to the meta object.
+//        {force:true} reloads the same storm. {base:'./layers/flow_county'} loads the storm from another flow folder (a
+//        DOMAIN such as the whole county) and makes it the layer's base from then on; the same storm key in another
+//        base is a different storm (it is reloaded, nothing is shared with the old one). Resolves to the meta object.
 //        Rejects with StormNotFoundError (HTTP 404 on meta.json), FlowFormatError (bad meta or grid),
 //        GridMemoryError, any other Error (network, GPU) or an AbortError when a newer setStorm
 //        superseded it. A failed request leaves the previous storm untouched: it keeps its picture and
@@ -381,6 +383,7 @@ export class FluidLayer {
   // ---------------------------------------------------------------- accessors
 
   get storm() { return this._stormKey; }
+  get base() { return this._storm ? this._storm.base : this._base; }   // flow folder of the current storm (the domain)
   get meta() { return this._meta; }
   get source() { return this._source; }
   get status() { return { ...this._status }; }
@@ -443,7 +446,8 @@ export class FluidLayer {
   async setStorm(key, opts = {}) {
     if (this._disposed) throw new Error('FluidLayer is disposed');
     if (typeof key !== 'string' || key === '') throw new TypeError('setStorm: storm key must be a non-empty string');
-    if (this._storm && key === this._stormKey && !opts.force && this._seq === this._committedSeq) return this._meta;
+    const base = opts.base === undefined || opts.base === null ? this._base : String(opts.base);
+    if (this._storm && key === this._stormKey && base === this._storm.base && !opts.force && this._seq === this._committedSeq) return this._meta;
     const seq = ++this._seq;
     if (this._metaCtrl) this._metaCtrl.abort();
     if (this._first) { this._first.reject(abortError('setStorm superseded')); this._first = null; }
@@ -452,10 +456,10 @@ export class FluidLayer {
     this._setStatus('loading', `Loading ${key}`);
     let storm;
     try {
-      storm = await loadStorm(this._base, key, { signal: ctrl.signal, fetch: this._fetch || undefined, fetchInit: this._fetchInit });
+      storm = await loadStorm(base, key, { signal: ctrl.signal, fetch: this._fetch || undefined, fetchInit: this._fetchInit });
     } catch (e) {
       if (seq !== this._seq || this._disposed) throw abortError('setStorm superseded');
-      throw this._failStorm(key, e);
+      throw this._failStorm(key, e, false, base);
     }
     if (seq !== this._seq || this._disposed) {
       storm.dispose();
@@ -464,19 +468,20 @@ export class FluidLayer {
     this._metaCtrl = null;
     try {
       this._commitStorm(storm, key);
+      this._base = base;
     } catch (e) {
       storm.dispose();
-      throw this._failStorm(key, e, true);
+      throw this._failStorm(key, e, true, base);
     }
     this._committedSeq = seq;
     return this._awaitFirstPicture(seq);
   }
 
-  _failStorm(key, e, committing) {
+  _failStorm(key, e, committing, base = this._base) {
     let err = e;
     if (e && e.name !== 'AbortError' && !(e instanceof FlowFormatError) && !(e instanceof GridMemoryError)) {
       const m = /HTTP (404|410)\b/.exec(String(e.message || ''));
-      if (m) err = new StormNotFoundError(key, `${this._base}/${key}/meta.json`, `Storm "${key}" is not available (HTTP ${m[1]}): ${e.message}`);
+      if (m) err = new StormNotFoundError(key, `${base}/${key}/meta.json`, `Storm "${key}" is not available (HTTP ${m[1]}): ${e.message}`);
     }
     // a request that failed before anything was changed leaves the previous storm in place
     if (this._storm && !committing) this._setStatus(this._buffering ? 'buffering' : 'ready', '');

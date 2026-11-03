@@ -215,4 +215,8 @@ def land_use_label(code: str) -> str:
     if not code:
         return "-"
     name = LAND_USE_NAMES.get(code.upper())
-    return f"{name} ({code})" if name else f"code {code}"
+    if name:
+        return f"{name} ({code})"
+    if code[:1].islower():                         # OpenStreetMap building=* value (county buildings): 'semidetached_house'
+        return code.replace("_", " ").capitalize() + " (OSM)"
+    return f"code {code}"

@@ -6,6 +6,7 @@ ordered list of layers.  Hooks for later layers:
     app.flow            FlowTextures                   app.terrain   TerrainTextures (height tex, sampler, frame)
     app.storm           data.flow.Storm                app.camera    OrbitCamera
     app.depth_format / app.colour_format / app.sample_count   (shared scene pass: build pipelines with these)
+    app.domain          bgv.domain.Domain: 'city' (Bowling Green) or 'county' (Warren County); app.set_domain(key) switches at runtime
     app.t (hours) app.exag app.sun_dir() app.view_proj (float64 4x4)
     app.stats_hook      callable(app) run once per frame after the time / flow update (data layer computes stats here)
     app.stats           dict shown at the bottom of the sidebar when non-empty (stats_hook fills it)
@@ -24,6 +25,7 @@ import numpy as np
 import wgpu
 
 from . import config
+from . import domain as domainmod
 from .data import flow as flowdata
 from .gpu.camera import OrbitCamera
 from .gpu.context import GpuContext, GpuTimer, tex_bytes
@@ -41,10 +43,13 @@ SPEEDS = [0.25, 0.5, 1.0, 2.0, 4.0, 8.0]
 class App:
     def __init__(self, ctx: GpuContext, root, storm: str | None = None, msaa: int = 4, quiet: bool = False,
                  settings: dict | None = None, colour_format: str = "rgba8unorm-srgb", defer: bool = False,
-                 prefetch=None):
+                 prefetch=None, domain=None, chooser=None):
         """defer=True: only cheap state is created here; the heavy part (terrain, flow textures, every layer) runs in
         small steps through `step_init()` while the window shows a loading screen (see bgv/startup.py).  `prefetch` is an
-        optional startup.Prefetch whose worker thread already opened the storm and prepared the terrain data."""
+        optional startup.Prefetch whose worker thread already opened the storm and prepared the terrain data.  `domain`:
+        a bgv.domain.Domain or 'city' / 'county' (default: settings["domain"], else the city); an unavailable county falls back
+        to the city with a message.  `chooser`: a ui.chooser.DomainChooser - the loading screen then offers City / County
+        (see bgv/ui/chooser.py); the domain being built is the remembered one."""
         self.ctx = ctx
         self.root = Path(root)
         self.quiet = quiet
@@ -62,21 +67,30 @@ class App:
         self.stats: dict = {}
         self.stats_hook = None
         self.terrain_mesh = None
-        self.storms_available = flowdata.available_storms(self.root)
-        if not self.storms_available:
-            raise FileNotFoundError(f"no storms found in {self.root / 'layers' / 'flow'}")
         s = self.settings
+        if isinstance(domain, domainmod.Domain):
+            notice = ""
+        else:
+            try:
+                domain, notice = domainmod.resolve_or_city(domain or s.get("domain") or domainmod.CITY, self.root, s)
+            except domainmod.DomainUnavailable as e:
+                raise FileNotFoundError(str(e)) from None
+        self.domain = domain
+        self._domain_notice = notice
+        self.storms_available = list(domain.storms)
         # ---- user-visible state
         self.t = float(s.get("t", 12.0))
         self.playing = False
         self.speed_idx = SPEEDS.index(s.get("speed", 1.0)) if s.get("speed", 1.0) in SPEEDS else 2
-        self.exag = float(s.get("exag", 2.0))
+        dv = (s.get("domain_views") or {}).get(domain.key) or {}
+        self.exag = float(dv.get("exag", s.get("exag", 2.0) if domain.key == domainmod.CITY else domain.default_exag))
         self.ripple_strength = 1.0
         self.relief = 1.6
         self.water_boost = 1.0
         self.sun_az, self.sun_el = (float(v) for v in s.get("sun", DEFAULT_SUN))
         self.sun_intensity = 1.0
-        self.haze_density = float(s.get("haze", 1.0e-5))
+        self.haze_density = float(dv.get("haze", s.get("haze", domain.default_haze) if domain.key == domainmod.CITY
+                                         else domain.default_haze))
         self.anim_time = 0.0
         self.buffering = False
         # ---- timing
@@ -105,15 +119,15 @@ class App:
         self.canvas = None
         self.imgui_renderer = None
         self._layer_classes = registry.load_layer_classes(self._log)
-        first = storm or s.get("storm") or ("25yr" if "25yr" in self.storms_available else self.storms_available[0])
-        if first not in self.storms_available:
-            if storm:
-                print(f"[bgv] unknown storm {storm!r}; available: {', '.join(self.storms_available)}", file=sys.stderr)
-            first = "25yr" if "25yr" in self.storms_available else self.storms_available[0]
+        if storm and storm not in self.storms_available:
+            print(f"[bgv] unknown storm {storm!r}; available: {', '.join(self.storms_available)}", file=sys.stderr)
+        first = domainmod.pick_storm(s, domain.key, self.storms_available, storm)
         self._first_storm = first
         self._prefetch = prefetch
         self._explicit_storm = bool(storm)
         self._t_init0 = t0
+        self.chooser = chooser if defer else None        # start-up City / County chooser (loading screen only)
+        self._build_done = False                         # the staged build finished, the chooser may still hold the screen
         self.loading = bool(defer)                      # True until step_init() has built everything
         self.load_frac, self.load_msg = 0.0, "Starting"
         self._init_gen = None
@@ -125,7 +139,8 @@ class App:
 
     def _finish_init(self):
         self.t_startup["init"] = time.perf_counter() - self._t_init0
-        view = self.settings.get("camera")
+        dv = (self.settings.get("domain_views") or {}).get(self.domain.key) or {}
+        view = dv.get("camera") or (self.settings.get("camera") if self.domain.key == domainmod.CITY else None)
         if view and not self._explicit_storm:
             try:
                 self.camera.set_view(*view)
@@ -133,21 +148,54 @@ class App:
                 pass
         self.loading = False
         self.load_frac, self.load_msg = 1.0, "Ready"
+        self._build_done = False
+        self.chooser = None
+        self.settings["domain"] = self.domain.key         # the choice is remembered (saved when the window closes)
+        self._announce_domain()
+
+    def _announce_domain(self):
+        """Window title + the one-off messages of a freshly shown domain (fallback notice, DEM unit correction)."""
+        try:
+            if self.canvas is not None:
+                self.canvas.set_title(f"BG Flood Viewer - {self.domain.title}")
+        except Exception:
+            pass
+        if self._domain_notice:
+            self.report_message(self._domain_notice, toast=True)
+            self._domain_notice = ""
+        note = (getattr(self.terrain, "stats", None) or {}).get("note") if self.terrain is not None else None
+        if note:
+            self.report_message(str(note), toast=True)
 
     def step_init(self, budget_ms: float = 8.0) -> bool:
         """Advance the staged start-up for about `budget_ms` (a single step may take longer).  True when finished."""
-        if not self.loading or self._init_gen is None:
+        if not self.loading or (self._init_gen is None and not self._build_done):
             return True
+        ch = self.chooser
+        if ch is not None:
+            want = ch.take_request()                     # the user picked the other domain: build that one instead
+            if want is not None and want != self.domain.key:
+                if self.set_domain(want):
+                    ch.building = want
+                else:
+                    ch.chosen = False                    # unavailable after all: back to waiting for a choice
         t_end = time.perf_counter() + budget_ms * 1e-3
         while time.perf_counter() < t_end:
-            try:
-                self.load_frac, self.load_msg = next(self._init_gen)
-            except StopIteration:
-                self._init_gen = None
+            if self._init_gen is not None:
+                try:
+                    self.load_frac, self.load_msg = next(self._init_gen)
+                except StopIteration:
+                    self._init_gen = None
+                    self._build_done = True
+                    continue
+                if self.load_msg.startswith("Waiting"):  # a worker thread is still busy: give the loading screen a frame
+                    break
+            else:                                        # built: the chooser (when there is one) may still hold the screen
+                if ch is not None and not ch.may_finish(time.perf_counter()):
+                    self.load_msg = "Ready"
+                    return False
                 self._finish_init()
                 return True
-            if self.load_msg.startswith("Waiting"):      # a worker thread is still busy: give the loading screen a frame
-                break
         return False
 
     # ------------------------------------------------------------------------------------------ logging
@@ -198,7 +246,7 @@ class App:
         return np.array([math.sin(az) * math.cos(el), math.cos(az) * math.cos(el), math.sin(el)])
 
     def _load_storm(self, name: str, initial: bool = False):
-        storm = flowdata.Storm.open(self.root, name)
+        storm = self.domain.open_storm(name)
         same_grid = (self.terrain is not None and self.flow is not None
                      and self.terrain.frame == storm.frame and (self.flow.width, self.flow.height) == (storm.width, storm.height))
         if self.storm is not None:
@@ -222,10 +270,12 @@ class App:
         if storm is None:
             if pre is not None:
                 while not pre.done:
-                    yield 0.04, "Waiting for the data"
+                    yield 0.04 + 0.2 * float(pre.frac), "Waiting for the data" + (f" - {pre.message}" if pre.message else "")
                 storm = pre.storm
             if storm is None:
-                storm = flowdata.Storm.open(self.root, self._first_storm)
+                storm = self.domain.open_storm(self._first_storm)
+            if self.storm is not None and self.storm is not storm:
+                self.storm.close()
             self.storm = storm
         for l in self.layers:
             self._safe(l, "shutdown")
@@ -237,12 +287,13 @@ class App:
         yield 0.08, "Preparing terrain"
         data = pre.terrain_data if (pre is not None and pre.storm is storm) else None
         t0 = time.perf_counter()
-        self.terrain = TerrainTextures(self.ctx, self.root, storm.frame, data=data)
+        self.terrain = TerrainTextures(self.ctx, self.root, storm.frame, data=data, source=self.domain.terrain)
         self.t_startup["terrain"] = time.perf_counter() - t0
         yield 0.30, "Creating flow textures"
         self.flow = FlowTextures(self.ctx, storm.width, storm.height)
         self.flow.set_storm(storm, self.t)
         self.frame.rebuild(self.flow.view, self.terrain.height_view, self.terrain.slope_view)
+        self.camera.DEFAULT = self.domain.overview(storm.frame)         # Home / reset: the whole domain in view
         self.camera.set_ground(self.terrain.sampler, self.exag)
         if initial:
             self.camera.reset()
@@ -267,6 +318,91 @@ class App:
             self.report_error(f"storm {name}", e)
             return
         self.t_storm_switch_call = time.perf_counter() - t0
+
+    # ------------------------------------------------------------------------------------------ domains
+    def domain_infos(self, max_age: float = 3.0):
+        """[bgv.domain.DomainInfo] for the Domain menu (file checks, cached for a few seconds)."""
+        now = time.perf_counter()
+        c = getattr(self, "_dom_info_cache", None)
+        if c is None or now - c[0] > max_age:
+            c = (now, domainmod.domain_infos(self.root, self.settings))
+            self._dom_info_cache = c
+        return c[1]
+
+    def _remember_domain_view(self):
+        dv = self.settings.setdefault("domain_views", {})
+        cam = self.camera
+        dv[self.domain.key] = {"camera": [float(cam.target[0]), float(cam.target[1]), float(cam.dist), float(cam.yaw),
+                                          float(cam.pitch)],
+                               "exag": float(self.exag), "haze": float(self.haze_density),
+                               "storm": self.storm.name if self.storm is not None else None}
+
+    def set_domain(self, key: str, block: bool = False) -> bool:
+        """Switch to the 'city' or 'county' domain without restarting: terrain, buildings, roads, statistics and the flow
+        textures are rebuilt for the new grid and the old GPU memory is freed.  Windowed: a loading screen shows the steps
+        (the heavy preparation runs in a worker thread); block=True (tools, tests) runs everything before returning.
+        Returns False, with a message to the user, when the domain is unavailable."""
+        key = (key or "").lower()
+        starting = self.loading and self.chooser is not None       # the start-up chooser may restart the build
+        if key == self.domain.key and not self.loading:
+            return True
+        try:
+            dom = domainmod.resolve(key, self.root, self.settings)
+        except domainmod.DomainUnavailable as e:
+            self.report_message(str(e), toast=True)
+            return False
+        if self.loading and not starting:                 # a switch is already under way: not twice
+            return False
+        from .startup import Prefetch
+        if not starting:
+            self._remember_domain_view()
+            self.settings = self.collect_settings()       # the live layer / UI state travels into the new layers
+        self.settings["domain"] = dom.key
+        old_pre = self._prefetch
+        if old_pre is not None and hasattr(old_pre, "cancel"):
+            old_pre.cancel()                              # the other domain's preparation is not needed any more
+        self.playing = False
+        self._drop_scene()
+        self.domain = dom
+        self._domain_notice = ""
+        self.storms_available = list(dom.storms)
+        dv = (self.settings.get("domain_views") or {}).get(dom.key) or {}
+        self.exag = float(dv.get("exag", dom.default_exag if dom.key != domainmod.CITY else self.settings.get("exag", 2.0)))
+        self.haze_density = float(dv.get("haze", dom.default_haze))
+        self._explicit_storm = False
+        self._first_storm = domainmod.pick_storm(self.settings, dom.key, self.storms_available)
+        self._prefetch = Prefetch(self.root, self._first_storm, self.settings, domain=dom)
+        self._t_init0 = time.perf_counter()
+        self.load_frac, self.load_msg = 0.0, f"Switching to {dom.label}"
+        self.loading = True
+        self._build_done = False
+        self._init_gen = self._rebuild_steps(None, True)
+        self._dom_info_cache = None
+        if block:
+            while self.loading:
+                if not self.step_init(1.0e6):
+                    time.sleep(0.005)                     # a worker thread is still preparing the data
+        return True
+
+    def _drop_scene(self):
+        """Forget everything that belongs to the old domain's buildings / roads / statistics (the GPU objects are released by
+        the layers' shutdown inside `_rebuild_steps`)."""
+        hub = getattr(self, "_stats_hub", None)
+        if hub is not None:
+            try:
+                hub.close()
+            except Exception:
+                pass
+        self._stats_hub = None
+        self._scene_data = None
+        self.stats_hook = None
+        self.flood = None
+        self.timeline = None
+        self.selection = None
+        self._flight = None
+        self.stats = {}
+        self.ready_waiters = {}
+        self._flow_reported = set()
 
     def _init_layers(self):
         for spec, cls in self._layer_classes:
@@ -627,6 +763,13 @@ class App:
         imgui.set_cursor_pos(((W - bw) * 0.5, H * 0.5 + 10.0))
         imgui.text_disabled(f"Loading - {self.load_msg}")
         imgui.end()
+        if self.chooser is not None:
+            try:
+                from .ui import chooser as chooser_ui
+                chooser_ui.draw(self)
+            except Exception as e:                       # the chooser must never stop the start-up
+                self.chooser = None
+                self.report_error("domain chooser", e); traceback.print_exc()
 
     def _draw_frame_inner(self):
         if self.loading:
@@ -802,8 +945,7 @@ class App:
         imgui.end()
 
     def storm_label(self, name: str) -> str:
-        return {"5yr": "5-year storm", "10yr": "10-year storm", "25yr": "25-year storm", "50yr": "50-year storm",
-                "100yr": "100-year storm", "2yr": "2-year storm"}.get(name, name)
+        return self.domain.storm_label(name)
 
     def _source_badge(self, imgui):
         st = self.storm
@@ -818,11 +960,18 @@ class App:
         cam = self.camera
         d = dict(self.settings)
         d.update({
-            "quality_mode": self.perf.gov.mode, "storm": self.storm.name, "t": round(self.t, 3), "speed": SPEEDS[self.speed_idx], "exag": self.exag,
-            "sun": [self.sun_az, self.sun_el], "haze": self.haze_density,
-            "camera": [float(cam.target[0]), float(cam.target[1]), float(cam.dist), float(cam.yaw), float(cam.pitch)],
+            "quality_mode": self.perf.gov.mode, "t": round(self.t, 3), "speed": SPEEDS[self.speed_idx],
+            "sun": [self.sun_az, self.sun_el], "domain": self.domain.key,
             "layers": {l.name: {"enabled": bool(l.enabled), "state": self._safe_state(l)} for l in self.layers},
         })
+        if self.domain.key == domainmod.CITY:             # the city keeps its legacy top-level keys
+            d.update({"storm": self.storm.name, "exag": self.exag, "haze": self.haze_density,
+                      "camera": [float(cam.target[0]), float(cam.target[1]), float(cam.dist), float(cam.yaw), float(cam.pitch)]})
+        dv = dict(d.get("domain_views") or {})
+        dv[self.domain.key] = {"camera": [float(cam.target[0]), float(cam.target[1]), float(cam.dist), float(cam.yaw),
+                                          float(cam.pitch)], "exag": float(self.exag), "haze": float(self.haze_density),
+                               "storm": self.storm.name}
+        d["domain_views"] = dv
         return d
 
     def _safe_state(self, l: Layer) -> dict:

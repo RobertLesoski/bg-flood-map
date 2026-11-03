@@ -173,3 +173,14 @@ Shared scene pass facts every layer must respect:
   Never use `%~dp0` after `shift` in a batch file (it follows `%0`).
 - **Tests**: `tests/test_interaction.py` (camera CPU tests; real canvas events through `canvas.submit_event` + `canvas._process_events()`;
   subprocess scenarios via `tests/interaction_driver.py`).
+
+## Domains (city / county)
+`bgv/domain.py`: a `Domain` says where flow grids (`layers/flow` | `layers/flow_county`), terrain (`TerrainSource`: city `dem_bg.tif` feet; county any
+GeoTIFF, metres, warped lazily by GDAL with area averaging onto the flow grid) and building / road GeoJSON come from. The county's are cut from the
+OSM PBF by `data/osmpbf.py` (pure python + numpy: zlib, hand-decoded protobuf, vectorised varints; dense nodes + building/highway ways, no multipolygon
+relations) and cached by `data/countyscene.py` in `<cache>/osm/<key>/`. Terrain textures stay on the FLOW grid (2631 x 3052, ~20 m): r32 height 32 MB +
+slope map 85 MB, so the county uses LESS VRAM than the city (1130 vs 1253 MB incl. 835 MB flow array); the 5 m DEM is averaged, not shown at 5 m.
+`App.set_domain(key)` drops scene / stats hub, shuts layers, closes flow + terrain, rebuilds for the new grid behind the loading screen (preparation in a
+`Prefetch` thread); live layer/UI state is carried; per-domain camera/exag/storm in `settings["domain_views"]`. Start-up chooser: `ui/chooser.py`
+(`DomainChooser`: builds only the remembered domain; clicking the other restarts the build; waits for the countdown only when both domains have data).
+Demo data (`data/demo.py`): meta.json `"synthetic": true` -> DEMO DATA badges, stamped screenshots.

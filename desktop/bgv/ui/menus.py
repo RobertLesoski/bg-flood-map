@@ -17,9 +17,29 @@ V2 = imgui.ImVec2
 
 def source_info(storm):
     """(label, is_full_precision)"""
+    if getattr(storm, "synthetic", False):
+        return "DEMO DATA - synthetic, not a simulation result", False
     if storm.source == "tiers":
         return "Preview from depth tiers", False
     return "Full-precision (solver depth rasters)", True
+
+
+def domain_tooltip(text: str, width_em: float = 30.0):
+    """A wrapped tooltip (the reasons a domain is unavailable are long sentences)."""
+    imgui.begin_tooltip()
+    imgui.push_text_wrap_pos(imgui.get_font_size() * width_em)
+    imgui.text_unformatted(text)
+    imgui.pop_text_wrap_pos()
+    imgui.end_tooltip()
+
+
+def domain_items(app):
+    """[(info, current, enabled)] for the Domain menu / combo; the explanation of an unavailable entry is `info.reason`."""
+    out = []
+    for info in app.domain_infos():
+        cur = info.key == app.domain.key
+        out.append((info, cur, bool(info.available)))
+    return out
 
 
 def _toggle(label: str, shortcut: str, value: bool):
@@ -79,8 +99,22 @@ def draw(ui):
                 if imgui.menu_item("Fullscreen", "F11", st.fullscreen)[0]:
                     ui.toggle_fullscreen()
                 imgui.end_menu()
+            if imgui.begin_menu("Domain"):
+                for info, cur, enabled in domain_items(app):
+                    clicked, _ = imgui.menu_item(info.label, "", cur, enabled)
+                    if info.reason and imgui.is_item_hovered(imgui.HoveredFlags_.allow_when_disabled):
+                        domain_tooltip(info.reason)
+                    if clicked and not cur:
+                        app.set_domain(info.key)
+                imgui.separator()
+                ask = bool(app.settings.get("domain_chooser", True))
+                ch, ask2 = imgui.menu_item("Ask which view at start-up", "", ask)
+                if ch:
+                    app.settings["domain_chooser"] = bool(ask2)
+                imgui.text_disabled("Terrain, buildings, roads and statistics are rebuilt")
+                imgui.end_menu()
             if imgui.begin_menu("Camera"):
-                for name in PRESETS:
+                for name in app.domain.presets:
                     if imgui.menu_item(name, "Home" if name == "Overview" else "", False)[0]:
                         ui.fly_preset(name)
                 if imgui.menu_item("Reset view", "", False)[0]:
@@ -119,6 +153,7 @@ def _status(ui, bar_h: float, x0: float):
     cy = pos.y + bar_h * 0.5
     ty = cy - ts_h * 0.5
     label = getattr(st, "label", st.name) or st.name
+    label = f"{app.domain.label}   |   {label}"
     hr = units.snapshot_hour(app.t)
     when = f"Hour {hr} of 24   ·   t = {units.hour_label(app.t)}"
     # right-aligned: fps pill, source badge
@@ -130,7 +165,8 @@ def _status(ui, bar_h: float, x0: float):
     pill(dl, x, cy - fh * 0.5, fps_txt, theme.OK if good else theme.WARN,
          theme.with_alpha(theme.OK if good else theme.WARN, 0.14), (8.0, 2.0))
     src_label, full = source_info(st)
-    badge = "Full precision" if full else "Preview from depth tiers"
+    demo = bool(getattr(st, "synthetic", False))
+    badge = "DEMO DATA" if demo else ("Full precision" if full else "Preview from depth tiers")
     bw, bh = pill_size(badge, (9.0, 2.0))
     x -= bw + 10.0
     col = theme.OK if full else theme.WARN

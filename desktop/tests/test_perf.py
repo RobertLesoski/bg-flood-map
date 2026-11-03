@@ -397,7 +397,7 @@ def test_deferred_start_up_builds_the_same_app_in_steps_behind_a_loading_screen(
         assert not a.loading and a.load_frac == 1.0
         assert fracs == sorted(fracs) and len(fracs) >= 5          # several frames, progress never goes back
         names = [l.name for l in a.layers]
-        assert names[:2] == ["basemap", "terrain"] and "water" in names and "overlay" in names
+        assert names[:2] == ["basemap", "terrain"] and "water" in names and "overlay" in names, names
         assert not a.errors, list(a.errors)
         tools.wait_for_flow(a, all_hours=False)
         a.camera.set_view(0.0, 0.0, 6000.0, 30.0, 50.0)

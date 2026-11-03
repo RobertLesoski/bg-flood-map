@@ -23,12 +23,13 @@ from .context import GpuContext, tex_bytes
 
 
 class TerrainTextures:
-    def __init__(self, ctx: GpuContext, root, frame: GridFrame, data=None):
-        """`data`: the tuple of `terraindata.load_terrain_gpu_data` when a worker thread already prepared it."""
+    def __init__(self, ctx: GpuContext, root, frame: GridFrame, data=None, source=None):
+        """`data`: the tuple of `terraindata.load_terrain_gpu_data` when a worker thread already prepared it.  `source`: a
+        `terraindata.TerrainSource` (the domain's DEM; default the city's)."""
         self.ctx = ctx
         self.frame = frame
         t0 = time.perf_counter()
-        filled, mips, stats, valid = data if data is not None else terraindata.load_terrain_gpu_data(root, frame)
+        filled, mips, stats, valid = data if data is not None else terraindata.load_terrain_gpu_data(root, frame, source)
         self.t_load = time.perf_counter() - t0
         self.heights = filled
         self.valid = valid

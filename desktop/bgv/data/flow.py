@@ -124,14 +124,36 @@ def validate_meta(meta, where: str = "meta.json") -> dict:
     return meta
 
 
-def available_storms(root) -> list[str]:
-    """Storm folder names under <root>/layers/flow that have a meta.json, ordered 2yr..100yr."""
-    base = Path(root) / "layers" / "flow"
-    if not base.is_dir():
+def available_storms(root, subdir: str = "flow") -> list[str]:
+    """Storm folder names under <root>/layers/<subdir> (city: flow, county: flow_county) that have a meta.json, ordered
+    2yr..100yr, then the others by name (ev1..ev6)."""
+    base = Path(root) / "layers" / subdir
+    try:
+        if not base.is_dir():
+            return []
+        found = [p.name for p in base.iterdir() if p.is_dir() and (p / "meta.json").is_file()]
+    except OSError:
         return []
-    found = [p.name for p in base.iterdir() if p.is_dir() and (p / "meta.json").is_file()]
-    key = lambda s: (STORM_ORDER.index(s) if s in STORM_ORDER else len(STORM_ORDER), s)  # noqa: E731
+    key = lambda s: (STORM_ORDER.index(s) if s in STORM_ORDER else len(STORM_ORDER), _natural(s))  # noqa: E731
     return sorted(found, key=key)
+
+
+def _natural(s: str):
+    """'ev10' after 'ev2'."""
+    import re
+    return [int(t) if t.isdigit() else t for t in re.split(r"(\d+)", s)]
+
+
+def storm_label(root, name: str, subdir: str = "flow") -> str:
+    """The `label` of a storm's meta.json ('100-year storm (county)'), else the storm folder name."""
+    try:
+        meta = json.loads((Path(root) / "layers" / subdir / name / "meta.json").read_text(encoding="utf-8"))
+        lab = meta.get("label")
+        if isinstance(lab, str) and lab.strip():
+            return lab.strip()
+    except (OSError, ValueError):
+        pass
+    return name
 
 
 # ------------------------------------------------------------------------------------------------ gzip loading
@@ -212,10 +234,11 @@ def block_max(arr2d: np.ndarray, block: int) -> np.ndarray:
 class Storm:
     """One storm folder.  Thread safe for load_hour / prefetch / sample."""
 
-    def __init__(self, root, name: str, meta: dict):
+    def __init__(self, root, name: str, meta: dict, subdir: str = "flow"):
         self.root = Path(root)
         self.name = name
-        self.dir = self.root / "layers" / "flow" / name
+        self.subdir = subdir
+        self.dir = self.root / "layers" / subdir / name
         self.meta = meta
         self.frame = GridFrame.from_meta(meta)
         self.width, self.height = self.frame.width, self.frame.height
@@ -228,6 +251,7 @@ class Storm:
         self.wet_threshold = float(meta.get("wet_threshold_m", WET_THRESHOLD_M))
         self.source = str(meta.get("source", "rasters"))
         self.label = str(meta.get("label", name))
+        self.synthetic = bool(meta.get("synthetic", False))          # demo data (bgv.data.demo): the UI says so
         self.nbytes = self.width * self.height * 4
         self._zero = None
         self._lru: OrderedDict[int, np.ndarray] = OrderedDict()
@@ -238,8 +262,8 @@ class Storm:
 
     # ------------------------------------------------------------------ open
     @staticmethod
-    def open(root, storm: str) -> "Storm":
-        p = Path(root) / "layers" / "flow" / storm / "meta.json"
+    def open(root, storm: str, subdir: str = "flow") -> "Storm":
+        p = Path(root) / "layers" / subdir / storm / "meta.json"
         if not p.is_file():
             raise StormNotFoundError(f"storm {storm!r} not found: {p} does not exist")
         try:
@@ -247,7 +271,7 @@ class Storm:
         except (OSError, ValueError) as e:
             raise FlowFormatError(f"{p}: not valid JSON ({e})") from None
         validate_meta(meta, str(p))
-        return Storm(root, storm, meta)
+        return Storm(root, storm, meta, subdir)
 
     # ------------------------------------------------------------------ hours
     def has_hour(self, h: int) -> bool:

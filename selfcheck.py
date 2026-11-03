@@ -465,6 +465,48 @@ def check_flow(rep, root, deep):
         rep.step("Flow data for %s is not built yet: see RUN_LOCALLY.md." % ", ".join(missing))
 
 
+
+def check_web_extras(rep, root):
+    """Additive, WARN-only: PWA files and the county flow data / layers (the city view works without them)."""
+    missing = [f for f in ("manifest.webmanifest", "sw.js", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png") if not os.path.isfile(os.path.join(root, *f.split("/")))]
+    if missing:
+        rep.add("PWA files", "WARN", "missing: " + ", ".join(missing) + " (the map works; no install / offline shell)")
+    else:
+        rep.add("PWA files", "OK", "manifest, service worker and icons present")
+    base = os.path.join(root, "layers", "flow_county")
+    try:
+        dirs = sorted(d for d in os.listdir(base) if os.path.isdir(os.path.join(base, d)))
+    except OSError:
+        dirs = []
+    if not dirs:
+        rep.add("flow_county", "WARN", "county data not downloaded yet (the County view button is disabled; the City view is unaffected)")
+    else:
+        bad = []
+        for d in dirs:
+            m = os.path.join(base, d, "meta.json")
+            try:
+                with open(m, "r", encoding="utf-8-sig") as f:
+                    meta = json.load(f)
+                hrs = meta.get("hours") or []
+                for h in hrs:
+                    if not os.path.isfile(os.path.join(base, d, "h%02d.rgba.gz" % h)):
+                        bad.append("%s: h%02d missing" % (d, h))
+                        break
+                if not os.path.isfile(os.path.join(base, d, "flowpaths.rgba.gz")):
+                    bad.append("%s: flowpaths missing" % d)
+            except (OSError, ValueError):
+                bad.append("%s: meta.json missing or unreadable" % d)
+        if bad:
+            rep.add("flow_county", "WARN", "%d storm folder(s), problems: %s" % (len(dirs), "; ".join(bad[:4])), bad)
+        else:
+            rep.add("flow_county", "OK", "%d storm folders: %s" % (len(dirs), ", ".join(dirs)))
+    for name in ("buildings", "roads"):
+        if not any(os.path.isfile(os.path.join(root, "layers", "county", name + e)) for e in (".geojson.gz", ".geojson")):
+            rep.add("county/" + name, "WARN", "layers/county/%s.geojson.gz not present (County view shows water and base map only)" % name)
+        else:
+            rep.add("county/" + name, "OK", "present")
+
+
 # ---- references from the HTML pages ----
 
 # Files the page cannot work without (scripts, styles, images, modules) ...
@@ -584,6 +626,7 @@ def main(argv=None):
         check_layers(rep, root)
         check_hpc(rep, root)
         check_flow(rep, root, args.deep)
+        check_web_extras(rep, root)
         check_references(rep, root)
     fail, warn = rep.count("FAIL"), rep.count("WARN")
     if args.json:

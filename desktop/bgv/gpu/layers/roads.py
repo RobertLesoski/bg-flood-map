@@ -38,7 +38,7 @@ def _wgsl_col_arr(name, hexes):
             + ", ".join(f"vec3<f32>({c[0]:.5f}, {c[1]:.5f}, {c[2]:.5f})" for c in cols) + ");\n")
 
 
-ROADS_WGSL = COMMON_WGSL + _wgsl_arr("ROAD_W", ROAD_WIDTH_M) + _wgsl_col_arr("ASPHALT", ASPHALT_HEX) + """
+ROADS_WGSL = COMMON_WGSL + _wgsl_arr("ROAD_W", ROAD_WIDTH_M) + _wgsl_col_arr("ASPHALT", ASPHALT_HEX) + _wgsl_col_arr("TIERC", ("#4dabf7", "#00c9c9", "#ff8c00", "#e74c3c")) + """
 struct RParams {
   opt: vec4<f32>,       // x flood colour strength, y centre line, z lift scale, w unused
 };
@@ -116,11 +116,13 @@ struct ROut {
   let d = fl.depth;
   let fk = smoothstep(0.085, 0.115, d) * smoothstep(0.2, 0.9, fl.valid) * R.opt.x;
   if (fk > 0.0) {
-    let orange = vec3<f32>(1.0, 0.30, 0.01);
-    let red = vec3<f32>(0.80, 0.07, 0.04);
-    let fc = mix(orange, red, smoothstep(0.1, 1.0, d));
+    // flood-level tier colour, the same palette and thresholds as the buildings (0.1 / 0.3 / 0.6 / 1.2 m)
+    var fc = TIERC[0];
+    if (d >= 1.2) { fc = TIERC[3]; } else if (d >= 0.6) { fc = TIERC[2]; } else if (d >= 0.3) { fc = TIERC[1]; }
     let lum = dot(light, vec3<f32>(0.3333));
-    col = mix(col, fc * (0.55 + 0.75 * lum), fk * 0.92);
+    let major = select(1.0, 1.35, ci <= 6u);                       // motorway .. tertiary: brighter, with a pale kerb line
+    col = mix(col, fc * (0.62 + 0.75 * lum) * major, fk * 0.95);
+    if (ci <= 6u) { col = mix(col, vec3<f32>(1.0), fk * line * 0.5); }
   }
   col = haze(col, dist, -V);
   return vec4<f32>(col, 1.0);
@@ -136,6 +138,7 @@ class RoadsLayer(Layer):
     def __init__(self):
         self.flood_colour = 1.0
         self.centre_line = True
+        self.at_risk = True
         self.pipe = None
         self.scene = None
         self.vbuf = self.ibuf = self.params_buf = None
@@ -241,7 +244,7 @@ class RoadsLayer(Layer):
         self.tiles_visible = self._culler.visible_count
         self.tris_drawn = sum(c for _, c in self._draws) // 3
         self.cull_ms = (time.perf_counter() - t0) * 1000.0
-        self._p[:] = (self.flood_colour, 1.0 if self.centre_line else 0.0, 1.0, 0.0)
+        self._p[:] = (self.flood_colour if self.at_risk else 0.0, 1.0 if self.centre_line else 0.0, 1.0, 0.0)
         raw = self._p.tobytes()
         if raw != self._last_p:
             self._last_p = raw
@@ -268,14 +271,16 @@ class RoadsLayer(Layer):
         if ch:
             self.flood_colour = v
         _, self.centre_line = imgui.checkbox("Centre lines", self.centre_line)
+        _, self.at_risk = imgui.checkbox("Colour flooded roads by depth tier", self.at_risk)
         f = getattr(app, "flood", None) or {}
         if f.get("ready"):
             imgui.text_disabled(f"as of hour {f['hour']}: {f['road_pct']:.1f} % flooded ({f['road_flooded_km']:.1f} km)")
         imgui.text_disabled(f"tiles {self.tiles_visible}/{sc.road_mesh.tiles.n}  tris {self.tris_drawn / 1e3:.0f}k")
 
     def save_state(self):
-        return {"flood_colour": self.flood_colour, "centre_line": self.centre_line}
+        return {"flood_colour": self.flood_colour, "centre_line": self.centre_line, "at_risk": self.at_risk}
 
     def load_state(self, d):
         self.flood_colour = float(d.get("flood_colour", self.flood_colour))
         self.centre_line = bool(d.get("centre_line", self.centre_line))
+        self.at_risk = bool(d.get("at_risk", self.at_risk))

@@ -23,8 +23,8 @@ from pathlib import Path
 from ..geo import GridFrame
 
 
-def default_frame(root, storm: str | None = None) -> GridFrame:
-    flow = Path(root) / "layers" / "flow"
+def default_frame(root, storm: str | None = None, subdir: str = "flow") -> GridFrame:
+    flow = Path(root) / "layers" / subdir
     cands = [storm] if storm else ["25yr"]
     cands += sorted(p.name for p in flow.iterdir() if p.is_dir())
     for s in cands:
@@ -36,7 +36,8 @@ def default_frame(root, storm: str | None = None) -> GridFrame:
 
 
 def ensure_all(root, frame: GridFrame | None = None, progress=None, *, include_terrain: bool = False,
-               rebuild: bool = False, warm_stats: bool = True) -> dict:
+               rebuild: bool = False, warm_stats: bool = True, buildings_path=None, roads_path=None,
+               terrain_source=None) -> dict:
     from . import buildings, roads
 
     def rep(msg, frac):
@@ -64,9 +65,10 @@ def ensure_all(root, frame: GridFrame | None = None, progress=None, *, include_t
         a, b = lo[name]
         return lambda msg, f: rep(msg, a + (b - a) * (f if f is not None else 0.0))
 
-    out["buildings"] = buildings.load_buildings(root, frame, progress=sub("buildings"), use_cache=use_cache)
+    out["buildings"] = buildings.load_buildings(root, frame, progress=sub("buildings"), use_cache=use_cache,
+                                                geojson=buildings_path)
     rep("buildings ready", lo["buildings"][1])
-    out["roads"] = roads.load_roads(root, frame, progress=sub("roads"), use_cache=use_cache)
+    out["roads"] = roads.load_roads(root, frame, progress=sub("roads"), use_cache=use_cache, geojson=roads_path)
     rep("roads ready", lo["roads"][1])
     if warm_stats:
         from . import stats
@@ -77,7 +79,7 @@ def ensure_all(root, frame: GridFrame | None = None, progress=None, *, include_t
         try:
             from . import terrain
             rep("terrain: loading / warping DEM", lo["terrain"][0])
-            out["terrain"] = terrain.load_terrain(root, frame, use_cache=use_cache)
+            out["terrain"] = terrain.load_terrain(root, frame, use_cache=use_cache, source=terrain_source)
             rep("terrain ready", 1.0)
         except ImportError:
             rep("terrain module not available, skipped", 1.0)

@@ -121,8 +121,9 @@ def _report(progress, msg, frac=None):
             pass
 
 
-def _geojson_path(root) -> Path:
-    return Path(root) / "layers" / "roads.geojson"
+def _geojson_path(root, geojson=None) -> Path:
+    """`geojson`: another road file (the county domain: <cache>/osm/<key>/roads.geojson); default the city's."""
+    return Path(geojson) if geojson is not None else Path(root) / "layers" / "roads.geojson"
 
 
 # ------------------------------------------------------------------------------------------------ ribbon
@@ -188,10 +189,10 @@ def make_ribbon(roads: RoadSet, width_scale: float = 1.0) -> RoadRibbon:
 
 
 # ------------------------------------------------------------------------------------------------ build
-def build_roads(root, frame: GridFrame, *, progress=None, spacing_m: float = 10.0) -> RoadSet:
-    """Uncached build from <root>/layers/roads.geojson."""
+def build_roads(root, frame: GridFrame, *, progress=None, spacing_m: float = 10.0, geojson=None) -> RoadSet:
+    """Uncached build from <root>/layers/roads.geojson (or `geojson`)."""
     _report(progress, "roads: reading geojson", 0.0)
-    with open(_geojson_path(root), "r", encoding="utf-8") as fh:
+    with open(_geojson_path(root, geojson), "r", encoding="utf-8") as fh:
         feats = json.load(fh)["features"]
     return roads_from_features(feats, frame, progress=progress, spacing_m=spacing_m)
 
@@ -317,12 +318,13 @@ _FIELDS = ("road_class", "road_length_m", "road_off", "sample_pixel", "sample_we
 _RIB = ("positions", "across", "along_m", "sample_id", "road_class", "indices")
 
 
-def _cache_file(root, frame, spacing_m):
-    return cachelib.cache_path("roads", frame, [_geojson_path(root)], VERSION, extra=f"sp={spacing_m!r}")
+def _cache_file(root, frame, spacing_m, geojson=None):
+    return cachelib.cache_path("roads", frame, [_geojson_path(root, geojson)], VERSION, extra=f"sp={spacing_m!r}")
 
 
-def load_roads(root, frame: GridFrame, *, progress=None, use_cache: bool = True, spacing_m: float = 10.0) -> RoadSet:
-    cf = _cache_file(root, frame, spacing_m)
+def load_roads(root, frame: GridFrame, *, progress=None, use_cache: bool = True, spacing_m: float = 10.0,
+               geojson=None) -> RoadSet:
+    cf = _cache_file(root, frame, spacing_m, geojson)
     if use_cache:
         t0 = time.perf_counter()
         hit = cachelib.load_npz(cf)
@@ -338,7 +340,7 @@ def load_roads(root, frame: GridFrame, *, progress=None, use_cache: bool = True,
                 return r
             except Exception:
                 pass
-    r = build_roads(root, frame, progress=progress, spacing_m=spacing_m)
+    r = build_roads(root, frame, progress=progress, spacing_m=spacing_m, geojson=geojson)
     if use_cache:
         try:
             arrays = {f: getattr(r, f) for f in _FIELDS}

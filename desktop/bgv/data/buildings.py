@@ -125,8 +125,9 @@ def _report(progress, msg, frac=None):
             pass
 
 
-def _geojson_path(root) -> Path:
-    return Path(root) / "layers" / "buildings.geojson"
+def _geojson_path(root, geojson=None) -> Path:
+    """`geojson`: another footprint file (the county domain: <cache>/osm/<key>/buildings.geojson); default the city's."""
+    return Path(geojson) if geojson is not None else Path(root) / "layers" / "buildings.geojson"
 
 
 def _num(v, default=float("nan")) -> float:
@@ -221,11 +222,11 @@ def _earcut_roofs(X, Y, ring_off, part_ring_off):
 
 
 # ------------------------------------------------------------------------------------------------ build
-def build_buildings(root, frame: GridFrame, *, progress=None, skirt_m: float = 0.0) -> Buildings:
-    """Uncached build from <root>/layers/buildings.geojson."""
+def build_buildings(root, frame: GridFrame, *, progress=None, skirt_m: float = 0.0, geojson=None) -> Buildings:
+    """Uncached build from <root>/layers/buildings.geojson (or `geojson`)."""
     _report(progress, "buildings: reading geojson", 0.0)
     t0 = time.perf_counter()
-    with open(_geojson_path(root), "r", encoding="utf-8") as fh:
+    with open(_geojson_path(root, geojson), "r", encoding="utf-8") as fh:
         features = json.load(fh)["features"]
     b = buildings_from_features(features, frame, progress=progress, skirt_m=skirt_m)
     b.timings["read_s"] = time.perf_counter() - t0 - b.timings["total_s"]
@@ -427,12 +428,13 @@ def _from_arrays(a: dict, meta: dict, frame: GridFrame) -> Buildings:
                      timings=dict(meta.get("timings", {})), **kw)
 
 
-def _cache_file(root, frame, skirt_m):
-    return cachelib.cache_path("buildings", frame, [_geojson_path(root)], VERSION, extra=f"skirt={skirt_m!r}")
+def _cache_file(root, frame, skirt_m, geojson=None):
+    return cachelib.cache_path("buildings", frame, [_geojson_path(root, geojson)], VERSION, extra=f"skirt={skirt_m!r}")
 
 
-def load_buildings(root, frame: GridFrame, *, progress=None, use_cache: bool = True, skirt_m: float = 0.0) -> Buildings:
-    cf = _cache_file(root, frame, skirt_m)
+def load_buildings(root, frame: GridFrame, *, progress=None, use_cache: bool = True, skirt_m: float = 0.0,
+                   geojson=None) -> Buildings:
+    cf = _cache_file(root, frame, skirt_m, geojson)
     if use_cache:
         t0 = time.perf_counter()
         hit = cachelib.load_npz(cf)
@@ -443,7 +445,7 @@ def load_buildings(root, frame: GridFrame, *, progress=None, use_cache: bool = T
                 return b
             except Exception:
                 pass
-    b = build_buildings(root, frame, progress=progress, skirt_m=skirt_m)
+    b = build_buildings(root, frame, progress=progress, skirt_m=skirt_m, geojson=geojson)
     if use_cache:
         t0 = time.perf_counter()
         try:

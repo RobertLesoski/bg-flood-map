@@ -109,6 +109,8 @@ class Launcher:
         self.app = None
         self.error: BaseException | None = None
         self.settings = {} if selftest else config.load_settings()
+        from . import domain as domainmod
+        domainmod.apply_cli(self.settings, args)               # --domain / --county-dem ... (remembered when the app saves)
         self.splash = Splash(canvas)
         self.splash.paint(0.02, "Starting", force=True)
         self._ctx = None
@@ -126,7 +128,14 @@ class Launcher:
             pass
         root = config.data_root()
         from .startup import Prefetch
-        self.prefetch = Prefetch(root, args.storm, self.settings)
+        self.domain, self.domain_notice = domainmod.resolve_or_city(self.settings.get("domain") or "city", root, self.settings)
+        self.prefetch = Prefetch(root, args.storm, self.settings, domain=self.domain)
+        # City / County chooser on the loading screen: skipped by --domain, by the selftest and by the setting
+        # `domain_chooser: false`.  Only the remembered domain is built (above); a click restarts the build for the other.
+        self.chooser = None
+        if not selftest and not getattr(args, "domain", None) and self.settings.get("domain_chooser", True):
+            from .ui.chooser import DomainChooser
+            self.chooser = DomainChooser(domainmod.domain_infos(root, self.settings), self.domain.key)
         self._gpu_thread = threading.Thread(target=self._make_ctx, name="bgv-gpu-init", daemon=True)
         self._gpu_thread.start()
         # rendercanvas cancels every draw until the canvas has a context (`_draw_and_present`: "context is None"), so `tick`
@@ -173,7 +182,7 @@ class Launcher:
         fmt = cctx.get_preferred_format(ctx.adapter)
         a = self.args
         self.app = App(ctx, config.data_root(), storm=a.storm, msaa=a.msaa, settings=self.settings, colour_format=fmt,
-                       defer=True, prefetch=self.prefetch)
+                       defer=True, prefetch=self.prefetch, domain=self.domain, chooser=self.chooser)
         self.app.attach_canvas(self.canvas, ui=True)
         self.times["app_created"] = time.perf_counter() - self.t0
         self._state = "app"

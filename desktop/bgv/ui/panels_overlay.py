@@ -140,7 +140,7 @@ def draw_legends(ui):
         imgui.dummy(V2(bw, 10.0 * s + lh + 4.0))
         # ---- building tiers
         imgui.spacing()
-        dim("Building flood tier")
+        dim("Building flood tier  (flooded roads use the same colours)")
         p = imgui.get_cursor_screen_pos()
         ranges = [units.tier_range_text(k + 1) for k in range(4)]
         if st.imperial:

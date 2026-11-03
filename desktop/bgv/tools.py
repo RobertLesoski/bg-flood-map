@@ -28,8 +28,10 @@ def parse_floats(s: str, n: int, what: str) -> list[float]:
 
 
 def make_app(args, ctx: GpuContext, colour_format: str = "rgba8unorm-srgb", settings: dict | None = None) -> App:
+    from . import domain as domainmod
+    settings = domainmod.apply_cli(settings if settings is not None else {}, args)
     return App(ctx, config.data_root(), storm=args.storm, msaa=args.msaa, quiet=getattr(args, "quiet", False),
-               settings=settings if settings is not None else {}, colour_format=colour_format)
+               settings=settings, colour_format=colour_format, domain=settings.get("domain"))
 
 
 def apply_view_args(app: App, args):
@@ -55,7 +57,7 @@ def apply_view_args(app: App, args):
         app.haze_density = args.haze
 
 
-def wait_for_flow(app: App, all_hours: bool = False, timeout: float = 120.0) -> float:
+def wait_for_flow(app: App, all_hours: bool = False, timeout: float = 600.0) -> float:
     t0 = time.perf_counter()
     while True:
         app.flow.pump()
@@ -94,13 +96,16 @@ def run_render(args) -> int:
     app.anim_time = float(args.anim)
     app._t_last = None
     img = canvas.draw()
-    arr = np.asarray(img)
+    arr = np.array(img)
+    if getattr(app.storm, "synthetic", False):                   # demo data is always marked, with or without the interface
+        from .ui.screenshot import mark_demo
+        mark_demo(arr)
     out = Path(args.render)
     out.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray(arr[..., :3].copy()).save(out, optimize=True)
     if not args.quiet:
-        print(f"[bgv] wrote {out} ({w}x{h}) in {time.perf_counter() - t_start:.1f} s; storm {app.storm.name} t={app.t:.2f}",
-              flush=True)
+        print(f"[bgv] wrote {out} ({w}x{h}) in {time.perf_counter() - t_start:.1f} s; domain {app.domain.key} "
+              f"storm {app.storm.name} t={app.t:.2f}", flush=True)
     app.shutdown()
     return 0
 
@@ -143,10 +148,11 @@ def run_benchmark(args) -> int:
     args.quiet = args.quiet or args.json
     app = make_app(args, ctx, "rgba8unorm-srgb")
     apply_view_args(app, args)
+    storm0 = app.storm.name
     tex = ctx.device.create_texture(label="bench-target", size=(w, h, 1), format=app.colour_format,
                                     usage=wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.COPY_SRC)
     view = tex.create_view()
-    base_dist = 16000.0
+    base_dist = 16000.0 if app.domain.key == "city" else app.domain.overview_dist(app.terrain.frame)
     # first frame (includes shader compile): time to first frame from process start
     wait_for_flow(app, all_hours=False)
     app.camera.set_view(0.0, 0.0, base_dist, 0.0, 55.0)
@@ -221,7 +227,8 @@ def run_benchmark(args) -> int:
     mean = float(np.mean(walls))
     res = {
         "adapter": ctx.adapter_name, "backend": ctx.backend, "size": [w, h], "msaa": app.sample_count,
-        "frames": len(walls), "storm": args.storm or "25yr", "gpu_timestamps": bool(gpus),
+        "frames": len(walls), "storm": storm0, "domain": app.domain.key, "demo_data": bool(app.domain.demo),
+        "gpu_timestamps": bool(gpus),
         "frame_ms_wall_synced": _stats(walls), "fps_synced_mean": 1000.0 / mean,
         "cpu_record_ms": _stats(cpus), "cpu_record_ms_pipelined": _stats(cpus_free),
         "gpu_pass_ms": _stats(gpus) if gpus else None,
@@ -256,6 +263,16 @@ def run_benchmark(args) -> int:
     return 0
 
 
+# ---------------------------------------------------------------------------------------- --make-county-demo
+def run_make_county_demo(args) -> int:
+    from .data import demo
+    out = Path(args.make_county_demo)
+    res = demo.make_county_demo(out, log=lambda m: print(m, flush=True), workers=3)
+    print(f"[demo] done: {res['dir']}", flush=True)
+    print(f'[demo] view it with:  python -m bgv --domain county --county-demo "{res["dir"]}"', flush=True)
+    return 0
+
+
 # --------------------------------------------------------------------------------------------------- windows
 def open_window(args, title="BG Flood Viewer", selftest=False):
     """Create the real window + app and return (app, canvas, loop)."""
@@ -267,7 +284,10 @@ def open_window(args, title="BG Flood Viewer", selftest=False):
                           vsync=not args.no_vsync)
     fmt = canvas.get_wgpu_context().get_preferred_format(ctx.adapter)
     settings = {} if selftest else config.load_settings()
-    app = App(ctx, root, storm=args.storm, msaa=args.msaa, settings=settings, colour_format=fmt)
+    from . import domain as domainmod
+    settings = domainmod.apply_cli(settings, args)
+    app = App(ctx, root, storm=args.storm, msaa=args.msaa, settings=settings, colour_format=fmt,
+              domain=settings.get("domain"))
     app.attach_canvas(canvas, ui=True)
     apply_view_args(app, args)
     canvas.request_draw(app.draw_frame)

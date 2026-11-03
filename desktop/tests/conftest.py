@@ -10,3 +10,4 @@ os.environ.setdefault("BGV_LOG_DIR", str(Path(tempfile.gettempdir()) / "bgv_test
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "gpu: needs a GPU adapter (offscreen, no window)")
+    config.addinivalue_line("markers", "real: needs the real data folder (skipped when it is absent)")

@@ -282,10 +282,9 @@ class UiManager:
             self.toasts.push("Fullscreen is not available here", theme.WARN)
 
     def fly_preset(self, name: str):
-        from .cameranav import preset_view
         app = self.app
         try:
-            self.nav.fly(app.camera, *preset_view(app.terrain.frame, name), seconds=1.1)
+            self.nav.fly(app.camera, *app.domain.preset_view(app.terrain.frame, name), seconds=1.1)
         except Exception as e:
             self.toasts.push(f"Camera preset failed: {e}", theme.ERR)
 

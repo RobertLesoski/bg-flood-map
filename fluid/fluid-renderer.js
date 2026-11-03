@@ -42,6 +42,7 @@ const DEFAULTS = Object.freeze({
   viewPitchDeg: 0,       // 0 = looking straight down; raises the sky reflection
   viewBearingDeg: 0,     // heading of the camera for a pitched view
   seed: 1,
+  palette: null,         // null = the standard blue ramp; else four colours (see GLSL_PALETTE) for 0.1, 0.3, 0.6, 1.2 m
 });
 
 const BOOLEANS = ['showDepth', 'showFlow', 'showParticles', 'showArrows', 'showFlowpaths'];
@@ -53,6 +54,29 @@ const LIMITS = {
   particleWidthPx: [0.5, 8], particleAlpha: [0, 1], particleBudgetMs: [0.5, 1000], particleCoverage: [0, 8], quality: [0, 2], arrowScale: [0.25, 4],
   flowpathsOpacity: [0, 1], viewPitchDeg: [0, 85], viewBearingDeg: [-720, 720], seed: [0, 4294967295],
 };
+
+// Standard depth ramp (the original hard-coded constants): #8fd3f4 #3aa0e0 #1560b8 #0a2f7a
+const STANDARD_PALETTE = Object.freeze([
+  Object.freeze([0.5608, 0.8275, 0.9569]), Object.freeze([0.2275, 0.6275, 0.8784]),
+  Object.freeze([0.0824, 0.3765, 0.7216]), Object.freeze([0.0392, 0.1843, 0.4784]),
+]);
+
+// Accepts null (standard) or an array of four colours, each [r, g, b] in 0..1 or '#rgb' / '#rrggbb'.
+function parsePalette(v) {
+  if (v === null || v === undefined) return null;
+  if (!Array.isArray(v) || v.length !== 4) throw new TypeError('FluidRenderer: palette must be null or an array of four colours');
+  return v.map((c) => {
+    if (typeof c === 'string') {
+      const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c.trim());
+      if (!m) throw new TypeError(`FluidRenderer: bad palette colour ${JSON.stringify(c)}`);
+      let h = m[1];
+      if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      return [parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255];
+    }
+    if (Array.isArray(c) && c.length === 3 && c.every((x) => Number.isFinite(x))) return c.map((x) => clampNum(x, 0, 1));
+    throw new TypeError('FluidRenderer: a palette colour must be [r, g, b] in 0..1 or a #hex string');
+  });
+}
 
 const MIN_DEPTH_PARTICLE = 0.03;   // m, below this a particle is on dry ground
 const MIN_SPEED_STILL = 0.02;      // m/s
@@ -89,15 +113,18 @@ uniform float uDepthMax;
 uniform float uVmax;
 `;
 
+// Depth colour ramp: four stops at 0.1, 0.3, 0.6 and 1.2 m (piecewise linear between them, flat beyond). The stops are
+// UNIFORMS so the host can swap the palette (option `palette`, four [r, g, b] triples in 0..1 or '#rrggbb' strings). The
+// built-in default is the viewer's "Standard tiers" blue ramp; the viewer's colour-blind-safe cividis ramp is passed in.
 const GLSL_PALETTE = `
-const vec3 PAL0 = vec3(0.5608, 0.8275, 0.9569); // #8fd3f4  0.1 m
-const vec3 PAL1 = vec3(0.2275, 0.6275, 0.8784); // #3aa0e0  0.3 m
-const vec3 PAL2 = vec3(0.0824, 0.3765, 0.7216); // #1560b8  0.6 m
-const vec3 PAL3 = vec3(0.0392, 0.1843, 0.4784); // #0a2f7a  1.2 m and deeper
+uniform vec3 uPal0;   // 0.1 m
+uniform vec3 uPal1;   // 0.3 m
+uniform vec3 uPal2;   // 0.6 m
+uniform vec3 uPal3;   // 1.2 m and deeper
 vec3 depthColor(float d) {
-  vec3 c = mix(PAL0, PAL1, clamp((d - 0.1) / 0.2, 0.0, 1.0));
-  c = mix(c, PAL2, clamp((d - 0.3) / 0.3, 0.0, 1.0));
-  return mix(c, PAL3, clamp((d - 0.6) / 0.6, 0.0, 1.0));
+  vec3 c = mix(uPal0, uPal1, clamp((d - 0.1) / 0.2, 0.0, 1.0));
+  c = mix(c, uPal2, clamp((d - 0.3) / 0.3, 0.0, 1.0));
+  return mix(c, uPal3, clamp((d - 0.6) / 0.6, 0.0, 1.0));
 }`;
 
 const FS_WATER = `#version 300 es
@@ -625,6 +652,7 @@ export class FluidRenderer {
         continue;
       }
       if (BOOLEANS.includes(key)) { o[key] = Boolean(v); continue; }
+      if (key === 'palette') { o.palette = parsePalette(v); continue; }
       const n = Number(v);
       if (!Number.isFinite(n)) throw new TypeError(`FluidRenderer: option ${key} must be a finite number (got ${v})`);
       const lim = LIMITS[key];
@@ -1456,6 +1484,11 @@ export class FluidRenderer {
       gl.uniform1f(u.uFlowSpeed, o.flowSpeed);
       gl.uniform1f(u.uOpacity, o.opacity);
       gl.uniform1f(u.uMinDepth, o.minDepthShown);
+      const pal = o.palette || STANDARD_PALETTE;
+      gl.uniform3f(u.uPal0, pal[0][0], pal[0][1], pal[0][2]);
+      gl.uniform3f(u.uPal1, pal[1][0], pal[1][1], pal[1][2]);
+      gl.uniform3f(u.uPal2, pal[2][0], pal[2][1], pal[2][2]);
+      gl.uniform3f(u.uPal3, pal[3][0], pal[3][1], pal[3][2]);
       gl.uniform3f(u.uSunDir, this._sun[0], this._sun[1], this._sun[2]);
       gl.uniform3f(u.uViewDir, this._view[0], this._view[1], this._view[2]);
       gl.uniform1f(u.uShowDepth, o.showDepth ? 1 : 0);

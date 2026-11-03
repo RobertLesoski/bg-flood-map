@@ -1,6 +1,6 @@
 """CPU-only start-up work that can run while the window opens and the GPU adapter is being created.
 
-`Prefetch(root, storm_name, settings)` starts a worker thread that
+`Prefetch(root, storm_name, settings, domain=None)` starts a worker thread that
     1. opens the storm (meta + frame)                              -> .storm
     2. loads / builds the terrain height + slope data (the cache build of a first run, a few hundred ms when cached)
                                                                    -> .terrain_data  (tuple for TerrainTextures(data=...))
@@ -15,12 +15,15 @@ import time
 
 
 class Prefetch:
-    def __init__(self, root, storm_name: str | None = None, settings: dict | None = None):
+    def __init__(self, root, storm_name: str | None = None, settings: dict | None = None, domain=None):
         self.root = root
+        self.domain = domain                      # bgv.domain.Domain (None: the city under `root`)
+        self.message, self.frac = "", 0.0         # progress of the (county: up to a minute long) terrain preparation
         self.storm = None
         self.terrain_data = None
         self.error: BaseException | None = None
         self.done = False
+        self.cancelled = False                    # set when the start-up chooser switched to the other domain
         self.warm_done = False                    # numba kernels loaded (the loading screen waits for it)
         self.t_storm = self.t_terrain = self.t_imports = None
         self._name = storm_name
@@ -28,18 +31,28 @@ class Prefetch:
         self.thread = threading.Thread(target=self._run, name="bgv-prefetch", daemon=True)
         self.thread.start()
 
+    def cancel(self):
+        self.cancelled = True
+
     def _run(self):
         t0 = time.perf_counter()
         try:
             from .data import flow as flowdata
-            avail = flowdata.available_storms(self.root)
-            first = self._name or self._settings.get("storm") or ("25yr" if "25yr" in avail else avail[0])
-            if first not in avail:
-                first = avail[0]
-            self.storm = flowdata.Storm.open(self.root, first)
+            from . import domain as domainmod
+            dom = self.domain
+            flow_root, subdir = (dom.flow_root, dom.flow_subdir) if dom is not None else (self.root, "flow")
+            avail = flowdata.available_storms(flow_root, subdir)
+            first = domainmod.pick_storm(self._settings, dom.key if dom is not None else "city", avail, self._name)
+            self.storm = flowdata.Storm.open(flow_root, first, subdir)
             self.t_storm = time.perf_counter() - t0
+            if self.cancelled:
+                return
             from .data import terrain as terraindata
-            self.terrain_data = terraindata.load_terrain_gpu_data(self.root, self.storm.frame)
+
+            def prog(msg, frac):
+                self.message, self.frac = str(msg), float(frac or 0.0)
+            self.terrain_data = terraindata.load_terrain_gpu_data(
+                self.root, self.storm.frame, dom.terrain if dom is not None else None, prog)
             self.t_terrain = time.perf_counter() - t0
         except BaseException as e:                 # the App repeats the work itself
             self.error = e

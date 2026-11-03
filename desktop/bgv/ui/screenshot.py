@@ -56,6 +56,28 @@ def capture_rgba(app, include_ui: bool = True) -> np.ndarray:
     return arr
 
 
+def mark_demo(arr: np.ndarray, text: str = "DEMO DATA  -  synthetic, not a simulation result") -> np.ndarray:
+    """Stamp a clearly visible DEMO DATA banner into an RGBA / RGB image (in place) - screenshots and renders of the synthetic
+    county demo data must never pass for real results, whether or not the interface is in the picture."""
+    from PIL import Image, ImageDraw, ImageFont
+    h, w = arr.shape[:2]
+    img = Image.fromarray(np.ascontiguousarray(arr[..., :3]))
+    d = ImageDraw.Draw(img, "RGBA")
+    size = max(14, int(min(w, h) * 0.022))
+    try:
+        font = ImageFont.truetype("arialbd.ttf", size)
+    except Exception:
+        font = ImageFont.load_default()
+    tw = d.textlength(text, font=font)
+    pad = size * 0.5
+    x0, y0 = w - tw - 3 * pad, h - size - 3.2 * pad
+    d.rounded_rectangle([x0, y0, x0 + tw + 2 * pad, y0 + size + 1.6 * pad], radius=pad, fill=(40, 28, 0, 215),
+                        outline=(255, 190, 60, 255), width=2)
+    d.text((x0 + pad, y0 + 0.7 * pad), text, fill=(255, 205, 90, 255), font=font)
+    arr[..., :3] = np.asarray(img)
+    return arr
+
+
 def save_png(arr: np.ndarray, path: Path) -> Path:
     from PIL import Image
     path = Path(path)
@@ -72,5 +94,7 @@ def target_dir(app=None) -> Path:
 
 def take(app, include_ui: bool = True) -> Path:
     arr = capture_rgba(app, include_ui)
+    if getattr(app.storm, "synthetic", False):
+        mark_demo(arr)
     from .units import snapshot_hour
     return save_png(arr, make_path(app.storm.name, snapshot_hour(app.t), target_dir(app)))

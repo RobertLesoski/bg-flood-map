@@ -17,7 +17,17 @@ import sys
 def build_parser():
     p = argparse.ArgumentParser(prog="bgv", description="BG Flood desktop viewer (GPU, wgpu/Vulkan)")
     p.add_argument("--data", help="folder that contains layers\\flow (default: BGV_DATA or the DSOC AI folder)")
-    p.add_argument("--storm", help="5yr, 10yr, 25yr, 50yr, 100yr")
+    p.add_argument("--storm", help="5yr, 10yr, 25yr, 50yr, 100yr (city); 2yr .. 100yr, ev1 .. ev6 (county)")
+    p.add_argument("--domain", choices=("city", "county"), type=str.lower,
+                   help="which area to show: city (Bowling Green, default) or county (Warren County); remembered in the settings")
+    p.add_argument("--county-dem", metavar="TIF", help="county terrain GeoTIFF, UTM 16N, metres "
+                                                       "(default <data>/layers/dem_warren_5m.tif)")
+    p.add_argument("--county-demo", metavar="FOLDER", help="folder written by --make-county-demo: used when the data root has "
+                                                           "no real county flow grids")
+    p.add_argument("--county-pbf", metavar="FILE", help="OpenStreetMap extract for the county buildings / roads "
+                                                        "(default <data>/kentucky-latest.osm.pbf)")
+    p.add_argument("--make-county-demo", metavar="FOLDER", help="write a synthetic county terrain + 2 synthetic storms (clearly "
+                                                                "marked DEMO DATA) into FOLDER and exit")
     p.add_argument("--hour", type=float, help="time in hours (0..24, fractional ok)")
     p.add_argument("--camera", help='"x,y,dist,yaw,pitch": target world metres (origin = grid centre), distance m, '
                                     'yaw = compass heading looked toward (deg), pitch = tilt down from horizon (deg)')
@@ -45,7 +55,7 @@ def _fail(e: BaseException, args, code: int) -> int:
     """Top-level failure: traceback -> desktop/logs/bgv.log, one short native message box in window mode (never a bare
     traceback window), the same plain text on stderr when there is a console."""
     from . import applog
-    window_mode = not (args.render or args.benchmark)
+    window_mode = not (args.render or args.benchmark or args.make_county_demo)
     applog.fatal(e, show=window_mode)
     if args.debug:
         raise e
@@ -63,6 +73,8 @@ def main(argv=None) -> int:
         if args.data:
             config.set_data_root(args.data)
         from . import tools
+        if args.make_county_demo:
+            return tools.run_make_county_demo(args)
         if args.render:
             return tools.run_render(args)
         if args.benchmark:

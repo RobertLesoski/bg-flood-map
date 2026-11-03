@@ -81,3 +81,8 @@ resolution).  MSAA is fixed at launch (pipelines are built for it): the adaptive
 - Overview shoreline: pixels at > 8 m/px differ slightly from the old render (max diff 107 in 8.5k px of 2 M, mean 0.24 /
   255; compare `docs/shots` style renders: visually identical at 3x zoom); 3 of the 4 reference shots are bit-identical
   (max diff <= 4) or within 28 on 25 px.
+
+## County domain (real flow grids + real DEM + OSM, 1920x1080, same method)
+county: synced mean 7.9 ms (127 fps), p99 17.7, GPU 4.0 ms, free-running 230 fps, VRAM ~1130 MB. City measured in the same session: 8.7 ms (115 fps),
+p99 19.5, GPU 4.9 ms, 1253 MB (city before this work, noisier machine: 14.0 ms) - city unchanged. First county start: PBF read 50 s once, DEM warp + slope map
+once (cached), then cached. OSM has 24.6k buildings in the county; not stress-tested at 100k.

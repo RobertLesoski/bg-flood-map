@@ -78,7 +78,7 @@ def draw_sidebar(ui):
 def _header(ui):
     bold("DSOC Flood Map", theme.ACCENT2)
     imgui.same_line()
-    dim("  Bowling Green, KY")
+    dim(f"  {ui.app.domain.label}, KY")
     imgui.dummy(V2(0, 2))
 
 
@@ -88,6 +88,26 @@ def _open(ui, key: str, label: str) -> bool:
 
 
 # ------------------------------------------------------------------------------------------------ storm & time
+def _domain_combo(ui):
+    """Domain picker: Bowling Green (city) / Warren County.  An unavailable domain is greyed out; hovering it says why."""
+    from .menus import domain_items, domain_tooltip
+    app = ui.app
+    items = domain_items(app)
+    cur_label = next((i.label for i, c, _ in items if c), app.domain.label)
+    imgui.set_next_item_width(-1)
+    if imgui.begin_combo("##domain", "Area:  " + cur_label):
+        try:
+            for info, cur, enabled in items:
+                flags = 0 if enabled else int(imgui.SelectableFlags_.disabled)
+                clicked, _ = imgui.selectable(info.label + ("" if enabled else "   (unavailable)"), cur, flags)
+                if info.reason and imgui.is_item_hovered(imgui.HoveredFlags_.allow_when_disabled):
+                    domain_tooltip(info.reason)
+                if clicked and enabled and not cur:
+                    app.set_domain(info.key)
+        finally:
+            imgui.end_combo()
+
+
 def _sec_time(ui):
     from ..app import SPEEDS
     app = ui.app
@@ -95,6 +115,7 @@ def _sec_time(ui):
         return
     st = app.storm
     imgui.spacing()
+    _domain_combo(ui)
     cur = app.storms_available.index(st.name) if st.name in app.storms_available else 0
     imgui.set_next_item_width(-1)
     ch, idx = imgui.combo("##storm", cur, [app.storm_label(s) for s in app.storms_available])
@@ -369,7 +390,7 @@ def _sec_stats(ui):
     if r is not None:
         tot_km = float(r.total_length_m) / 1000.0
         _kv("Roads flooded", f"{float(fl.get('road_pct', 0.0)):.1f}%   ({rk:.1f} of {tot_km:.0f} km)")
-        _kv("Roads affected", f"{int(r.flooded_roads):,} road segments")
+        _kv("Roads affected", f"{int(r.flooded_roads):,} roads at risk, {rk:.1f} km wet")
     imgui.spacing()
     imgui.push_text_wrap_pos(0.0)
     dim(f"{units.hour_of_24(fl.get('hour', 0))}: building flooded = water >= 0.1 m on its footprint.", wrap=True)
@@ -396,7 +417,12 @@ def _sec_info(ui):
     label, full = source_info(app.storm)
     col = theme.OK if full else theme.WARN
     text_c(col, label)
-    if not full:
+    if getattr(app.storm, "synthetic", False):
+        imgui.push_text_wrap_pos(0.0)
+        dim("The county terrain and the water are fabricated (python -m bgv --make-county-demo). They have the real grid "
+            "and file formats, but nothing here is a simulation of Warren County.", wrap=True)
+        imgui.pop_text_wrap_pos()
+    elif not full:
         imgui.push_text_wrap_pos(0.0)
         dim("Depth is the smoothest water surface consistent with the solver's depth tiers: about 0.1 m accuracy, the "
             "severe tier is only known as >= 1.2 m.", wrap=True)
