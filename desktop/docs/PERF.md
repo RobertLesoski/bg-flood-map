@@ -114,3 +114,11 @@ p99 50 - 105 ms, max 300 - 620 ms) while the scripted benchmark dives and the wi
 
 County is above the 60 fps requirement. The benchmark path draws the scene plus the standard interface; it does not open the optional
 tool windows (analysis window, facilities list ...). Screenshots of every tool in the merged app: `docs/shots/integration/`.
+
+## Utilities layer (2026-11-05)
+
+`BGV_UTILITIES=1 python -m bgv --benchmark --domain county --seconds 12 --size 1920x1080`: layer on (366 markers, 232 lines, imgui draw list):
+65.6 and 79.4 fps synced mean (p99 50 / 26 ms).  The same command with the layer off measured 44.5 fps in between: the PC was loaded
+(other processes), so the layer's cost is below the run-to-run noise there.  Offscreen UI harness with image read-back (orbit, 1080p, county):
+overview 18.9 ms off / 22.2 ms on (about +3 ms from the line polylines), close view 14.9 / 14.6 ms (67 fps).  Not a clean >= 60 fps
+proof for the county overview under load: marked as measured-but-noisy.

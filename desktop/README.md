@@ -33,7 +33,8 @@ variable. Caches go to `desktop\cache` (override `BGV_CACHE`); the log is `deskt
 | Click a building / row in the list | Select; **F** flies to the selection (tilt otherwise), **Esc** deselects |
 | Space, `[` `]` | Play/pause, step an hour back/forward |
 | 1 to 9 | Pick storm |
-| Ctrl+F or `/` | Search an address (typeahead, Enter = jump); Esc clears |
+| Ctrl+F or `/` | Focus the address search from anywhere (typeahead, Enter = jump); Esc leaves the box, then clears |
+| In any text box | Every key goes to the box: no hotkey (B, T, L, N, P, digits, Space, arrows, Ctrl+B ...) fires; Esc leaves the box first |
 | M / L / Ctrl+P | Facility markers on/off / roads-at-risk list / save a risk report (HTML + PNG) |
 | H | Hide/show the interface |
 | F1 / F3 | Help / performance overlay |
@@ -43,6 +44,14 @@ variable. Caches go to `desktop\cache` (override `BGV_CACHE`); the log is `deskt
 The side panels hold storm and time, layers (terrain, roads, buildings, water, flow arrows, particles, flow paths,
 optional map background), water and flow settings, quality, and statistics. The quality governor is **Auto** by default
 and adapts render scale and detail to keep the frame rate up; clicking a preset switches to manual.
+
+## Defaults and utilities layer
+
+* A fresh start opens storm ev6 (May 2010; the city has no ev6 run and opens 25yr) at hour 1.  Stored storm / hour are ignored unless
+  View > "Restore last storm and hour at start" is on; `--storm` / `--hour` / `--domain` still work.  The first solver hour of ev6 is 2, so
+  hour 1 is dry and labelled so.
+* **Utilities layer** (View menu or sidebar "Utilities", off by default): water towers, tanks, treatment, dams, power plants, substations,
+  power lines, pipelines from OpenStreetMap with flood exposure; see docs/UTILITIES.md.
 
 ## Command line
 

@@ -337,6 +337,11 @@ class SearchController:
         if self._hits_cache is not None and self._hits_cache[0] == key:
             return self._hits_cache[1]
         hits = idx.search(text, self.HIT_LIMIT)
+        try:                                              # utilities layer: water towers, substations, dams ... by name / type
+            from ..ui import ext_utilities
+            hits = list(hits) + ext_utilities.hits_for(self.ui, text)
+        except Exception:
+            pass
         self._hits_cache = (key, hits)
         # tile figures for the rows shown (background): the dropdown shows the deepest storm from the tiles when they exist
         if self.tiles is not None:

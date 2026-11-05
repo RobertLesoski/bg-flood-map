@@ -374,3 +374,27 @@ def test_glyph_atlas_is_recovered_when_its_gpu_texture_is_lost_and_replay_never_
     assert abs(text_std() - ok) < ok * 0.2 + 2          # the atlas came back: same amount of glyph contrast, no blank bars
     assert not env.app.errors or not [x for x in env.app.errors if "ui" in x]
     assert imgui_fast._replay.__doc__
+
+
+def test_utilities_layer_draws_clicks_and_is_found_by_search(env):
+    from bgv.ui import ext_utilities as eu
+    from bgv.ui import registry
+    app, m, c = env.app, env.m, env.c
+    if eu.uset(app) is None:
+        pytest.skip("no layers/utilities.geojson.gz")
+    registry.state(app, "utilities")["on"] = True
+    env.draw(3)
+    assert eu._S.view is not None and len(eu._S.view.ids) > 0
+    hits = eu.hits_for(m, "water tower")
+    assert hits and hits[0].kind == "utility"
+    c.query, c.committed = "water tower", False
+    env.draw(2)
+    assert any(h.kind == "utility" for h in c.cur_hits)
+    eu.choose_hit(m, hits[0])
+    env.draw(30)
+    assert eu._S.sel == hits[0].idx and not m.panel_errors
+    registry.state(app, "utilities")["on"] = False
+    eu._S.sel = None
+    c.query = ""
+    env.draw(2)
+    _clean(env)

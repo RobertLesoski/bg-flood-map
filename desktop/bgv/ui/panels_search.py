@@ -375,6 +375,12 @@ def _search_bar(ui, c):
 
 
 def _choose(ui, c, hit):
+    if hit.kind == "utility":
+        from . import ext_utilities
+        c.committed = True
+        c.query = hit.label
+        ext_utilities.choose_hit(ui, hit)
+        return
     if hit.kind == "street":
         c.query = hit.label + " "
         c.sel_hit = 0
@@ -434,6 +440,11 @@ def _hit_row(ui, c, n, h, w):
     dl = imgui.get_window_draw_list()
     if clicked:
         _choose(ui, c, h)
+    if h.kind == "utility":
+        dl.add_rect_filled(V2(p0.x + 2, p0.y + 3), V2(p0.x + 6 * s, p1.y - 3), col32((0.34, 0.71, 0.91, 1.0)), 2.0)
+        dl.add_text(V2(p0.x + 12 * s, p0.y + 4 * s), col32(theme.TEXT), h.label)
+        dl.add_text(V2(p0.x + 12 * s, p0.y + 4 * s + imgui.get_text_line_height()), col32(theme.TEXT_DIM), "utility: " + h.sub)
+        return
     if h.kind == "street":
         dl.add_text(V2(p0.x + 12 * s, p0.y + 4 * s), col32(theme.TEXT), h.label)
         dl.add_text(V2(p0.x + 12 * s, p0.y + 4 * s + imgui.get_text_line_height()), col32(theme.TEXT_DIM), h.sub + "   (choose to narrow down)")
