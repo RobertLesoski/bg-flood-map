@@ -53,3 +53,14 @@ UNFINISHED / NOT DONE (honest list):
 - [ ] 2 utilities layer
 - [ ] docs, final tests
 - [x] URGENT blank-text UI: NOT reproducible (real window, both monitors, county; offscreen 1.0/1.25, replay, domain switch, atlas growth all fine). Hardened imgui_fast: re-upload a lost atlas texture, never replay a frame with a pending upload; regression test in test_search_gpu.
+- [x] 2a: build_utilities.py + tests done, layers/utilities.geojson.gz built (599 features; no hydro plants, no tanks mapped). [ ] 2b desktop layer bgv/data/utilities.py + ui/ext_utilities.py + search hits + docs + perf
+- [x] 2b desktop layer done + docs. [ ] final full desktop suite (once) + scripts tests (once)
+## Session 3 resume checklist (wrap-up)
+DONE + verified: (1) text-input gate (manager.text_focused/_text_key, app._on_key), cheat sheet lines; (3) default ev6 + hour 1, stored storm/hour ignored unless 'restore_last' (View menu), dry-hour label; (2) scripts/build_utilities.py (+tests, 599 features built), desktop layer bgv/data/utilities.py + bgv/ui/ext_utilities.py (View menu, sidebar legend, card, search hits), docs/UTILITIES.md, PERF notes; imgui_fast atlas hardening.
+Full suite run once: 484 passed, 5 failed; scripts/tests 286 passed.
+FAILING / TODO:
+- test_county.py::test_pick_storm_and_cli_settings and test_interaction.py::test_storm_switch_spam... : likely expect the old default storm (pick_storm now prefers ev6 / ignores stored storm): update expectations.
+- test_search_gpu.py new tests (focus gate, utilities search) pass alone but fail in module order (shared env state: text_focused stuck / cur_hits): isolate state (clear active id, c.focus) in the tests.
+- test_perf deferred start-up: known flaky, rerun alone.
+- Blank-text UI bug not reproduced; hardening only.
+- Unverified: hydro plants/tanks absent (relations not read); fps noisy.
