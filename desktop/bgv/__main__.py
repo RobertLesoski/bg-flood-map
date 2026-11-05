@@ -33,6 +33,7 @@ def build_parser():
                                     'yaw = compass heading looked toward (deg), pitch = tilt down from horizon (deg)')
     p.add_argument("--at", help='"lng,lat": put the camera target there (keeps dist/yaw/pitch)')
     p.add_argument("--size", help="WxH (window or render size)")
+    p.add_argument("--enable-layers", metavar="NAMES", help="comma-separated layer names to switch on (e.g. tiledepth)")
     p.add_argument("--msaa", type=int, default=4, choices=(1, 2, 4))
     p.add_argument("--exag", type=float, help="vertical exaggeration")
     p.add_argument("--sun", help='"azimuth,elevation" degrees (compass azimuth of the sun)')

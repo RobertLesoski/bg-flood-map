@@ -36,6 +36,10 @@ def make_app(args, ctx: GpuContext, colour_format: str = "rgba8unorm-srgb", sett
 
 def apply_view_args(app: App, args):
     cam = app.camera
+    for nm in (getattr(args, "enable_layers", None) or "").split(","):     # --enable-layers tiledepth,flowpaths
+        for l in app.layers:
+            if nm.strip() and l.name == nm.strip():
+                l.enabled = True
     if getattr(args, "exag", None) is not None:
         app.set_exag(args.exag)
     if getattr(args, "sun", None):
