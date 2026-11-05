@@ -64,12 +64,18 @@ class Block:
         return self.strings.index(b)
 
     def add_nodes(self, nodes):
-        """nodes: [(id, lon_deg, lat_deg)] sorted by id (dense nodes, delta coded)."""
+        """nodes: [(id, lon_deg, lat_deg[, {tag: value}])] sorted by id (dense nodes, delta coded; optional tags)."""
         ids = [n[0] for n in nodes]
+        kv = []
+        for n in nodes:
+            for k, v in (n[3] if len(n) > 3 else {}).items():
+                kv += [self.s(k), self.s(v)]
+            kv.append(0)
+        has_tags = any(len(n) > 3 and n[3] for n in nodes)
         lat = [round(n[2] * 1e9 / self.gran) for n in nodes]
         lon = [round(n[1] * 1e9 / self.gran) for n in nodes]
         dense = (f_len(1, packed(ids, signed_delta=True)) + f_len(8, packed(lat, signed_delta=True))
-                 + f_len(9, packed(lon, signed_delta=True)))
+                 + f_len(9, packed(lon, signed_delta=True)) + (f_len(10, packed(kv)) if has_tags else b""))
         self.groups.append(f_len(2, dense))
 
     def add_ways(self, ways):

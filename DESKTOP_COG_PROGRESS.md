@@ -47,3 +47,9 @@ UNFINISHED / NOT DONE (honest list):
 - Polish skipped: camera inertia (already exponential glide), soft shadows / AO (planar sun shadows + fake AO exist), per-channel absorption of the ground seen through water (needs dual-source blending), hillshade rework.
 - Light theme: overlays drawn over the 3D view (compass, scale bar, legend chips) keep their dark chips by design; the timeline chart colours were only checked once visually.
 - Not built here (other worktrees): cinematic, analysis, search/help features.
+# Session 3
+- [x] 1 keyboard gate (manager.text_focused, app._on_key, test in test_search_gpu)
+- [x] 3 default ev6 hour 1
+- [ ] 2 utilities layer
+- [ ] docs, final tests
+- [x] URGENT blank-text UI: NOT reproducible (real window, both monitors, county; offscreen 1.0/1.25, replay, domain switch, atlas growth all fine). Hardened imgui_fast: re-upload a lost atlas texture, never replay a frame with a pending upload; regression test in test_search_gpu.

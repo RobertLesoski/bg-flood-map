@@ -15,6 +15,21 @@ import wgpu
 from imgui_bundle import imgui
 
 
+def _reupload(self, tex):
+    """Create a new GPU texture for `tex` (status ok, its pixels still in imgui's CPU copy) and upload ALL of it."""
+    import ctypes
+    w, h = int(tex.width), int(tex.height)
+    gtex = self._device.create_texture(label="Dear ImGui Texture", size=(w, h, 1), format=wgpu.TextureFormat.rgba8unorm,
+                                       usage=wgpu.TextureUsage.COPY_DST | wgpu.TextureUsage.TEXTURE_BINDING)
+    view = gtex.create_view()
+    tid = ctypes.c_int32(id(view)).value
+    self._textures[tid] = gtex
+    self._texture_views[tid] = view
+    self._device.queue.write_texture({"texture": gtex, "mip_level": 0, "origin": (0, 0, 0)}, tex.get_pixels_array(),
+                                     {"offset": 0, "bytes_per_row": w * tex.bytes_per_pixel}, (w, h, 1))
+    tex.set_tex_id(tid)
+
+
 def _fast_render(self, draw_data, render_pass):
     self._clear_pending_textures()
     if draw_data is None:
@@ -26,6 +41,8 @@ def _fast_render(self, draw_data, render_pass):
         return
     if draw_data.textures is not None:
         for tex in draw_data.textures:
+            if tex.status == imgui.ImTextureStatus.ok and tex.tex_id != 0 and tex.tex_id not in self._texture_views:
+                _reupload(self, tex)                      # the GPU copy is gone (lost / recreated backend): upload the whole atlas again
             if tex.status != imgui.ImTextureStatus.ok:
                 self._update_texture(tex)
     self._update_vertex_buffer(draw_data)
@@ -82,6 +99,10 @@ def _replay(renderer) -> bool:
     dd = imgui.get_draw_data()
     if dd is None or dd.cmd_lists_count == 0:
         return False
+    if dd.textures is not None:                     # a pending atlas upload / rebuild: only a real frame may carry it
+        for tex in dd.textures:
+            if tex.status != imgui.ImTextureStatus.ok or tex.tex_id not in be._texture_views:
+                return False
     lw, lh = cc.logical_size
     if abs(dd.display_size.x - lw) > 0.5 or abs(dd.display_size.y - lh) > 0.5:
         return False

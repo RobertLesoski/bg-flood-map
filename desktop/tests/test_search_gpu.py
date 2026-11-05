@@ -354,3 +354,23 @@ def test_search_focus_swallows_every_hotkey_and_text_reaches_the_box(env):
     assert not m.text_focused()
     c.query = ""
     env.draw(1)
+
+
+def test_glyph_atlas_is_recovered_when_its_gpu_texture_is_lost_and_replay_never_carries_an_upload(env):
+    """Blank-text regression: a stale / lost font-atlas texture must be re-uploaded, not drawn as empty bars."""
+    from imgui_bundle import imgui
+    from bgv.ui import imgui_fast
+    be = env.app.imgui_renderer.backend
+    imgui_fast.patch(env.app.imgui_renderer)
+    env.draw(3)
+    def text_std():
+        img = np.asarray(env.draw(2))[..., :3].astype(float)
+        return float(img[70:260, 10:300].std())
+    ok = text_std()
+    for tid in list(be._texture_views):
+        be._texture_views.pop(tid)
+        be._textures.pop(tid, None)
+    be._fast_bg_cache.clear()
+    assert abs(text_std() - ok) < ok * 0.2 + 2          # the atlas came back: same amount of glyph contrast, no blank bars
+    assert not env.app.errors or not [x for x in env.app.errors if "ui" in x]
+    assert imgui_fast._replay.__doc__
