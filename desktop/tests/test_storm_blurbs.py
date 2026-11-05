@@ -19,7 +19,7 @@ def test_blurb_from_blurbs_file_and_honesty(tmp_path):
                             "2yr": {"short": "Synthetic 24 h rain", "long": "L", "honesty": "custom line"}})
     b = sb.blurb(root, "ev4")
     assert b["short"].startswith("Historic") and "reconstruction" in b["honesty"] and "not validated" in b["honesty"]
-    assert sb.blurb(root, "2yr")["honesty"] == "custom line"
+    assert sb.blurb(root, "2yr")["honesty"].startswith("custom line") and "AUC 0.84" in sb.blurb(root, "2yr")["honesty"]
     assert sb.blurb(root, "nope") is None
 
 

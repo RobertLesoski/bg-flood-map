@@ -10,6 +10,8 @@ from pathlib import Path
 
 HONESTY_EVENT = "Replays the rain of that day; not a reconstruction of the real flood; not validated."
 HONESTY_DESIGN = "A design storm is a statistical yardstick, not a forecast; the model is not validated."
+VALIDATION = ("Depth is not validated. One comparison with the April 2025 flood (21 reported roads) gave AUC 0.84: a weak sign of skill in "
+              "where water collects (docs/VALIDATION_EV4.md).")
 _CACHE: dict = {}
 
 
@@ -61,6 +63,8 @@ def blurb(root, storm: str) -> dict | None:
     h = b.get("honesty") or (HONESTY_EVENT if event else HONESTY_DESIGN)
     if event and "reconstruction" not in h:
         h = HONESTY_EVENT + " " + h
+    if "AUC" not in h:
+        h = h + " " + VALIDATION
     return {"short": b["short"], "long": b["long"] or b["short"], "honesty": h}
 
 

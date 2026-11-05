@@ -799,6 +799,13 @@ class Env:
         self.m.sync_risk_filter()
         from bgv.ui import bridge
         bridge.clear_selection(app)
+        try:                                                  # search cards (facility / result / road) are selection-like state too
+            from bgv.ui import panels_search
+            c = getattr(self.m, panels_search.CTL_ATTR, None)
+            if c is not None:
+                c.facility_sel, c.result, c.road_sel = -1, None, None
+        except Exception:
+            pass
         # adaptive UI refresh (every 2nd frame replays old draw data) depends on wall-clock frame times left by earlier
         # tests (big canvases, screenshots): a click needs real UI frames, so keep it off and drop the timing history
         self.m.lite = False
