@@ -852,6 +852,9 @@ class TerrainLayer(Layer):
         app.relief = self.relief
         water_head = 30.0
         wet = app.flow.chunk_wet(*self._pair(app))
+        extra = getattr(app, "compare_wet", None)             # ANALYSIS hook: chunks that are wet in the compare storm B too
+        if extra is not None and extra.shape == wet.shape:
+            wet = wet | extra
         m.update(app.camera.eye(), app.view_proj, app.exag, self.lod_distance * getattr(app, "gov_lod", 1.0), wet, water_head,
                  planes_for(app))
         if self._basemap is not None:
@@ -958,10 +961,15 @@ class WaterLayer(Layer):
         m = getattr(app, "terrain_mesh", None)
         if m is None or not m.draws_water:
             return
+        cmp_hook = getattr(app, "compare_hook", None)         # ANALYSIS hook: storm compare (scissor for the swipe, hidden for the difference)
+        if cmp_hook is not None and not cmp_hook.water_begin(app, pass_):
+            return
         pass_.set_pipeline(self.pipeline)
         pass_.set_bind_group(0, app.frame.bind_group)
         pass_.set_bind_group(1, self.bg)
         m.draw(pass_, m.draws_water, m.inst_water)
+        if cmp_hook is not None:
+            cmp_hook.water_end(app, pass_)
 
     def ui(self, app):
         from imgui_bundle import imgui

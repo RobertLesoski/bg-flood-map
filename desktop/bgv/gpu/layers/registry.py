@@ -12,12 +12,14 @@ LAYERS = [
     "bgv.gpu.layers.terrain:WaterLayer",          # water surface, depth ramp, ripples, foam
     # NOT REGISTERED (experimental, unfinished): "bgv.gpu.layers.tiledepth:TileDepthLayer" - solver depth draped on the terrain. Registering it
     # currently trips an imgui ID-stack assert in the sidebar (root cause not found) and it hitches while the window is re-read; see docs/TILES.md.
+    "bgv.gpu.layers.compare:CompareLayer",        # ANALYSIS: storm swipe (storm B water) / difference layer, right after storm A's water
     "bgv.gpu.layers.buildings:SelectionOverlay",  # selected-building highlight, drawn after the water (visible when submerged)
     "bgv.gpu.layers.flowpaths:FlowpathsLayer",    # flow-paths colour map on the terrain (off by default)
     "bgv.gpu.layers.particles:ParticlesLayer",    # GPU flow streaks                             (later agent)
     "bgv.gpu.layers.arrows:ArrowsLayer",          # instanced flow arrows                        (later agent)
     "bgv.gpu.layers.cinematic:CinematicLayer",    # bookmarks, tour, time-lapse, clip export (controller; UI via ui/hooks.py)
     "bgv.gpu.layers.panels:PanelsLayer",          # statistics / probe / ranking panels (UI)     (later agent)
+    "bgv.analysis.layer:AnalysisLayer",           # ANALYSIS: state + background services of the analysis tools (draws nothing)
     "bgv.gpu.layers.overlay:OverlayLayer",        # labels, scale bar, picking marker            (later agent)
 ]
 

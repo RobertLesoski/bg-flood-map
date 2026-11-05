@@ -94,7 +94,8 @@ class Tool:
 # also show while the interface is hidden with H, or raw key_down events).  Ported from the cinematic branch's hooks.py.
 OVERLAYS: dict = {}           # name -> fn(ui), drawn every frame, also while the interface is hidden
 TOP_MENUS: dict = {}          # label -> fn(ui) drawing `if imgui.begin_menu(label): ...; imgui.end_menu()`
-KEY_HOOKS: dict = {}          # name -> fn(ui, ev) -> True when it consumed the key_down event (asked before built-in hotkeys)
+KEY_HOOKS: dict = {}
+CLICK_HOOKS: dict = {}        # name -> fn(ui, x, y) -> True when it consumed a (non-drag) click on the 3D view          # name -> fn(ui, ev) -> True when it consumed the key_down event (asked before built-in hotkeys)
 _SHORTCUTS_DONE: set = set()
 
 MENU_ITEMS: list[MenuItem] = []
@@ -232,6 +233,25 @@ def on_key_hooks(ui, ev) -> bool:
                 ui.error_logged.add(name)
                 try:
                     ui.app.report_error(f"key hook {name}", e)
+                except Exception:
+                    pass
+    return False
+
+
+def register_click_hook(name, fn):
+    CLICK_HOOKS[name] = fn
+
+
+def on_click_hooks(ui, x, y) -> bool:
+    for name, fn in list(CLICK_HOOKS.items()):
+        try:
+            if fn(ui, x, y):
+                return True
+        except Exception as e:
+            if name not in ui.error_logged:
+                ui.error_logged.add(name)
+                try:
+                    ui.app.report_error(f"click hook {name}", e)
                 except Exception:
                     pass
     return False

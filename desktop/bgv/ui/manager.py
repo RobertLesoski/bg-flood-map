@@ -564,6 +564,8 @@ class UiManager:
         bridge.selection(self.app)["hover_building"] = bid
 
     def _click(self, x: float, y: float):
+        if registry.on_click_hooks(self, x, y):                  # feature modules with their own click tools (analysis ...)
+            return
         t = self.tool
         if t is not None:
             pick = self.app.camera.pick(x, y)
