@@ -114,6 +114,12 @@ def polygon_area_m2(lng, lat) -> float:
     lat = np.asarray(lat, np.float64)
     if lng.size < 3:
         return 0.0
+    # sin(authalic lat) is not linear along an edge: the plain shoelace is off by up to ~0.1 % on 20 km polygons
+    # (audit 2026-11).  Densify each edge (linear in lng/lat) so the trapezoid error drops to ~1e-6.
+    k = 32
+    t = np.arange(k) / k
+    lng = (lng[:, None] + (np.roll(lng, -1) - lng)[:, None] * t).ravel()
+    lat = (lat[:, None] + (np.roll(lat, -1) - lat)[:, None] * t).ravel()
     lam = np.radians(lng - lng[0])                    # relative to the first vertex: no precision loss, no antimeridian issue here
     sb = _q(np.radians(lat)) / _QP                    # sin of the authalic latitude
     a = float(np.sum(lam * np.roll(sb, -1) - np.roll(lam, -1) * sb)) * 0.5
