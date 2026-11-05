@@ -6,7 +6,7 @@ import os
 import numpy as np
 from imgui_bundle import imgui
 
-from . import bridge, theme, units
+from . import bridge, hooks, theme, units
 from .cameranav import PRESETS
 from .state import PRESETS as QUALITY_PRESETS
 from .theme import col32
@@ -126,6 +126,7 @@ def draw(ui):
                 if imgui.menu_item("Fly to selected building", "F", False, sel is not None)[0]:
                     bridge.fly_to_building(app, int(sel))
                 imgui.end_menu()
+            hooks.draw_menus(ui)                           # feature menus (Cinematic ...)
             if imgui.begin_menu("Help"):
                 if imgui.menu_item("Controls and shortcuts", "F1", False)[0]:
                     ui.show_help = True

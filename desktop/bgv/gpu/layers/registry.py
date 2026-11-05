@@ -14,6 +14,7 @@ LAYERS = [
     "bgv.gpu.layers.flowpaths:FlowpathsLayer",    # flow-paths colour map on the terrain (off by default)
     "bgv.gpu.layers.particles:ParticlesLayer",    # GPU flow streaks                             (later agent)
     "bgv.gpu.layers.arrows:ArrowsLayer",          # instanced flow arrows                        (later agent)
+    "bgv.gpu.layers.cinematic:CinematicLayer",    # bookmarks, tour, time-lapse, clip export (controller; UI via ui/hooks.py)
     "bgv.gpu.layers.panels:PanelsLayer",          # statistics / probe / ranking panels (UI)     (later agent)
     "bgv.gpu.layers.overlay:OverlayLayer",        # labels, scale bar, picking marker            (later agent)
 ]
