@@ -359,7 +359,7 @@ class TileDepthSource:
         else:
             d = a
         d = np.nan_to_num(d, nan=0.0)
-        d[d < WET_THRESHOLD_M] = 0.0
+        d[d < WET_THRESHOLD_M - 1e-6] = 0.0              # (float32 holds 0.02 as 0.0199999996: a 2 cm cell is wet)
         return d.reshape(shape)
 
     def depth_at(self, lng, lat, storm, hour) -> float:

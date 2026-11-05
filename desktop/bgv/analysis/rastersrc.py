@@ -113,7 +113,7 @@ class BlockRaster:
         self.path = str(path)
         self.scale = float(scale)
         self._nodata_override = nodata
-        self.cache = cache or BLOCK_CACHE
+        self.cache = cache if cache is not None else BLOCK_CACHE      # (an empty BlockCache is falsy: len() == 0)
         self._info = None
         self._block_override = block
 
@@ -159,11 +159,11 @@ class BlockRaster:
 
     def _decode(self, raw: np.ndarray) -> np.ndarray:
         nd = self.info()["nodata"]
-        out = raw.astype(np.float32)
+        # scale in float64, THEN round to float32: float32(10) * float32(0.01) = 0.09999999 would put a 10 cm cell below the 0.1 m
+        # flooded threshold (the whole-array test caught 96 buildings lost that way)
+        out = (raw.astype(np.float64) * self.scale).astype(np.float32) if self.scale != 1.0 else raw.astype(np.float32)
         if nd is not None:
             out[raw == nd] = np.nan
-        if self.scale != 1.0:
-            out *= np.float32(self.scale)
         return out
 
     def _gather(self, rows: np.ndarray, cols: np.ndarray) -> np.ndarray:
