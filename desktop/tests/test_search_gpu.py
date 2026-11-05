@@ -320,3 +320,37 @@ def test_log_path_shown_in_about(env):
     from bgv.ui import help as helpmod
     p = helpmod._log_path_text()
     assert p.endswith("bgv.log") or "no log" in p
+
+
+def test_search_focus_swallows_every_hotkey_and_text_reaches_the_box(env):
+    """Typing 'tbl 123 main st' into the focused search triggers no action; unfocused, the hotkeys still work."""
+    from imgui_bundle import imgui
+    app, m, c = env.app, env.m, env.c
+    c.query, c.committed = "", False
+    imgui.internal.clear_active_id()
+    env.draw(3)
+    assert not m.text_focused()
+    storm0, t0, hidden0, play0 = app.storm, app.t, m.st.hidden, app.playing
+    env.draw(1)
+    assert env.key("h") and m.st.hidden != hidden0           # unfocused: hotkeys work (H hides the interface)
+    env.key("h")
+    assert m.st.hidden == hidden0
+    c.focus = True
+    env.draw(3)
+    assert m.text_focused()
+    for ch in "tbl 123 main st":
+        env.key(ch)
+        app._on_key({"event_type": "key_down", "key": ch})
+    for k in ("ArrowLeft", "Home", "[", "]", "Space", "h"):
+        env.key(k)
+        app._on_key({"event_type": "key_down", "key": k})
+    env.key("b", modifiers=("Control",))
+    assert (app.storm, app.t, m.st.hidden, app.playing) == (storm0, t0, hidden0, play0)
+    imgui.get_io().add_input_characters_utf8("tbl 123 main st")
+    env.draw(2)
+    assert c.query == "tbl 123 main st"
+    assert env.key("Escape")                                   # Esc leaves the field first
+    env.draw(2)
+    assert not m.text_focused()
+    c.query = ""
+    env.draw(1)

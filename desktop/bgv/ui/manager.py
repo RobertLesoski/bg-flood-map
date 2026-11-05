@@ -239,6 +239,38 @@ class UiManager:
             imgui.pop_style_var(n)
 
     # ------------------------------------------------------------------------------------------ input
+    def text_focused(self) -> bool:
+        """True while an imgui text field is active (address search, help search, rename, export fields ...)."""
+        try:
+            io = imgui.get_io()
+            if io.want_text_input or io.want_capture_keyboard:
+                return True
+        except Exception:
+            pass
+        return bool(getattr(self, "_text_override", False))
+
+    def _text_key(self, k: str, kl: str, mods) -> bool:
+        """A key while a text box is active: everything belongs to the box.  Esc leaves the field first; Ctrl+F re-focuses search."""
+        if k == "Escape":
+            try:
+                imgui.internal.clear_active_id()
+            except Exception:
+                pass
+            self._text_override = False
+            try:
+                from . import panels_search
+                panels_search.controller(self).input_active = False
+            except Exception:
+                pass
+            return True
+        if kl == "f" and set(mods) & {"Control", "Meta"}:
+            try:
+                from . import panels_search
+                panels_search.controller(self).focus = True
+            except Exception:
+                pass
+        return True
+
     def on_key(self, ev) -> bool:
         """Hotkeys from App._on_key (key_down only).  Returns True when consumed."""
         if ev.get("event_type") != "key_down":
@@ -247,6 +279,8 @@ class UiManager:
         kl = k.lower() if len(k) == 1 else k
         app = self.app
         mods = ev.get("modifiers") or ()
+        if self.text_focused():                                      # THE central gate: no hotkey fires while a text box is active
+            return self._text_key(k, kl, mods)
         if registry.on_key_hooks(self, ev):                          # feature modules (cinematic tools ...)
             return True
         if k == "F12":

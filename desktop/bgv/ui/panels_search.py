@@ -366,7 +366,7 @@ def _search_bar(ui, c):
                 c.sel_hit = (c.sel_hit - 1) % n
             if imgui.is_key_pressed(imgui.Key.escape):
                 c.query, c.committed = "", False
-                imgui.clear_active_id()
+                imgui.internal.clear_active_id()
         if entered and hits:
             _choose(ui, c, hits[min(c.sel_hit, len(hits) - 1)])
         c.bar_h = float(imgui.get_window_height())

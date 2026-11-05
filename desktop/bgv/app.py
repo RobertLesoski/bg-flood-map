@@ -531,7 +531,11 @@ class App:
         self.camera.on_wheel(ev)
 
     def _on_key(self, ev):
-        ov = self.get_layer("overlay")                  # UI hotkeys (F1 F3 F11 F12 H Esc [ ] F Home) get the first look
+        ov = self.get_layer("overlay")
+        m = getattr(ov, "manager", None) if ov is not None and ov.enabled else None
+        if m is not None and ev.get("event_type") == "key_down" and m.text_focused():
+            m.on_key(ev)                                # handles Esc / Ctrl+F; every other key stays in the text box
+            return                  # UI hotkeys (F1 F3 F11 F12 H Esc [ ] F Home) get the first look
         if ov is not None and ov.enabled and ov.on_key(self, ev):
             return
         if ev.get("event_type") == "key_down":

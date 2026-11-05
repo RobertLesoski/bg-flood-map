@@ -29,6 +29,8 @@ SHORTCUTS = [
     ("[  ]", "Step one hour back / forward"),
     ("F", "Fly to the selected building"),
     ("Home", "Overview (reset view)"),
+    ("Ctrl+F  or  /", "Focus the address search from anywhere"),
+    ("In a text box", "Every key goes to the box (no hotkeys fire); Esc leaves the box first"),
     ("Esc", "Deselect / close dialogs"),
     ("H", "Hide / show the interface"),
     ("F1", "This help"),
