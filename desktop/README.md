@@ -83,3 +83,13 @@ out and its tooltip says what is missing. Command line: `--domain city|county`, 
 
 `python -m bgv --make-county-demo <folder>` writes SYNTHETIC county terrain + 2 storms (marked DEMO DATA everywhere, screenshots stamped);
 view with `python -m bgv --domain county --county-demo <folder>`. Real data always takes precedence.
+
+## Cinematic tools (Cinematic menu, key C)
+
+Bookmarks (Ctrl+B saves the view, Ctrl+1..9 flies to it, per area, saved with the settings), an automatic **tour** (T: hospitals, schools, fire,
+police and shelters named in `infrastructure.geojson` plus the most flooded named roads, spline camera path with ease in / out, captions with the
+place name, storms and hour advance, pause / skip / stop), a **time-lapse** player (L: any rate, range, loop / ping-pong / once; the shader blends the
+two hourly flow frames, so water never steps), and **clip export** (PNG sequence up to 4K, MP4 when ffmpeg is installed, otherwise `make_mp4.bat`;
+every frame carries the "model unvalidated, velocity derived" stamp, the storm / hour caption and the data source). Depth read-outs come from the
+solver depth COG tiles (`layers/cog/<domain>/<storm>`, label "solver depth (tiles, 6.25 m; verification pending)") or, for the city, the flow grid.
+Hooks into shared files and settings: `docs/CINEMATIC_HOOKS.md`.

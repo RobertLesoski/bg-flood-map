@@ -23,3 +23,22 @@ Source label: "solver depth (tiles, 6.25 m; verification pending)" until WEB_COG
 - ffmpeg is not on PATH here, but `imageio_ffmpeg` ships a binary: `find_ffmpeg()` uses PATH first, then that.
 - A pipe-captured ffmpeg stderr deadlocks once 64 KB is written: stderr goes to `ffmpeg.log` in the clip folder instead.
 - City `infrastructure.geojson` `d_<storm>` (footprint maximum) differs from a 25 m point read of the flow grid; ranking uses the depth source.
+
+## Status at the deadline (2026-11-05 09:30)
+Working and verified (tests `desktop/tests/test_cinematic.py` 25 CPU tests, `test_cinematic_gpu.py` 12 offscreen GPU tests on real data):
+- bookmarks (save / rename / delete / overwrite / jump with eased flight, per domain, persisted, Ctrl+B, Ctrl+1..9, Alt+1..9);
+- tour (route build in a worker, spline path, captions, hour sweep, storm escalation, pause, N / P skip, cancel by camera input, state restored);
+- time-lapse (rate 0.05..12 h/s, range, loop / ping-pong / once, scrub, flow-buffer gate) and a continuity test: the picture at 6.00 +/- 0.01 h
+  is almost the picture at 6.00 h (the shader already blended hourly frames; nothing needed to change);
+- export: PNG sequence, MP4 through ffmpeg (found on PATH, else the `imageio_ffmpeg` binary), `make_mp4.bat/.sh` otherwise, cancel, progress bar,
+  4K frame (3840x2160 verified), window state restored, driven by the UI frame loop; frames inspected by eye (stamp, captions, county tiles tour).
+- depth tiles: real `layers/cog/county/<storm>` read with rasterio (windowed, cached), label pending until WEB_COG_PROGRESS.md says verified.
+
+Not done / not verified:
+- no hand-driven session in a real on-screen window (all UI paths ran on the offscreen canvas with scripted calls);
+- the county GPU path (tiles + tour + export) was verified by script (1280x720 tour clip, captions show the tile label), not by an automated test;
+- the export folder is fixed (Documents\BG_Flood_Clips, BGV_EXPORT_DIR or settings), no folder picker;
+- buildings recolour per snapshot hour (statistics are hourly), so building colours step while the water is continuous;
+- city has no tiles: depth read-outs there use the flow grid ("preview from depth tiers"); several city facilities read ~0 at a 25 m point
+  while `infrastructure.geojson` (footprint maximum) says otherwise;
+- fps: county benchmark was taken while other agents ran on the same PC (see the final report).
