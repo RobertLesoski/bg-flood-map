@@ -220,3 +220,16 @@ def land_use_label(code: str) -> str:
     if code[:1].islower():                         # OpenStreetMap building=* value (county buildings): 'semidetached_house'
         return code.replace("_", " ").capitalize() + " (OSM)"
     return f"code {code}"
+
+
+def hour_note(app) -> str:
+    """'' or a short label when the displayed hour has no solver snapshot (the grid of some storms starts at hour 2 or 3:
+    earlier hours are dry, the first wet frame is the nearest available hour)."""
+    try:
+        hrs = list(app.storm.hours)
+        h = snapshot_hour(app.t)
+        if hrs and h >= 1 and h not in hrs and h < hrs[0]:
+            return f"  (dry: first solver hour is {hrs[0]})"
+    except Exception:
+        pass
+    return ""

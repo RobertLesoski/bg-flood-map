@@ -49,7 +49,7 @@ def draw_timeline(ui):
         if app.buffering:
             text_c(theme.WARN, "buffering")
             imgui.same_line()
-        label = f"Hour {units.snapshot_hour(app.t)} of 24   t = {units.hour_label(app.t)}"
+        label = f"Hour {units.snapshot_hour(app.t)} of 24   t = {units.hour_label(app.t)}{units.hour_note(app)}"
         tw = imgui.calc_text_size(label).x
         avail = imgui.get_content_region_avail().x
         sl_w = max(avail - tw - 18.0 * ui.s, 120.0)

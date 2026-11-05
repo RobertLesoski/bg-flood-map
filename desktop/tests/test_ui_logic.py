@@ -429,3 +429,22 @@ def test_atrisk_list_is_opt_in_on_narrow_windows():
         assert m.is_narrow()
     finally:
         m.probe_worker.close()
+
+
+def test_default_storm_and_hour_ignore_stored_session_values():
+    from bgv import domain as dm
+    stale = {"storm": "100yr", "domain_views": {"county": {"storm": "50yr"}}, "t": 24.0}
+    assert dm.pick_storm(stale, "county", ["100yr", "ev6"]) == "ev6"
+    assert dm.pick_storm(stale, "city", ["25yr", "100yr"]) == "25yr"               # the city has no ev6 run
+    assert dm.pick_storm(dict(stale, restore_last=True), "county", ["50yr", "ev6"]) == "50yr"
+    assert dm.pick_storm(stale, "county", ["100yr", "ev6"], explicit="100yr") == "100yr"
+    assert dm.DEFAULT_HOUR == 1.0
+
+
+def test_hour_note_labels_hours_before_the_first_solver_hour():
+    from types import SimpleNamespace as NS
+    from bgv.ui import units
+    app = NS(t=1.0, storm=NS(hours=[2, 3, 4]))
+    assert "first solver hour is 2" in units.hour_note(app)
+    app.t = 5.0
+    assert units.hour_note(app) == ""

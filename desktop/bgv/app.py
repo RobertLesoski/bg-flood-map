@@ -68,6 +68,11 @@ class App:
         self.stats_hook = None
         self.terrain_mesh = None
         s = self.settings
+        if not s.get("restore_last"):                  # settings migration: stored storm / hour from older sessions never override the default
+            s.pop("storm", None)
+            for v in (s.get("domain_views") or {}).values():
+                if isinstance(v, dict):
+                    v.pop("storm", None)
         if isinstance(domain, domainmod.Domain):
             notice = ""
         else:
@@ -79,7 +84,7 @@ class App:
         self._domain_notice = notice
         self.storms_available = list(domain.storms)
         # ---- user-visible state
-        self.t = float(s.get("t", 12.0))
+        self.t = float(s.get("t", 12.0)) if s.get("restore_last") else domainmod.DEFAULT_HOUR
         self.playing = False
         self.speed_idx = SPEEDS.index(s.get("speed", 1.0)) if s.get("speed", 1.0) in SPEEDS else 2
         dv = (s.get("domain_views") or {}).get(domain.key) or {}
@@ -371,7 +376,7 @@ class App:
         self.exag = float(dv.get("exag", dom.default_exag if dom.key != domainmod.CITY else self.settings.get("exag", 2.0)))
         self.haze_density = float(dv.get("haze", dom.default_haze))
         self._explicit_storm = False
-        self._first_storm = domainmod.pick_storm(self.settings, dom.key, self.storms_available)
+        self._first_storm = domainmod.pick_storm(dict(self.settings, restore_last=True), dom.key, self.storms_available)
         self._prefetch = Prefetch(self.root, self._first_storm, self.settings, domain=dom)
         self._t_init0 = time.perf_counter()
         self.load_frac, self.load_msg = 0.0, f"Switching to {dom.label}"

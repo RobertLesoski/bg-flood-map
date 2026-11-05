@@ -225,6 +225,10 @@ def domain_infos(root, settings: dict | None = None) -> list[DomainInfo]:
     return out
 
 
+DEFAULT_STORM = "ev6"
+DEFAULT_HOUR = 1.0
+
+
 def pick_storm(settings: dict | None, key: str, avail, explicit: str | None = None) -> str:
     """The storm to open first in a domain: the explicit one (CLI), the one remembered for that domain, the city's legacy
     `storm` setting, 25yr, else the first available."""
@@ -232,9 +236,12 @@ def pick_storm(settings: dict | None, key: str, avail, explicit: str | None = No
     if explicit and explicit in avail:
         return explicit
     s = settings or {}
-    cands = [((s.get("domain_views") or {}).get(key) or {}).get("storm")]
-    if key == CITY:
-        cands.append(s.get("storm"))
+    cands = []
+    if s.get("restore_last"):                      # persisted storm only when "restore last storm and hour" is on (default off)
+        cands.append(((s.get("domain_views") or {}).get(key) or {}).get("storm"))
+        if key == CITY:
+            cands.append(s.get("storm"))
+    cands.append(DEFAULT_STORM)                    # May 2010 event (county only; the city has no ev6 run)
     cands.append("25yr" if key == CITY else "100yr")
     for c in cands:
         if c and c in avail:
