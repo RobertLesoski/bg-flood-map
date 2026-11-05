@@ -215,6 +215,12 @@ class UiManager:
         kl = k.lower() if len(k) == 1 else k
         app = self.app
         mods = ev.get("modifiers") or ()
+        try:                                                    # SEARCH hook: Ctrl+F, /, M, L, Ctrl+P, Esc for the search features
+            from . import panels_search
+            if panels_search.on_key(self, ev):
+                return True
+        except Exception as e:
+            app.report_error("ui.search.key", e)
         if k == "F12":
             self.shot_request = "scene" if "Shift" in mods else "ui"
             return True
@@ -367,7 +373,7 @@ class UiManager:
 
     def frame(self):
         """Draw the whole UI (inside imgui new_frame / render)."""
-        from . import dialogs, menus, panels_overlay, panels_risk, panels_side, panels_time
+        from . import dialogs, menus, panels_overlay, panels_risk, panels_search, panels_side, panels_time
         app = self.app
         st = self.st
         io = imgui.get_io()
@@ -408,6 +414,7 @@ class UiManager:
         self.safe("osm credit", lambda ui: _osm_credit(ui.app, ui.L, ui.s))     # BASEMAP: licence credit while the map shows
         self.safe("perf", panels_overlay.draw_perf)
         self.safe("probe", panels_overlay.draw_probe)
+        self.safe("search", panels_search.draw)           # SEARCH: markers, search bar, cards, facilities / roads windows, hints
         self.safe("dialogs", dialogs.draw)
         self.toasts.draw((self.L.sx0 + self.L.sx1) * 0.5, self.L.sy1 - 14.0 * self.s)
         self._finish_frame()
@@ -496,6 +503,12 @@ class UiManager:
         bridge.selection(self.app)["hover_building"] = bid
 
     def _click(self, x: float, y: float):
+        try:                                                    # SEARCH hook: a click on a facility marker takes the click
+            from . import panels_search
+            if panels_search.on_click(self, x, y):
+                return
+        except Exception as e:
+            self.app.report_error("ui.search.click", e)
         bridge.click_select(self.app, x, y)
         if bridge.selection(self.app).get("building") is not None:
             self.scroll_to_selected = True

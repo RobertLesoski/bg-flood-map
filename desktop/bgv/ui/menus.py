@@ -126,6 +126,10 @@ def draw(ui):
                 if imgui.menu_item("Fly to selected building", "F", False, sel is not None)[0]:
                     bridge.fly_to_building(app, int(sel))
                 imgui.end_menu()
+            if imgui.begin_menu("Find"):                      # SEARCH hook: address search, facilities, roads at risk, report
+                from . import panels_search
+                panels_search.menu(ui)
+                imgui.end_menu()
             if imgui.begin_menu("Help"):
                 if imgui.menu_item("Controls and shortcuts", "F1", False)[0]:
                     ui.show_help = True
