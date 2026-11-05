@@ -33,6 +33,8 @@ variable. Caches go to `desktop\cache` (override `BGV_CACHE`); the log is `deskt
 | Click a building / row in the list | Select; **F** flies to the selection (tilt otherwise), **Esc** deselects |
 | Space, `[` `]` | Play/pause, step an hour back/forward |
 | 1 to 9 | Pick storm |
+| Ctrl+F or `/` | Search an address (typeahead, Enter = jump); Esc clears |
+| M / L / Ctrl+P | Facility markers on/off / roads-at-risk list / save a risk report (HTML + PNG) |
 | H | Hide/show the interface |
 | F1 / F3 | Help / performance overlay |
 | F11 | Fullscreen |
@@ -109,3 +111,21 @@ two hourly flow frames, so water never steps), and **clip export** (PNG sequence
 every frame carries the "model unvalidated, velocity derived" stamp, the storm / hour caption and the data source). Depth read-outs come from the
 solver depth COG tiles (`layers/cog/<domain>/<storm>`, label "solver depth (tiles, 6.25 m; verification pending)") or, for the city, the flow grid.
 Hooks into shared files and settings: `docs/CINEMATIC_HOOKS.md`.
+
+## Search, facilities, roads at risk, reports, help
+
+Details: `docs/SEARCH_HOOKS.md` (files, hooks, settings), `../SEARCH_PROGRESS.md` (log and verification).
+
+- **Address search** (Ctrl+F): typeahead over the address index of the current area (30k city / 30k county records), a card with depth, tier and
+  first / hours flooded for every storm. County depths come from the **solver depth tiles** (`layers/cog/county/<storm>/max_depth.tif`: footprint
+  maximum for a building, the cell under the point for a lot), shown next to the **index (grid)** value with their difference; rows where the two
+  disagree (flooded state flips or 10 cm apart) are flagged. Labels: `solver depth (tiles, 6.25 m; verification pending)` and `index (grid)`.
+  The city has no tiles yet and stays on the index. The tile folder is configurable (`BGV_TILES_DIR` / `tiles_dir`).
+- **Critical facilities** (M, Find menu): markers coloured and shaped by type, a ring in the tier colour when flooded in the storm on screen, click
+  for the first storm that floods it and the depth per storm (tiles, index and deepest within 30 m).
+- **Roads at risk** (L): sortable by flooded %, max depth, length, evacuation flag; click a row to fly to the road (outlined on the map).
+- **Risk report** (Ctrl+P): self-contained HTML (+ PNG of the view) in `Documents\BG_Flood_Reports`: depth per storm, colour-blind-safe tiers, source of every
+  number, uncertainty note, "not validated against observed floods", date.
+- **Help / About** (F1): searchable help, shortcut sheet, per-storm data sources (renders `STORM_DATA_SOURCES.md` from the repo root when present),
+  data-file status and the log file path. First run shows a short hint overlay (Find > Show first-run tips again).
+- Tools: `python -m bgv.search.shot --help` (headless renders), `python tests/verify_search.py` (independent verification against rasterio).

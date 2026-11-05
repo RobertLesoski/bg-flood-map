@@ -62,8 +62,13 @@ def _raise(ui, key):
 
 def draw(ui):
     _track_opened(ui)
-    _help(ui)
-    _about(ui)
+    try:                                              # SEARCH hook: the searchable Help / About window replaces the two dialogs
+        from . import help as help_window, panels_search
+        help_window.draw(ui, panels_search.controller(ui))
+    except Exception as e:
+        ui.app.report_error("ui.help", e)
+        _help(ui)
+        _about(ui)
     _source(ui)
 
 

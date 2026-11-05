@@ -42,6 +42,9 @@ class OverlayLayer(Layer):
 
     def shutdown(self, app):
         if self.manager is not None:
+            ctl = getattr(self.manager, "_search_ctl", None)         # SEARCH: stop the search worker thread
+            if ctl is not None:
+                ctl.close()
             self.manager.probe_worker.close()
             self.manager = None
 
@@ -69,6 +72,12 @@ class OverlayLayer(Layer):
 
     def post_frame(self, app):
         m = self.manager
+        if m is not None:                                   # SEARCH hook: a queued risk report (HTML + PNG of the view)
+            try:
+                from ...ui import panels_search
+                panels_search.post_frame(app, m)
+            except Exception as e:
+                app.report_error("report", e)
         if m is None or not m.shot_request:
             return
         req, m.shot_request = m.shot_request, None
