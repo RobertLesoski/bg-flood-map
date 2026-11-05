@@ -130,9 +130,23 @@ def _sec_time(ui):
     _domain_combo(ui)
     cur = app.storms_available.index(st.name) if st.name in app.storms_available else 0
     imgui.set_next_item_width(-1)
-    ch, idx = imgui.combo("##storm", cur, [app.storm_label(s) for s in app.storms_available])
-    if ch:
-        app.set_storm(app.storms_available[idx])
+    from ..data import storm_blurbs
+    if imgui.begin_combo("##storm", app.storm_label(app.storms_available[cur]) if app.storms_available else ""):
+        for i, sname in enumerate(app.storms_available):
+            if imgui.selectable(app.storm_label(sname) + f"##st{i}", i == cur)[0]:
+                app.set_storm(sname)
+            bl = storm_blurbs.blurb(app.root, sname)
+            if bl:
+                imgui.same_line()
+                dim("  " + bl["short"])
+                if imgui.is_item_hovered():
+                    imgui.set_tooltip(bl["long"] + "\n\n" + bl["honesty"])
+        imgui.end_combo()
+    bl = storm_blurbs.blurb(app.root, st.name)
+    if bl:
+        dim(bl["short"], wrap=True)
+        if imgui.is_item_hovered():
+            imgui.set_tooltip(bl["long"] + "\n\n" + bl["honesty"])
     # source badge
     label, full = source_info(st)
     col = theme.OK if full else theme.WARN
@@ -365,6 +379,8 @@ def _sec_stats(ui):
     font_text(theme.Fonts.bold, 26.0, f"{n_fl:,}", theme.TIER_RGB[3] if n_fl else theme.TEXT)
     imgui.same_line()
     dim(f"  flooded buildings   ({100.0 * n_fl / n_all:.1f}% of {n_all:,})")
+    if imgui.is_item_hovered():
+        imgui.set_tooltip(tilepanel.TILE_FOOTNOTE)
     imgui.spacing()
     rows = tier_rows(fl)
     mx = max([c for _, _, c in rows] + [1])
@@ -406,6 +422,7 @@ def _sec_stats(ui):
     imgui.spacing()
     imgui.push_text_wrap_pos(0.0)
     dim(f"{units.hour_of_24(fl.get('hour', 0))}: building flooded = water >= 0.1 m on its footprint.", wrap=True)
+    dim("Flow-grid numbers; solver-tile counts differ (hover the headline, see 'Solver depth tiles').", wrap=True)
     imgui.pop_text_wrap_pos()
     imgui.spacing()
 

@@ -55,3 +55,14 @@ the cached OSM county scene (`desktop/cache/osm/*/buildings.geojson`, for footpr
 
 Take the new files as they are. For the five hooks, the hunks are 2 to 8 lines each; if a later change moved those functions, re-insert the
 marked lines. The `tests/test_search*.py` files only depend on the public functions named above.
+
+## After the integration (desktop-integration)
+
+* The `manager.py` / `menus.py` hooks listed above are now wired by ONE file, `bgv/ui/ext_search.py`, on `bgv/ui/registry.py`
+  (`register_top_menu("Find")`, `register_panel("search")`, `register_key_hook`, `register_click_hook`). Still direct: `ui/dialogs.py`
+  (Help window) and `gpu/layers/overlay.py` (search worker shutdown, queued report).
+* Key clash resolved: the roads-at-risk list is **Ctrl+L** (plain `L` is the cinematic time-lapse).
+* `bgv/search/tiles.py` reads through `bgv/data/cog.py` and the shared tile cache (no rasterio for reads); folder and label follow the
+  shared policy (`cog_folder` / `BGV_COG_FOLDER`, aliases `tiles_dir` / `BGV_TILES_DIR` full path; label pending until `Status: verified`).
+* The branch's own final report (`SEARCH_PROGRESS.md` in the worktree) ended with the last test run unreported; the numbers in
+  `INTEGRATION_LOG.md` replace it.

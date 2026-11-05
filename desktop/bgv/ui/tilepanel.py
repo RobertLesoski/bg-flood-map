@@ -6,6 +6,10 @@ them); the tile values are extra lines with their own label.
 """
 from __future__ import annotations
 
+TILE_FOOTNOTE = ("These headline numbers come from the flow grid (20-25 m cells). The solver depth tiles (6.25 m) count fewer flooded buildings "
+                 "(e.g. 100yr hour 12 on the county run: 1,432 by tiles vs 1,903 by the grid). See the sidebar section 'Solver depth tiles' "
+                 "and docs/TILES.md.")
+
 import numpy as np
 from imgui_bundle import imgui
 

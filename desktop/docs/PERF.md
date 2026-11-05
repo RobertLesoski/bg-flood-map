@@ -101,3 +101,16 @@ on the machine (the previous county log had p99 17.7 on a quiet PC): re-measure 
 Experimental solver-depth overlay (`tiledepth` layer, NOT registered in the shipped build - measured with the registry line added by hand, 1024 x 1024-cell clipmap window around the camera target, two textures, worker-thread reads):
 city synced mean 9.73 ms, GPU +0.5 ms (5.49 vs 5.0); county 13.4 ms synced mean (about 75 fps, 174 fps free-running) but p99 46 ms / max 92 ms (earlier runs with a 2048 window:
 p99 50 - 105 ms, max 300 - 620 ms) while the scripted benchmark dives and the window is re-read. It meets 60 fps on average but is not hitch-free: it stays an opt-in experiment.
+
+## Integrated viewer (desktop-integration: tile reader + cinematic + analysis + search) - 2026-11-05
+
+`python -m bgv --benchmark --domain <d> --seconds 12`, GTX 1650, 1920x1080, MSAA 4, scripted camera path, offscreen. The PC was NOT idle
+(other Python processes and agents were running), so treat these as lower bounds:
+
+| Domain | synced fps | mean ms | p95 | p99 | GPU pass mean | CPU record |
+|---|---|---|---|---|---|---|
+| county | 92.8 | 10.78 | 14.60 | 20.18 | 4.20 ms | 2.88 ms |
+| city | 82.7 | 12.09 | 19.60 | 27.27 | 4.98 ms | 3.46 ms |
+
+County is above the 60 fps requirement. The benchmark path draws the scene plus the standard interface; it does not open the optional
+tool windows (analysis window, facilities list ...). Screenshots of every tool in the merged app: `docs/shots/integration/`.

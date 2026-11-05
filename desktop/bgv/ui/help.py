@@ -231,7 +231,31 @@ def _sources(h):
     return h.blocks, h.sources_path, h.sources_msg
 
 
+def _storm_descriptions(ui):
+    """Full text of every storm's description + the honesty line (layers/storm_blurbs.json)."""
+    from ..data import storm_blurbs
+    app = ui.app
+    names = list(getattr(app, "storms_available", []) or [])
+    if not names or not any(storm_blurbs.blurb(app.root, n) for n in names):
+        return
+    bold("Storm descriptions", theme.ACCENT2)
+    imgui.push_text_wrap_pos(0.0)
+    for n in names:
+        bl = storm_blurbs.blurb(app.root, n)
+        if not bl:
+            continue
+        imgui.text_colored(V4(*theme.TEXT), f"{app.storm_label(n)}: {bl['long']}")
+        dim(bl["honesty"], wrap=True)
+        imgui.spacing()
+    imgui.pop_text_wrap_pos()
+    imgui.separator()
+
+
 def _tab_sources(ui, h, ctl):
+    try:
+        _storm_descriptions(ui)
+    except Exception as e:                                           # noqa: BLE001
+        dim(f"storm descriptions unavailable: {e}", wrap=True)
     blocks, path, msg = _sources(h)
     if blocks is None:
         bold("Per-storm data sources", theme.ACCENT2)

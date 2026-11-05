@@ -6,7 +6,7 @@ import os
 import numpy as np
 from imgui_bundle import imgui
 
-from . import bridge, registry, theme, units
+from . import bridge, registry, theme, tilepanel, units
 from .cameranav import PRESETS
 from .state import PRESETS as QUALITY_PRESETS
 from .theme import col32
@@ -214,7 +214,7 @@ def _status(ui, bar_h: float, x0: float):
     if imgui.invisible_button("##badge", V2(bw, bar_h)):
         ui.show_source = not ui.show_source
     if imgui.is_item_hovered():
-        imgui.set_tooltip(src_label + "\nClick for details")
+        imgui.set_tooltip(src_label + "\nClick for details\n\n" + tilepanel.TILE_FOOTNOTE)
     # centre-left: storm label and hour
     wl = imgui.calc_text_size(label).x
     ww = imgui.calc_text_size(when).x
