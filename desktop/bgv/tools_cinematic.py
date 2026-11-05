@@ -114,12 +114,12 @@ class BookmarkStore:
     def add(self, domain: str, name: str | None, view, t=None, storm=None, slot: int | None = None) -> int:
         """Append (or, with `slot`, overwrite that 0-based slot).  Returns the index.  A blank name becomes 'View N'."""
         lst = self.list(domain)
-        name = (name or "").strip() or self.next_name(domain)
-        bm = Bookmark(name[:60], [float(v) for v in view], None if t is None else float(t), storm)
-        if slot is not None and 0 <= slot < len(lst):
-            bm.name = (name if (name or "").strip() else lst[slot].name)[:60]
-            lst[slot] = bm
+        name = (name or "").strip()
+        if slot is not None and 0 <= slot < len(lst):                # overwrite: a blank name keeps the old one
+            lst[slot] = Bookmark((name or lst[slot].name)[:60], [float(v) for v in view], None if t is None else float(t), storm)
             return slot
+        name = name or self.next_name(domain)
+        bm = Bookmark(name[:60], [float(v) for v in view], None if t is None else float(t), storm)
         if len(lst) >= MAX_BOOKMARKS:
             raise ValueError(f"at most {MAX_BOOKMARKS} bookmarks per area")
         lst.append(bm)

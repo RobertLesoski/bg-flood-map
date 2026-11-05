@@ -119,7 +119,7 @@ def burn_stamps(img, info: dict) -> None:
     from PIL import ImageDraw
     W, H = img.size
     d = ImageDraw.Draw(img, "RGBA")
-    u = max(H / 1080.0, 0.5)                                    # all sizes scale with the frame
+    u = max(H / 1080.0, 0.8)                                    # all sizes scale with the frame
     pad = int(14 * u)
     # ---- top-left: storm and hour
     f1 = _font(int(26 * u), True)
@@ -305,6 +305,7 @@ class ExportJob:
         except Exception:
             pass
         dt = 1.0 / sp.fps
+        self._cam_wh = (cam.width, cam.height)
         cam.resize(self.W, self.H)                   # the view-projection of this frame uses the clip's aspect ratio
         app.step(dt)
         hr = int(min(24, max(0, math.floor(app.t + 0.5))))
@@ -338,6 +339,9 @@ class ExportJob:
             self._tex = dev.create_texture(label="export-target", size=(self.W, self.H, 1), format=app.colour_format,
                                            usage=wgpu.TextureUsage.RENDER_ATTACHMENT | wgpu.TextureUsage.COPY_SRC)
         cam = app.camera
+        # the window's targets as they are RIGHT NOW (its quality governor may have re-created them since the last frame)
+        self._win = (app._targets, app._target_size, getattr(app, "_depth_view", None), getattr(app, "_msaa_view", None),
+                     getattr(self, "_cam_wh", (cam.width, cam.height)), app.render_scale)
         # install the exporter's own scene targets (created on the first frame by render_scene itself)
         if self._targets is None:
             app._targets, app._target_size = None, (0, 0)
@@ -360,11 +364,13 @@ class ExportJob:
 
     def _put_back_window_targets(self):
         app = self.app
-        s = self._saved
-        if s is None:
+        w = getattr(self, "_win", None)
+        if w is None:
             return
-        app._targets, app._target_size, app._depth_view, app._msaa_view = s["targets"]
-        app.camera.width, app.camera.height = s["cam_wh"]
+        app._targets, app._target_size, app._depth_view, app._msaa_view = w[:4]
+        app.camera.width, app.camera.height = w[4]
+        app.render_scale = w[5]
+        self._win = None                              # consumed: a later call must never restore stale targets
 
     # ------------------------------------------------------------------ stamps
     def _stamp_info(self, st: tc.ShotState) -> dict:
@@ -416,7 +422,7 @@ class ExportJob:
             pass
         try:
             from .gpu.context import tex_bytes
-            pw, ph = s["targets"][1]
+            pw, ph = app._target_size
             if pw:
                 nb = tex_bytes(pw, ph, 1, 4) * app.sample_count * (2 if app.sample_count > 1 else 1)
                 app.ctx.track("render targets", nb)

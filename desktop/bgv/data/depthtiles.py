@@ -303,6 +303,7 @@ class SeriesCache:
         self._pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="bgv-depth")
         self._done: dict = {}
         self._pending: dict = {}                 # key -> (source, lng, lat, radius)
+        self._inflight: set = set()              # keys of the batch being read now
         self._queued = False
         self._lock = threading.Lock()
 
@@ -311,7 +312,8 @@ class SeriesCache:
         with self._lock:
             if key in self._done:
                 return self._done[key]
-            self._pending.setdefault(key, (source, lng, lat, radius_m))
+            if key not in self._inflight:
+                self._pending.setdefault(key, (source, lng, lat, radius_m))
             if not self._queued:
                 self._queued = True
                 self._pool.submit(self._drain)
@@ -324,6 +326,7 @@ class SeriesCache:
                     self._queued = False
                     return
                 batch = dict(self._pending)
+                self._inflight.update(batch)
                 self._pending.clear()
             groups: dict = {}
             for key, (src, lng, lat, r) in batch.items():
@@ -336,6 +339,7 @@ class SeriesCache:
                 with self._lock:
                     for (key, _, _), v in zip(items, res):
                         self._done[key] = np.asarray(v, np.float64)
+                        self._inflight.discard(key)
                     while len(self._done) > 4096:
                         self._done.pop(next(iter(self._done)))
 
