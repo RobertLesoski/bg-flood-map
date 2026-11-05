@@ -118,6 +118,22 @@ fn hash11(x: u32) -> f32 {
   var alb = select(vec3<f32>(0.80, 0.79, 0.77), vec3<f32>(0.60, 0.58, 0.56), roof);
   alb *= 0.90 + 0.18 * hv;
   alb += (vec3<f32>(hv, 1.0 - hv, 0.5) - vec3<f32>(0.5)) * 0.025;
+  // facade: a regular grid of windows (3.2 m floors, 3 m bays) on walls close enough to resolve them; they fade out with distance
+  // (when a window is under ~4 px) so nothing shimmers.  Flooded tier tint is applied later and covers them partially.
+  if (!roof) {
+    let ps = dist * 0.83 / max(frame.view.y, 1.0);                   // ground metres per pixel
+    let vis = 1.0 - smoothstep(0.22, 0.45, ps);
+    if (vis > 0.01 && in.zl > 1.1) {
+      let along = dot(in.wpos.xy, vec2<f32>(-N.y, N.x));
+      let cu = fract(along / 3.0 + hv * 0.37) - 0.5;
+      let cv = fract((in.zl - 1.1) / 3.2) - 0.5;
+      let aa = max(ps, 0.02) * 0.9;
+      let wx = 1.0 - smoothstep(0.30 - aa / 3.0, 0.30 + aa / 3.0, abs(cu));
+      let wy = 1.0 - smoothstep(0.24 - aa / 3.2, 0.24 + aa / 3.2, abs(cv));
+      let glass = vec3<f32>(0.26, 0.33, 0.42) * (0.8 + 0.4 * hash11(in.bid * 31u + u32(floor(along / 3.0 + hv * 0.37)) + 7u * u32(floor((in.zl - 1.1) / 3.2))));
+      alb = mix(alb, glass, wx * wy * 0.62 * vis);
+    }
+  }
   // fake AO: walls darken toward the ground, roofs stay clean
   let ao = select(mix(0.56, 1.0, smoothstep(0.0, 5.0, in.zl)), 1.0, roof);
   let diff = max(dot(N, L), 0.0);
@@ -511,8 +527,12 @@ class BuildingsLayer(Layer):
         pu[3] = 1 if self.water_line else 0
         p[4:8] = (self.height_scale, ow, self.flood_tint, skirt)
         p[8:12] = (pulse, 1.0 - self.shadow_strength, 0.0, 0.0)
+        pal = getattr(app, "palette", "std")
+        if pal != getattr(self, "_pal", "std"):                    # colour palette changed (View > Colour palette)
+            self._pal, self._tiers_set, self._pkey = pal, False, None
         if not self._tiers_set:
-            for i, c in enumerate(TIER_LINEAR):
+            from ... import palette as palmod
+            for i, c in enumerate(palmod.linear(pal)):
                 p[12 + 4 * i:16 + 4 * i] = (c[0], c[1], c[2], 1.0)
             self._tiers_set = True
         raw = p.tobytes()

@@ -92,6 +92,7 @@ class App:
         self.haze_density = float(dv.get("haze", s.get("haze", domain.default_haze) if domain.key == domainmod.CITY
                                          else domain.default_haze))
         self.anim_time = 0.0
+        self.palette = s.get("palette", "std") if s.get("palette") in ("std", "cvd") else "std"     # tier colours (bgv.palette)
         self.buffering = False
         # ---- timing
         self.frame_ms = deque(maxlen=240)
@@ -395,6 +396,12 @@ class App:
                 pass
         self._stats_hub = None
         self._scene_data = None
+        for old in list((getattr(self, "_grid_storms", None) or {}).values()):
+            try:
+                old.close()
+            except Exception:
+                pass
+        self._grid_storms = {}
         self.stats_hook = None
         self.flood = None
         self.timeline = None
@@ -961,7 +968,7 @@ class App:
         d = dict(self.settings)
         d.update({
             "quality_mode": self.perf.gov.mode, "t": round(self.t, 3), "speed": SPEEDS[self.speed_idx],
-            "sun": [self.sun_az, self.sun_el], "domain": self.domain.key,
+            "sun": [self.sun_az, self.sun_el], "domain": self.domain.key, "palette": self.palette,
             "layers": {l.name: {"enabled": bool(l.enabled), "state": self._safe_state(l)} for l in self.layers},
         })
         if self.domain.key == domainmod.CITY:             # the city keeps its legacy top-level keys
@@ -999,3 +1006,7 @@ class App:
             self.flow.close()
         if self.storm:
             self.storm.close()
+
+
+from .data import depthapi as _depthapi  # noqa: E402  (installs app.depth_at / building_depth / depth_profile / tile_info / tiles)
+_depthapi.install(App)

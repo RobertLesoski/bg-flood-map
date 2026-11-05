@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 from imgui_bundle import imgui
 
-from . import atrisk, bridge, theme, units
+from . import atrisk, bridge, theme, tilepanel, units
 from .theme import col32
 from .widgets import bold, chip_toggle, dim, font_text, sparkline_depth, text_c
 
@@ -71,7 +71,10 @@ def draw_selected(ui):
         dim(f"as of hour {int(fl['hour'])}" if fl else "")
         imgui.spacing()
         # key numbers
-        _kv("Water depth", units.depth_text(depth, tier=tier, approx=approx))
+        has_tiles = tilepanel.tiles_active(ui)
+        _kv("Grid depth" if has_tiles else "Water depth", units.depth_text(depth, tier=tier, approx=approx))
+        if has_tiles:
+            tilepanel.building_rows(ui, bid)
         if speed > 0.01:
             _kv("Flow speed", units.speed_text(speed))
         if bs is not None and bool(bs.flooded[bid]):

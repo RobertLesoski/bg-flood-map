@@ -28,9 +28,12 @@ class ProbeResult:
     bearing: float
     valid: bool
     key: tuple = ()
+    tile_peak: object = None          # data.tiles.DepthSample at the cursor (peak of the run) or None when no tiles for this storm
+    tile_hour: object = None          # ... and at the nearest hour file
 
 
-def sample_probe(storm, t: float, x: float, y: float, sampler=None, key: tuple = ()) -> ProbeResult:
+def sample_probe(storm, t: float, x: float, y: float, sampler=None, key: tuple = (), tiles=None) -> ProbeResult:
+    """tiles: (TileService, GridFrame) -> also read the native solver tiles under the cursor (peak + nearest hour)."""
     s = storm.sample_t(t, x, y)
     u, v = float(s["u"]), float(s["v"])
     sp = float(s["speed"])
@@ -38,7 +41,17 @@ def sample_probe(storm, t: float, x: float, y: float, sampler=None, key: tuple =
     d = float(s["depth"])
     if d < 0.02:                          # below the data's wet threshold: report dry, no phantom velocity
         d, u, v, sp = 0.0, 0.0, 0.0, 0.0
-    return ProbeResult(x, y, float(t), storm.name, g, d, u, v, sp, bearing_deg(u, v), bool(s["valid"]), key)
+    pr = ProbeResult(x, y, float(t), storm.name, g, d, u, v, sp, bearing_deg(u, v), bool(s["valid"]), key)
+    if tiles is not None:
+        svc, frame = tiles
+        try:
+            if svc.tileset(storm.name) is not None:
+                lng, lat = frame.world_to_lnglat(x, y)
+                pr.tile_peak = svc.depth_lnglat(storm.name, lng, lat, "peak")
+                pr.tile_hour = svc.depth_lnglat(storm.name, lng, lat, int(round(float(t))))
+        except Exception:                                  # tiles are an extra: never break the probe
+            pr.tile_peak = pr.tile_hour = None
+    return pr
 
 
 class ProbeWorker:
@@ -52,9 +65,9 @@ class ProbeWorker:
         self._th = threading.Thread(target=self._run, name="bgv-probe", daemon=True)
         self._th.start()
 
-    def request(self, storm, t: float, x: float, y: float, sampler=None, key: tuple = ()):
+    def request(self, storm, t: float, x: float, y: float, sampler=None, key: tuple = (), tiles=None):
         with self._cv:
-            self._req = (storm, float(t), float(x), float(y), sampler, key)
+            self._req = (storm, float(t), float(x), float(y), sampler, key, tiles)
             self._cv.notify()
 
     def _run(self):
@@ -67,7 +80,7 @@ class ProbeWorker:
                 req, self._req = self._req, None
                 self.busy = True
             try:
-                self.latest = sample_probe(*req[:5], key=req[5])
+                self.latest = sample_probe(*req[:5], key=req[5], tiles=req[6])
                 self.error = None
             except Exception as e:                       # never kill the worker
                 self.error = f"{type(e).__name__}: {e}"

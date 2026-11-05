@@ -6,7 +6,7 @@ import os
 import numpy as np
 from imgui_bundle import imgui
 
-from . import bridge, theme, units
+from . import bridge, registry, theme, units
 from .cameranav import PRESETS
 from .state import PRESETS as QUALITY_PRESETS
 from .theme import col32
@@ -42,6 +42,18 @@ def domain_items(app):
     return out
 
 
+def ext_items(ui, menu: str):
+    """Items other modules registered for `menu` (bgv.ui.registry.register_menu_item)."""
+    items = registry.menu_items(menu)
+    if items:
+        imgui.separator()
+    for it in items:
+        on = bool(registry.call(ui, it.checked, default=False, what=f"menu.{it.label}")) if it.checked else False
+        en = bool(registry.call(ui, it.enabled, default=True, what=f"menu.{it.label}")) if it.enabled else True
+        if imgui.menu_item(it.label, it.shortcut, on, en)[0]:
+            registry.call(ui, it.action, what=f"menu.{it.label}")
+
+
 def _toggle(label: str, shortcut: str, value: bool):
     ch, v = imgui.menu_item(label, shortcut, bool(value))
     return v if ch else value
@@ -69,6 +81,7 @@ def draw(ui):
                     _open_folder(ui, "shots")
                 if imgui.menu_item("Open exports folder", "", False)[0]:
                     _open_folder(ui, "exports")
+                ext_items(ui, "File")
                 imgui.separator()
                 if imgui.menu_item("Exit", "", False)[0]:
                     try:
@@ -88,6 +101,18 @@ def draw(ui):
                 st.show_perf = _toggle("Performance overlay", "F3", st.show_perf)
                 imgui.separator()
                 st.imperial = _toggle("Imperial units on scale bar / legend", "", st.imperial)
+                st.use_tiles = _toggle("Solver depth tiles (probe, building card)", "", st.use_tiles)
+                if imgui.begin_menu("Interface theme"):
+                    for key, lab in (("dark", "Dark"), ("light", "Light")):
+                        if imgui.menu_item(lab, "", st.theme_mode == key)[0]:
+                            st.theme_mode = key
+                    imgui.end_menu()
+                if imgui.begin_menu("Colour palette"):
+                    from .. import palette as palmod
+                    for key, lab in palmod.LABELS.items():
+                        if imgui.menu_item(lab, "", app.palette == key)[0]:
+                            app.palette = key
+                    imgui.end_menu()
                 if imgui.begin_menu("Interface size"):
                     for pct in (80, 90, 100, 110, 125, 150, 175):
                         if imgui.menu_item(f"{pct}%", "", abs(st.ui_scale * 100 - pct) < 1)[0]:
@@ -98,6 +123,7 @@ def draw(ui):
                     st.hidden = True
                 if imgui.menu_item("Fullscreen", "F11", st.fullscreen)[0]:
                     ui.toggle_fullscreen()
+                ext_items(ui, "View")
                 imgui.end_menu()
             if imgui.begin_menu("Domain"):
                 for info, cur, enabled in domain_items(app):
@@ -112,6 +138,7 @@ def draw(ui):
                 if ch:
                     app.settings["domain_chooser"] = bool(ask2)
                 imgui.text_disabled("Terrain, buildings, roads and statistics are rebuilt")
+                ext_items(ui, "Domain")
                 imgui.end_menu()
             if imgui.begin_menu("Camera"):
                 for name in app.domain.presets:
@@ -125,6 +152,15 @@ def draw(ui):
                 sel = bridge.selection(app).get("building")
                 if imgui.menu_item("Fly to selected building", "F", False, sel is not None)[0]:
                     bridge.fly_to_building(app, int(sel))
+                ext_items(ui, "Camera")
+                imgui.end_menu()
+            if registry.menu_items("Tools") and imgui.begin_menu("Tools"):
+                first = True
+                for it in registry.menu_items("Tools"):
+                    on = bool(registry.call(ui, it.checked, default=False, what=f"menu.{it.label}")) if it.checked else False
+                    en = bool(registry.call(ui, it.enabled, default=True, what=f"menu.{it.label}")) if it.enabled else True
+                    if imgui.menu_item(it.label, it.shortcut, on, en)[0]:
+                        registry.call(ui, it.action, what=f"menu.{it.label}")
                 imgui.end_menu()
             if imgui.begin_menu("Help"):
                 if imgui.menu_item("Controls and shortcuts", "F1", False)[0]:
@@ -133,6 +169,7 @@ def draw(ui):
                     ui.show_about = True
                 if imgui.menu_item("Data source details", "", False)[0]:
                     ui.show_source = True
+                ext_items(ui, "Help")
                 imgui.end_menu()
             x_menu_end = imgui.get_cursor_screen_pos().x
             _status(ui, bar_h, x_menu_end)

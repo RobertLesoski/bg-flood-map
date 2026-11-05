@@ -10,6 +10,8 @@ LAYERS = [
     "bgv.gpu.layers.roads:RoadsLayer",            # draped roads coloured by flooding           (later agent)
     "bgv.gpu.layers.buildings:BuildingsLayer",    # extruded buildings, tier colours             (later agent)
     "bgv.gpu.layers.terrain:WaterLayer",          # water surface, depth ramp, ripples, foam
+    # NOT REGISTERED (experimental, unfinished): "bgv.gpu.layers.tiledepth:TileDepthLayer" - solver depth draped on the terrain. Registering it
+    # currently trips an imgui ID-stack assert in the sidebar (root cause not found) and it hitches while the window is re-read; see docs/TILES.md.
     "bgv.gpu.layers.buildings:SelectionOverlay",  # selected-building highlight, drawn after the water (visible when submerged)
     "bgv.gpu.layers.flowpaths:FlowpathsLayer",    # flow-paths colour map on the terrain (off by default)
     "bgv.gpu.layers.particles:ParticlesLayer",    # GPU flow streaks                             (later agent)

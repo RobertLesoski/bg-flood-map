@@ -38,9 +38,10 @@ def _wgsl_col_arr(name, hexes):
             + ", ".join(f"vec3<f32>({c[0]:.5f}, {c[1]:.5f}, {c[2]:.5f})" for c in cols) + ");\n")
 
 
-ROADS_WGSL = COMMON_WGSL + _wgsl_arr("ROAD_W", ROAD_WIDTH_M) + _wgsl_col_arr("ASPHALT", ASPHALT_HEX) + _wgsl_col_arr("TIERC", ("#4dabf7", "#00c9c9", "#ff8c00", "#e74c3c")) + """
+ROADS_WGSL = COMMON_WGSL + _wgsl_arr("ROAD_W", ROAD_WIDTH_M) + _wgsl_col_arr("ASPHALT", ASPHALT_HEX) + """
 struct RParams {
   opt: vec4<f32>,       // x flood colour strength, y centre line, z lift scale, w unused
+  tier: array<vec4<f32>, 4>,   // linear tier colours (palette)
 };
 @group(1) @binding(0) var<uniform> R: RParams;
 
@@ -117,8 +118,8 @@ struct ROut {
   let fk = smoothstep(0.085, 0.115, d) * smoothstep(0.2, 0.9, fl.valid) * R.opt.x;
   if (fk > 0.0) {
     // flood-level tier colour, the same palette and thresholds as the buildings (0.1 / 0.3 / 0.6 / 1.2 m)
-    var fc = TIERC[0];
-    if (d >= 1.2) { fc = TIERC[3]; } else if (d >= 0.6) { fc = TIERC[2]; } else if (d >= 0.3) { fc = TIERC[1]; }
+    var fc = R.tier[0].xyz;
+    if (d >= 1.2) { fc = R.tier[3].xyz; } else if (d >= 0.6) { fc = R.tier[2].xyz; } else if (d >= 0.3) { fc = R.tier[1].xyz; }
     let lum = dot(light, vec3<f32>(0.3333));
     let major = select(1.0, 1.35, ci <= 6u);                       // motorway .. tertiary: brighter, with a pale kerb line
     col = mix(col, fc * (0.62 + 0.75 * lum) * major, fk * 0.95);
@@ -151,7 +152,7 @@ class RoadsLayer(Layer):
         self.tiles_visible = 0
         self.tris_drawn = 0
         self.cull_ms = 0.0
-        self._p = np.zeros(4, np.float32)
+        self._p = np.zeros(20, np.float32)
 
     def init(self, app):
         dev = app.ctx.device
@@ -174,10 +175,10 @@ class RoadsLayer(Layer):
                            "depth_bias": 2, "depth_bias_slope_scale": 1.0},
             multisample={"count": app.sample_count},
             fragment={"module": mod, "entry_point": "fs_road", "targets": [{"format": app.colour_format}]})
-        self.params_buf = dev.create_buffer(label="road-params", size=16,
+        self.params_buf = dev.create_buffer(label="road-params", size=80,
                                             usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST)
         self.bind_group = dev.create_bind_group(label="road-bg", layout=self.bgl, entries=[
-            {"binding": 0, "resource": {"buffer": self.params_buf, "offset": 0, "size": 16}}])
+            {"binding": 0, "resource": {"buffer": self.params_buf, "offset": 0, "size": 80}}])
         if not hasattr(app, "ready_waiters"):
             app.ready_waiters = {}
         app.ready_waiters[self.name] = lambda timeout: self._wait_ready(app, timeout)
@@ -244,7 +245,10 @@ class RoadsLayer(Layer):
         self.tiles_visible = self._culler.visible_count
         self.tris_drawn = sum(c for _, c in self._draws) // 3
         self.cull_ms = (time.perf_counter() - t0) * 1000.0
-        self._p[:] = (self.flood_colour if self.at_risk else 0.0, 1.0 if self.centre_line else 0.0, 1.0, 0.0)
+        self._p[:4] = (self.flood_colour if self.at_risk else 0.0, 1.0 if self.centre_line else 0.0, 1.0, 0.0)
+        from ... import palette as palmod
+        for i, c in enumerate(palmod.linear(getattr(app, "palette", "std"))):
+            self._p[4 + 4 * i:8 + 4 * i] = (c[0], c[1], c[2], 1.0)
         raw = self._p.tobytes()
         if raw != self._last_p:
             self._last_p = raw

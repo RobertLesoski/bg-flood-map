@@ -6,7 +6,7 @@ import math
 import numpy as np
 from imgui_bundle import imgui
 
-from . import bridge, theme, units
+from . import bridge, registry, theme, tilepanel, units
 from .menus import source_info
 from .theme import col32
 from .widgets import bold, chip_toggle, dim, font_text, hbar, icon_button, pill, pill_size, section, text_c
@@ -64,7 +64,9 @@ def draw_sidebar(ui):
         _sec_water(ui)
         _sec_quality(ui)
         _sec_stats(ui)
+        _sec_tiles(ui)
         _sec_info(ui)
+        _sec_extensions(ui)
         for name, msg in list(ui.panel_errors.items()):
             text_c(theme.ERR, f"{name}: {msg[:70]}")
         for msg in list(app.errors)[-2:]:
@@ -73,6 +75,16 @@ def draw_sidebar(ui):
             imgui.pop_text_wrap_pos()
     finally:
         ui.end_panel()
+
+
+def _sec_extensions(ui):
+    """Sidebar sections registered by other modules (bgv.ui.registry.register_sidebar_section)."""
+    for sec in list(registry.SECTIONS):
+        ui.st.sections.setdefault(sec.key, sec.default_open)
+        if _open(ui, sec.key, sec.title):
+            imgui.spacing()
+            registry.call(ui, sec.draw, what=f"section.{sec.key}")
+            imgui.spacing()
 
 
 def _header(ui):
@@ -402,6 +414,37 @@ def _kv(k: str, v: str):
     dim(k)
     imgui.same_line(imgui.get_font_size() * 7.0)        # scales with the interface size
     imgui.text(v)
+
+
+def _sec_tiles(ui):
+    """Native solver depth tiles: switch, what serves this storm, and the tile-vs-grid flooded-building comparison."""
+    app, st = ui.app, ui.st
+    if not _open(ui, "tiles", "Solver depth tiles"):
+        return
+    imgui.spacing()
+    ch, v = imgui.checkbox("Read solver depth tiles", bool(st.use_tiles))
+    if ch:
+        st.use_tiles = bool(v)
+    if imgui.is_item_hovered():
+        imgui.set_tooltip("The cursor probe and the building card also show the solver's own depth (6.25 m tiles, centimetres).\n"
+                          "The flow-grid numbers are unchanged.")
+    if st.use_tiles:
+        imgui.push_text_wrap_pos(0.0)
+        try:
+            info = app.tile_info()
+            svc = app.tiles
+            if info is not None:
+                dim(f"{info.label}: {info.text}", wrap=True)
+            else:
+                dim(svc.reason or f"No solver tiles for {app.storm.name} (looked in {svc.base}); depths come from the flow grid.",
+                    wrap=True)
+        except Exception as e:
+            dim(f"tiles: {e}", wrap=True)
+        imgui.pop_text_wrap_pos()
+        fl = bridge.flood(app)
+        if fl is not None and fl.get("ready"):
+            tilepanel.stats_compare(ui, fl)
+    imgui.spacing()
 
 
 # ------------------------------------------------------------------------------------------------ info

@@ -45,8 +45,47 @@ OK = hexrgb("#4cd08a")
 WARN = hexrgb("#ffb347")
 ERR = hexrgb("#ff6b5e")
 
+_DARK = dict(BG0="#07070f", BG1="#0d0d1a", BG2="#13132a", BG3="#1a1a3a", BORDER="#262648", ACCENT="#4dabf7", ACCENT2="#74c0fc",
+             TEXT="#d6d9ea", TEXT_DIM="#8e93ad", TEXT_MUTE="#5f6480", OK="#4cd08a", WARN="#ffb347", ERR="#ff6b5e")
+_LIGHT = dict(BG0="#eef1f8", BG1="#f6f8fc", BG2="#e7ebf4", BG3="#d9dfee", BORDER="#bfc7dc", ACCENT="#1c6fc4", ACCENT2="#1a62ad",
+              TEXT="#1b2033", TEXT_DIM="#4f5774", TEXT_MUTE="#7b839f", OK="#1f8a53", WARN="#b36b00", ERR="#c7352a")
+MODE = "dark"
+LIGHT_ON = False                         # panels that draw their own translucent chips read this (light: dark ink, white chips)
+
+
+def set_mode(mode: str) -> None:
+    """Switch the interface colours between the 'dark' (default) and 'light' theme (module constants; call apply_colours after)."""
+    global MODE, LIGHT_ON, BG0, BG1, BG2, BG3, BORDER, ACCENT, ACCENT2, TEXT, TEXT_DIM, TEXT_MUTE, OK, WARN, ERR
+    mode = "light" if mode == "light" else "dark"
+    d = _LIGHT if mode == "light" else _DARK
+    MODE, LIGHT_ON = mode, mode == "light"
+    BG0, BG1, BG2, BG3 = (hexrgb(d[k]) for k in ("BG0", "BG1", "BG2", "BG3"))
+    BORDER, ACCENT, ACCENT2 = hexrgb(d["BORDER"]), hexrgb(d["ACCENT"]), hexrgb(d["ACCENT2"])
+    TEXT, TEXT_DIM, TEXT_MUTE = hexrgb(d["TEXT"]), hexrgb(d["TEXT_DIM"]), hexrgb(d["TEXT_MUTE"])
+    OK, WARN, ERR = hexrgb(d["OK"]), hexrgb(d["WARN"]), hexrgb(d["ERR"])
+    try:                                                      # cached ImVec4 copies in the widget modules
+        from . import widgets, panels_risk
+        widgets._DIM = None
+        panels_risk._DIM4 = None
+    except Exception:
+        pass
+
+
 TIER_RGB = (hexrgb("#4dabf7"), hexrgb("#00c9c9"), hexrgb("#ff8c00"), hexrgb("#e74c3c"))   # shallow..severe (web viewer)
 TIER_NAMES = ("Shallow", "Moderate", "Deep", "Severe")
+
+
+PALETTE_KEY = "std"
+
+
+def set_palette(key: str) -> None:
+    """Switch the tier colours of every interface element (legend, chips, lists, chart) - bgv.palette."""
+    global TIER_RGB, PALETTE_KEY
+    from .. import palette
+    if key not in palette.PALETTES:
+        key = palette.DEFAULT
+    PALETTE_KEY = key
+    TIER_RGB = tuple(hexrgb(h) for h in palette.hexes(key))
 
 
 def tier_color(tier: int, a: float = 1.0) -> tuple:
@@ -202,6 +241,12 @@ def setup(imgui, scale: float = 1.0) -> None:
     st.window_title_align = (0.0, 0.5)
     st.separator_text_border_size = 1.0
     set_scale(imgui, scale)
+    apply_colours(imgui)
+
+
+def apply_colours(imgui) -> None:
+    """(Re)apply the imgui style colours from the current theme constants (setup() and a theme switch)."""
+    st = imgui.get_style()
     V = imgui.ImVec4
     C = imgui.Col_
     cols = {
@@ -224,7 +269,7 @@ def setup(imgui, scale: float = 1.0) -> None:
         C.tab: with_alpha(BG2, 1.0), C.tab_hovered: with_alpha(ACCENT, 0.6), C.tab_selected: with_alpha(mix(BG3, ACCENT, 0.4), 1.0),
         C.plot_lines: ACCENT, C.plot_histogram: ACCENT,
         C.table_header_bg: with_alpha(BG2, 1.0), C.table_border_strong: with_alpha(BORDER, 1.0),
-        C.table_border_light: with_alpha(BORDER, 0.5), C.table_row_bg: (0, 0, 0, 0), C.table_row_bg_alt: (1, 1, 1, 0.025),
+        C.table_border_light: with_alpha(BORDER, 0.5), C.table_row_bg: (0, 0, 0, 0), C.table_row_bg_alt: ((0, 0, 0, 0.035) if LIGHT_ON else (1, 1, 1, 0.025)),
         C.text_selected_bg: with_alpha(ACCENT, 0.35), C.nav_cursor: ACCENT,
     }
     for col, rgba in cols.items():

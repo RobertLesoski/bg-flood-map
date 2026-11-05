@@ -23,8 +23,9 @@ from dataclasses import dataclass
 
 from imgui_bundle import imgui
 
-from . import bridge, theme, units
+from . import bridge, registry, theme, units
 from .atrisk import AddressIndex, AtRiskFilter, filter_ids
+from . import tilepanel
 from .cameranav import CameraNav
 from .probe import ProbeWorker
 from .state import UiState
@@ -137,6 +138,37 @@ class UiManager:
         self.frame_ct = 0
         self._prev_sel = None
         self._applied_scale = None
+        self.tool = None                  # the active registry.Tool (one at a time), else None
+
+    # ------------------------------------------------------------------------------------------ tools / extensions
+    def activate_tool(self, name: str | None):
+        """Make the registered tool `name` the active one (None deactivates the current tool)."""
+        cur = self.tool
+        if cur is not None and (name is None or cur.name != name):
+            cur.active = False
+            registry.call(self, cur.on_deactivate, what=f"{cur.name}.on_deactivate")
+            self.tool = None
+        if name is not None and name in registry.TOOLS and (self.tool is None):
+            t = registry.TOOLS[name]
+            t.active = True
+            self.tool = t
+            registry.call(self, t.on_activate, what=f"{t.name}.on_activate")
+
+    def toggle_tool(self, name: str):
+        self.activate_tool(None if (self.tool is not None and self.tool.name == name) else name)
+
+    def _ext_key(self, k: str, kl: str, mods) -> bool:
+        t = self.tool
+        if t is not None:
+            if registry.call(self, t.on_key, k, tuple(mods), default=False, what=f"{t.name}.on_key"):
+                return True
+        if set(mods) & {"Control", "Alt", "Meta"}:
+            return False
+        for h in registry.HOTKEYS:
+            if h.key in (k, kl) and set(h.mods) == set(mods):
+                registry.call(self, h.fn, what=f"hotkey.{h.key}")
+                return True
+        return False
 
     # ------------------------------------------------------------------------------------------ helpers
     def px(self, v: float) -> float:
@@ -237,6 +269,9 @@ class UiManager:
                 return True
             return False
         if k == "Escape":
+            if self.tool is not None:
+                self.activate_tool(None)
+                return True
             if self.show_about or self.show_help:
                 self.show_about = self.show_help = False
                 return True
@@ -263,7 +298,7 @@ class UiManager:
         if k == "Home":
             self.fly_preset("Overview")
             return True
-        return False
+        return self._ext_key(k, kl, mods)
 
     def over_ui(self, x: float, y: float) -> bool:
         """Pointer (logical px) outside the 3D view rectangle of the last drawn frame -> it is over the interface."""
@@ -376,6 +411,11 @@ class UiManager:
             self._first = False
             bridge.ensure_hub(app)
             self._init_once()
+        if theme.MODE != st.theme_mode:
+            theme.set_mode(st.theme_mode)
+            theme.apply_colours(imgui)
+        if theme.PALETTE_KEY != app.palette:
+            theme.set_palette(app.palette)
         if self._applied_scale != st.ui_scale:
             theme.set_scale(imgui, st.ui_scale)
             self._applied_scale = st.ui_scale
@@ -394,6 +434,7 @@ class UiManager:
             self._finish_frame()
             return
         self.safe("menus", menus.draw)
+        self.safe("tiles", tilepanel.tick)
         right_visible = bool(self.atrisk_shown() or (st.show_selected and bridge.selection(app).get("building") is not None))
         self.L = compute_layout(W, H, st, self.top_h, self.s, right_visible)
         self.safe("sidebar", panels_side.draw_sidebar) if st.show_sidebar else None
@@ -409,8 +450,17 @@ class UiManager:
         self.safe("perf", panels_overlay.draw_perf)
         self.safe("probe", panels_overlay.draw_probe)
         self.safe("dialogs", dialogs.draw)
+        self._draw_extensions()
         self.toasts.draw((self.L.sx0 + self.L.sx1) * 0.5, self.L.sy1 - 14.0 * self.s)
         self._finish_frame()
+
+    def _draw_extensions(self):
+        t = self.tool
+        if t is not None:
+            self.safe("tool." + t.name, lambda ui: t.draw_overlay(ui))
+        for p in list(registry.PANELS):
+            if p.when is None or registry.call(self, p.when, default=False, what=f"{p.name}.when"):
+                self.safe("ext." + p.name, p.draw)
 
     def _finish_frame(self):
         sel = bridge.selection(self.app).get("building")
@@ -420,6 +470,7 @@ class UiManager:
 
     def _init_once(self):
         from . import panels_side, windowing
+        registry.load_extensions(lambda m: self.toasts.push(m[:120], theme.WARN, 6.0))
         try:
             self.app.quality = panels_side.APP_QUALITY.get(self.st.quality_preset, getattr(self.app, "quality", None))
         except Exception:
@@ -467,6 +518,8 @@ class UiManager:
         moved = self.mouse is None or abs(mp.x - self.mouse[0]) + abs(mp.y - self.mouse[1]) > 0.5
         now = time.perf_counter()
         self.mouse = (float(mp.x), float(mp.y))
+        if moved and self.tool is not None:
+            registry.call(self, self.tool.on_move, mp.x, mp.y, self.ground_pick, what=f"{self.tool.name}.on_move")
         if moved:
             self._ground_pending = True
             self._pick_pending = now
@@ -483,7 +536,7 @@ class UiManager:
                 if key != self._probe_key:
                     self._probe_key = key
                     self._probe_t = app.t
-                    self.probe_worker.request(app.storm, app.t, pk[0], pk[1], app.terrain.sampler, key)
+                    self.probe_worker.request(app.storm, app.t, pk[0], pk[1], app.terrain.sampler, key, self._tiles_arg())
         # building under the cursor: debounced (the ray march costs a few ms), so a moving mouse stays cheap
         pend = self._pick_pending
         if pend is not None and now - pend > 0.06 and now - self._pick_t > 0.10:
@@ -491,11 +544,27 @@ class UiManager:
             self._pick_t = now
             self._set_hover(bridge.hover_building(app, mp.x, mp.y))
 
+    def _tiles_arg(self):
+        """(TileService, GridFrame) for the probe when the native tiles are switched on, else None."""
+        try:
+            if not self.st.use_tiles:
+                return None
+            from ..data import depthapi
+            svc = depthapi.service(self.app)
+            return (svc, self.app.terrain.frame) if svc.enabled else None
+        except Exception:
+            return None
+
     def _set_hover(self, bid):
         self.hover_building = bid
         bridge.selection(self.app)["hover_building"] = bid
 
     def _click(self, x: float, y: float):
+        t = self.tool
+        if t is not None:
+            pick = self.app.camera.pick(x, y)
+            if registry.call(self, t.on_click, x, y, pick, default=False, what=f"{t.name}.on_click"):
+                return
         bridge.click_select(self.app, x, y)
         if bridge.selection(self.app).get("building") is not None:
             self.scroll_to_selected = True

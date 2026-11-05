@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-SECTIONS = ("time", "layers", "water", "quality", "stats", "info")
+SECTIONS = ("time", "layers", "water", "quality", "stats", "tiles", "info")
 TIMELINE_MODES = ("flooded", "wet_area", "both")
 PRESETS = ("Low", "Medium", "High", "Ultra")
 
 # defaults: which sidebar sections start open
-_SECTION_DEFAULT_OPEN = {"time": True, "layers": True, "water": False, "quality": False, "stats": True, "info": True}
+_SECTION_DEFAULT_OPEN = {"time": True, "layers": True, "water": False, "quality": False, "stats": True, "tiles": True, "info": True}
 
 
 def _clamp(v, lo, hi, default):
@@ -51,6 +51,10 @@ class UiState:
     risk_tiers: list = field(default_factory=lambda: [True, True, True, True])
     risk_search: str = ""
     risk_min_depth: float = 0.0
+    theme_mode: str = "dark"               # "dark" | "light" (interface colours)
+    # ---- native solver tiles
+    use_tiles: bool = True                 # probe / building card / statistics comparison read the solver tiles when present
+    tile_stats: bool = False               # statistics: compare tile-derived with grid-derived flooded buildings
     # ---- first-run
     seen_help: bool = False
     # ---- not persisted
@@ -60,7 +64,7 @@ class UiState:
     PERSISTED = ("show_sidebar", "show_timeline", "show_atrisk", "show_selected", "show_legends", "show_compass",
                  "show_scalebar", "show_probe", "show_perf", "show_status", "sections", "ui_scale", "imperial",
                  "timeline_mode", "info_details_open", "legend_open", "quality_preset", "sidebar_w", "right_w",
-                 "timeline_h", "risk_tiers", "risk_search", "risk_min_depth", "seen_help")
+                 "timeline_h", "risk_tiers", "risk_search", "risk_min_depth", "seen_help", "use_tiles", "tile_stats", "theme_mode")
 
     # ------------------------------------------------------------------------------------------
     def to_dict(self) -> dict:
@@ -76,7 +80,7 @@ class UiState:
             return self
         for k in ("show_sidebar", "show_timeline", "show_atrisk", "show_selected", "show_legends", "show_compass",
                   "show_scalebar", "show_probe", "show_perf", "show_status", "imperial", "info_details_open",
-                  "legend_open", "seen_help"):
+                  "legend_open", "seen_help", "use_tiles", "tile_stats"):
             if k in d:
                 setattr(self, k, bool(d[k]))
         if isinstance(d.get("sections"), dict):
@@ -91,6 +95,8 @@ class UiState:
             self.timeline_mode = d["timeline_mode"]
         if d.get("quality_preset") in PRESETS or d.get("quality_preset") == "Custom":
             self.quality_preset = d["quality_preset"]
+        if d.get("theme_mode") in ("dark", "light"):
+            self.theme_mode = d["theme_mode"]
         rt = d.get("risk_tiers")
         if isinstance(rt, (list, tuple)) and len(rt) == 4:
             self.risk_tiers = [bool(x) for x in rt]

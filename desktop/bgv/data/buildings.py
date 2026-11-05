@@ -233,8 +233,10 @@ def build_buildings(root, frame: GridFrame, *, progress=None, skirt_m: float = 0
     return b
 
 
-def buildings_from_features(features, frame: GridFrame, *, progress=None, skirt_m: float = 0.0) -> Buildings:
-    """Build from GeoJSON Feature dicts (Polygon / MultiPolygon, lng/lat). Used by build_buildings and the unit tests."""
+def buildings_from_features(features, frame: GridFrame, *, progress=None, skirt_m: float = 0.0, index_only: bool = False):
+    """Build from GeoJSON Feature dicts (Polygon / MultiPolygon, lng/lat). Used by build_buildings and the unit tests.
+    index_only=True stops after the all-touched pixel index and returns just that PixelIndex (any grid frame, e.g. the
+    solver-tile grid: see bgv.data.tiles)."""
     from . import _raster
     t_all = time.perf_counter()
     timings = {}
@@ -326,6 +328,8 @@ def buildings_from_features(features, frame: GridFrame, *, progress=None, skirt_
     index = PixelIndex(offs64.astype(np.int32), pixels, frame.width, frame.height)
     in_grid = np.diff(offs64) > 0
     timings["index_s"] = time.perf_counter() - t0
+    if index_only:
+        return index
 
     # mesh ------------------------------------------------------------------------------------
     t0 = time.perf_counter()

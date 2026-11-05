@@ -184,3 +184,14 @@ slope map 85 MB, so the county uses LESS VRAM than the city (1130 vs 1253 MB inc
 `Prefetch` thread); live layer/UI state is carried; per-domain camera/exag/storm in `settings["domain_views"]`. Start-up chooser: `ui/chooser.py`
 (`DomainChooser`: builds only the remembered domain; clicking the other restarts the build; waits for the countdown only when both domains have data).
 Demo data (`data/demo.py`): meta.json `"synthetic": true` -> DEMO DATA badges, stamped screenshots.
+
+## Solver tiles, palette, theme, extensions (added later)
+- `bgv/data/cog.py` COG reader (shared byte-capped LRU, vectorised sampling), `bgv/data/tiles.py` TileService (tile sets per storm / scope, footprint pixel index on the
+  tile grid built through `buildings_from_features(index_only=True)` and cached, per-building footprint maximum, `DepthSample`), `bgv/data/depthapi.py` (the stable
+  `app.depth_at / building_depth / depth_profile / tile_info / tiles`), `ui/tilepanel.py` (building-card rows, comparison table, start-up tick), `ui/probe.py`
+  (tile read inside the probe worker thread, never on the render thread). Tile values are always shown with `TileSet.label`; tile numbers never replace grid numbers.
+- `bgv/palette.py` tier palettes ("std", "cvd"); `App.palette` drives `ui.theme.set_palette`, the buildings uniform block and the roads uniform block (the road tier
+  colours moved from WGSL constants to the uniform: `R.tier[i]`). `ui.theme.set_mode("dark" | "light")` + `apply_colours`.
+- `bgv/ui/registry.py`: extension registry (see `docs/EXTENSION_API.md`); `ui/ext_*.py` modules are imported once at UI start.
+- Shaders: `COMMON_WGSL` `sky_base` is sun-aware (warm horizon band toward a low sun, Mie-like bloom that also tints `haze`); the water fragment has a calmer shallow
+  specular and a highlight shoulder; building walls have a procedural window grid that fades out under ~4 px per window.

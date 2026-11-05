@@ -418,7 +418,12 @@ fn foam_pattern(wp: vec2<f32>, vel: vec2<f32>, time: f32) -> f32 {
   let nh = max(dot(N, H), 0.0);
   let gloss = 1.0 - smoothstep(0.25, 2.0, ps);
   let spec = pow(nh, mix(60.0, 280.0, gloss)) * mix(0.8, 2.2, gloss) + pow(nh, 30.0) * 0.12 + pow(nh, 8.0) * 0.04;
-  rgb += vec3<f32>(1.0, 0.95, 0.82) * spec * frame.sun.w * smoothstep(0.0, 0.08, ndv);
+  // shallow sheet flow is turbid and rough: much less mirror-like than a river; the glint saturates smoothly (never flat white)
+  let glossy = mix(0.30, 1.0, smoothstep(0.08, 1.2, dd));
+  let spec_t = (1.0 - exp(-spec * 0.55)) * glossy * 1.25;
+  rgb += vec3<f32>(1.0, 0.95, 0.82) * spec_t * frame.sun.w * smoothstep(0.0, 0.08, ndv);
+  // highlight roll-off: a soft shoulder above 0.75 instead of clipping to flat white, so the sun's glare on a river keeps its gradient
+  rgb = select(rgb, 0.75 + 0.30 * (1.0 - exp(-(rgb - vec3<f32>(0.75)) / 0.30)), rgb > vec3<f32>(0.75));
 
   // foam: fast water and the shoreline
   let fp = foam_pattern(in.wpos.xy, fl.vel * 1.3, time);

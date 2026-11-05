@@ -295,8 +295,9 @@ def draw_probe(ui):
              | imgui.WindowFlags_.no_focus_on_appearing | imgui.WindowFlags_.no_nav | imgui.WindowFlags_.no_inputs)
     ox = 20.0 * s
     oy = 22.0 * s
-    flip_x = mx + ox + 270.0 * s > W
-    flip_y = my + oy + 150.0 * s > H
+    wide = 360.0 if (pr is not None and getattr(pr, 'tile_hour', None) is not None) else 270.0
+    flip_x = mx + ox + wide * s > W
+    flip_y = my + oy + (195.0 if wide > 300.0 else 150.0) * s > H
     imgui.set_next_window_pos(V2(mx - ox if flip_x else mx + ox, my - oy if flip_y else my + oy),
                               imgui.Cond_.always, V2(1.0 if flip_x else 0.0, 1.0 if flip_y else 0.0))
     imgui.set_next_window_bg_alpha(0.94)
@@ -325,13 +326,17 @@ def _probe_body(ui, pr, dl):
         dim(f"Ground elevation  {units.elevation_text(ground)}")
         return
     d = pr.depth_m
+    has_tiles = _tile_block(ui, pr, dl)
+    grid_label = "Grid depth  " if has_tiles else "Water depth  "
+    if has_tiles and d < 0.02:
+        dim("Flow-grid depth   dry (below 2 cm)")
     if d >= 0.02:
         p = imgui.get_cursor_screen_pos()
         col = theme.depth_ramp_srgb(d)
         dl.add_rect_filled(V2(p.x, p.y + 2), V2(p.x + 12 * s, p.y + 14 * s), col32(col), 3.0)
         imgui.set_cursor_screen_pos(V2(p.x + 18 * s, p.y))
         approx = app.storm.source == "tiers"
-        bold("Water depth  ", theme.TEXT_DIM)
+        bold(grid_label, theme.TEXT_DIM)
         imgui.same_line()
         if approx and d >= units.SEVERE_EDGE_M:        # open-ended severe tier: only the lower bound is known
             bold(units.depth_text(d, tier=4, approx=True), theme.TEXT)
@@ -378,6 +383,44 @@ def _probe_body(ui, pr, dl):
         dim("click to select")
     if d >= 0.02 and pr.speed_ms >= 0.02:
         dim("velocity derived from surface slope")
+
+
+def _tile_text(smp, imperial: bool = False) -> str:
+    """One value of the solver tiles as text: 'no water' and 'no data' are different things."""
+    if smp is None:
+        return "-"
+    if smp.status == "nodata":
+        return "no data (outside the modelled area)"
+    if smp.status == "unavailable":
+        return smp.note or "not available"
+    if smp.status == "dry":
+        return "no water (0 cm)"
+    return f"{smp.cm:.0f} cm  ({smp.ft:.2f} ft)"
+
+
+def _tile_block(ui, pr, dl) -> bool:
+    """Solver depth under the cursor from the native tiles (peak of the run + nearest hour file).  False when the storm has no
+    tiles or they are switched off (then the tooltip is exactly the old one)."""
+    pk, hr = getattr(pr, "tile_peak", None), getattr(pr, "tile_hour", None)
+    if pk is None and hr is None:
+        return False
+    s = ui.s
+    ref = hr if hr is not None else pk
+    bold("Solver depth  ", theme.TEXT_DIM)
+    imgui.same_line()
+    col = theme.TEXT
+    if hr is not None and hr.status in ("nodata", "unavailable"):
+        col = theme.TEXT_DIM
+    bold(_tile_text(hr), col)
+    dim(f"hour {hr.hour}" if hr is not None and hr.hour is not None else "hour")
+    imgui.same_line(84.0 * s)
+    if pk is not None and pk.status in ("depth", "dry"):
+        imgui.text("peak " + _tile_text(pk))
+    else:
+        dim("peak " + _tile_text(pk))
+    dim(ref.label + (f", {ref.scope} run" if ref.scope == "county" and ui.app.domain.key == "city" else ""))
+    imgui.spacing()
+    return True
 
 
 def _arrow(dl, cx, cy, r, d):

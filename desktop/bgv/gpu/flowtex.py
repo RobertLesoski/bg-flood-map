@@ -120,11 +120,22 @@ fn flow_at(uv: vec2<f32>) -> FlowSample {
 fn sun_dir() -> vec3<f32> { return frame.sun.xyz; }
 fn sky_base(dir: vec3<f32>) -> vec3<f32> {
   let h = clamp(dir.z, -0.2, 1.0);
+  let t = clamp(h, 0.0, 1.0);
+  // a low sun deepens the zenith and puts a warm band on the horizon, strongest on the sun's side; at the default sun
+  // (36 deg) `warm` is almost zero and the sky is the plain daytime gradient
+  let warm = 1.0 - smoothstep(0.10, 0.65, clamp(frame.sun.z, 0.0, 1.0));
   let horizon = vec3<f32>(0.80, 0.87, 0.95);
-  let zenith = vec3<f32>(0.26, 0.48, 0.82);
-  var c = mix(horizon, zenith, pow(clamp(h, 0.0, 1.0), 0.55));
+  let zenith = mix(vec3<f32>(0.26, 0.48, 0.82), vec3<f32>(0.17, 0.34, 0.70), warm * 0.8);
+  var c = mix(horizon, zenith, pow(t, 0.55));
+  let sdir = normalize(vec3<f32>(frame.sun.xy, 0.0) + vec3<f32>(1.0e-4, 0.0, 0.0));
+  let hd = normalize(vec3<f32>(dir.xy, 0.0) + vec3<f32>(1.0e-4, 0.0, 0.0));
+  let toward = 0.40 + 0.60 * pow(max(dot(hd, sdir), 0.0), 2.0);
+  let band = exp(-t * 6.5);
+  c = mix(c, vec3<f32>(1.0, 0.72, 0.46), warm * band * toward * 0.85);
   let sd = max(dot(dir, frame.sun.xyz), 0.0);
-  c += vec3<f32>(1.0, 0.92, 0.75) * pow(sd, 10.0) * 0.10 * frame.sun.w;      // soft glow around the sun
+  c += vec3<f32>(1.0, 0.92, 0.75) * pow(sd, 10.0) * 0.07 * frame.sun.w;      // soft glow around the sun
+  // forward scattering (Mie-like): a wide warm bloom along the horizon on the sun's side; also tints the aerial perspective
+  c += vec3<f32>(1.0, 0.80, 0.55) * pow(sd, 3.0) * (1.0 - t) * (1.0 - t) * 0.15 * frame.sun.w;
   return c;
 }
 fn sky_color(dir: vec3<f32>) -> vec3<f32> {

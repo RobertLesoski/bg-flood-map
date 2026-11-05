@@ -86,3 +86,18 @@ resolution).  MSAA is fixed at launch (pipelines are built for it): the adaptive
 county: synced mean 7.9 ms (127 fps), p99 17.7, GPU 4.0 ms, free-running 230 fps, VRAM ~1130 MB. City measured in the same session: 8.7 ms (115 fps),
 p99 19.5, GPU 4.9 ms, 1253 MB (city before this work, noisier machine: 14.0 ms) - city unchanged. First county start: PBF read 50 s once, DEM warp + slope map
 once (cached), then cached. OSM has 24.6k buildings in the county; not stress-tested at 100k.
+
+## Native solver tiles + visual polish (2026-11-05, same method: `--benchmark --seconds 12 --size 1920x1080`, median of 3, other agents were using the PC)
+| | city | county |
+|---|---|---|
+| synced frame mean / p99 / max | 9.62 / 32.3 / 55.7 ms | 9.44 / 27.6 / 55.7 ms |
+| fps synced / free-running | 104 / 176 | 106 / 182 |
+| GPU pass mean | 5.0 ms (was 4.9) | 4.19 ms (was 4.0) |
+| CPU recording, mean | 2.6 ms | 3.4 ms |
+| VRAM estimate | 1253 MB | 1130 MB |
+Unchanged within noise: the sun-aware sky, water shoulder and window facades cost about 0.1 - 0.2 ms GPU; tile reads happen in the probe worker thread, never on a frame
+(a cached tile read is microseconds; the footprint index is built once in a worker and cached). County p99 / max are dominated by interference from other processes
+on the machine (the previous county log had p99 17.7 on a quiet PC): re-measure on a quiet machine before trusting them.
+Experimental solver-depth overlay (`tiledepth` layer, NOT registered in the shipped build - measured with the registry line added by hand, 1024 x 1024-cell clipmap window around the camera target, two textures, worker-thread reads):
+city synced mean 9.73 ms, GPU +0.5 ms (5.49 vs 5.0); county 13.4 ms synced mean (about 75 fps, 174 fps free-running) but p99 46 ms / max 92 ms (earlier runs with a 2048 window:
+p99 50 - 105 ms, max 300 - 620 ms) while the scripted benchmark dives and the window is re-read. It meets 60 fps on average but is not hitch-free: it stays an opt-in experiment.

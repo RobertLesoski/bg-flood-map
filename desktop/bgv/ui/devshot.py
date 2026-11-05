@@ -22,6 +22,7 @@ def main(argv=None) -> int:
     ap.add_argument("--storm", default="25yr")
     ap.add_argument("--hour", type=float, default=12.0)
     ap.add_argument("--camera")
+    ap.add_argument("--at", help="lng,lat of the camera target")
     ap.add_argument("--mouse")
     ap.add_argument("--select")
     ap.add_argument("--show", default="")
@@ -39,6 +40,15 @@ def main(argv=None) -> int:
     ap.add_argument("--no-sidebar", action="store_true")
     ap.add_argument("--no-atrisk", action="store_true")
     ap.add_argument("--imperial", action="store_true")
+    ap.add_argument("--domain", choices=("city", "county"))
+    ap.add_argument("--tile-stats", action="store_true", help="open the tile comparison in the statistics")
+    ap.add_argument("--no-tiles", action="store_true")
+    ap.add_argument("--theme", choices=("dark", "light"), default="dark")
+    ap.add_argument("--palette", choices=("std", "cvd"), default="std")
+    ap.add_argument("--sun")
+    ap.add_argument("--enable", default="", help="comma list of layer names to switch on (e.g. tiledepth)")
+    ap.add_argument("--disable", default="", help="comma list of layer names to switch off (e.g. water)")
+    ap.add_argument("--wait-tiles", action="store_true", help="wait for the footprint index / statistics before drawing")
     args = ap.parse_args(argv)
 
     import numpy as np
@@ -58,12 +68,13 @@ def main(argv=None) -> int:
         msaa = 4
         quiet = True
         exag = None
-        sun = None
+        sun = args.sun
         hour = args.hour
         camera = args.camera
-        at = None
+        at = args.at
         ripple = None
         haze = None
+        domain = args.domain
     app = tools.make_app(A, ctx, fmt)
     app.attach_canvas(canvas, ui=True)
     tools.apply_view_args(app, A)
@@ -80,6 +91,18 @@ def main(argv=None) -> int:
     st.show_sidebar = not args.no_sidebar
     st.show_atrisk = not args.no_atrisk
     st.imperial = args.imperial
+    st.tile_stats = bool(args.tile_stats)
+    st.use_tiles = not args.no_tiles
+    st.theme_mode = args.theme
+    app.palette = args.palette
+    for nm in [x.strip() for x in args.enable.split(",") if x.strip()]:
+        lay = app.get_layer(nm)
+        if lay is not None:
+            lay.enabled = True
+    for nm in [x.strip() for x in args.disable.split(",") if x.strip()]:
+        lay = app.get_layer(nm)
+        if lay is not None:
+            lay.enabled = False
     for k in (args.show or "").split(","):
         k = k.strip()
         if k == "about":
@@ -129,6 +152,28 @@ def main(argv=None) -> int:
             if b is not None and not args.camera:
                 from .cameranav import building_view
                 app.camera.set_view(*building_view(float(b.cx[bid]), float(b.cy[bid]), float(b.height_m[bid]), app.camera))
+    if args.wait_tiles:
+        from ..data import depthapi
+        svc = depthapi.service(app)
+        for _ in range(3):                                   # tick builds the index once the scene is ready
+            canvas.draw()
+        t0 = time.time()
+        while svc.index_state in ("idle", "building") and time.time() - t0 < 300:
+            canvas.draw()
+            time.sleep(0.2)
+        svc.building_depths(app.storm.name, int(round(app.t)), block=True)
+        svc.building_depths(app.storm.name, "peak", block=True)
+        print(f"[devshot] tile index {svc.index_state} {svc.index_msg} in {time.time() - t0:.1f} s")
+    td = app.get_layer("tiledepth")
+    if td is not None and td.enabled:                         # the overlay window is read in a worker and uploaded over several frames
+        t0 = time.time()
+        while (td._key is None or td._up is not None or td._ready is not None) and time.time() - t0 < 90:
+            app._t_last = None
+            canvas.draw()
+            time.sleep(0.05)
+        for _ in range(3):
+            canvas.draw()
+        print(f"[devshot] tile overlay: {td.status}, level {td.level}, {time.time() - t0:.1f} s")
     io = app.imgui_renderer.backend.io
     if args.mouse:
         mx, my = (float(v) for v in args.mouse.split(","))

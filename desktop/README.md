@@ -83,3 +83,19 @@ out and its tooltip says what is missing. Command line: `--domain city|county`, 
 
 `python -m bgv --make-county-demo <folder>` writes SYNTHETIC county terrain + 2 storms (marked DEMO DATA everywhere, screenshots stamped);
 view with `python -m bgv --domain county --county-demo <folder>`. Real data always takes precedence.
+
+## Solver depth tiles (real solver depth, 6.25 m)
+
+When `layers\cog\county\<storm>\` holds the solver's Cloud-Optimized GeoTIFF depth tiles (12 county storms, 25 hourly + peak each), the viewer reads them
+natively (`bgv/data/cog.py`, no GDAL needed) and adds, next to the unchanged flow-grid numbers: the cursor probe's **solver depth** (hour + peak, in cm and ft,
+"no water" is different from "no data"), the selected building's solver depth (highest tile cell under the footprint), and a sidebar section **Solver depth tiles**
+with a comparison of flooded buildings counted by the tiles vs by the flow grid. The city view uses the county run for the same storm (labelled). Until the
+tile verification is recorded the label reads "solver depth (tiles, 6.25 m, verification pending)". Switch: View menu or the sidebar; finer tiles later:
+`settings["cog_folder"]` / env `BGV_COG_FOLDER`. Details, verification numbers and the differences to the flow grid: `docs/TILES.md`.
+
+## Appearance and extension points
+
+View menu: **Interface theme** (dark / light) and **Colour palette** (Standard tiers / Colour-blind safe, the web viewer's cividis ramp: tier colours of buildings,
+roads, legend and lists). Both are remembered. Look: sun-dependent sky and horizon, aerial perspective tinted toward the sun, calmer and less glaring shallow
+floodwater, window facades on close buildings (`docs/shots/polish/`). Other features plug in through `bgv/ui/registry.py` (menu items, panels, tools, hotkeys,
+sidebar sections, one file `bgv/ui/ext_<name>.py` each) and the depth API `app.depth_at / building_depth / depth_profile`: see `docs/EXTENSION_API.md`.

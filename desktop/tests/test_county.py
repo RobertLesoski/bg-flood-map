@@ -574,7 +574,7 @@ def test_real_kentucky_county_extraction_and_alignment_with_the_city_layer():
 
 def test_roads_layer_uses_tier_palette_and_toggle():
     from bgv.gpu.layers import roads
-    assert "TIERC" in roads.ROADS_WGSL and "ci <= 6u" in roads.ROADS_WGSL
+    assert "R.tier[3]" in roads.ROADS_WGSL and "ci <= 6u" in roads.ROADS_WGSL      # tier colours come from the palette uniform
     layer = roads.RoadsLayer()
     assert layer.at_risk and layer.save_state()["at_risk"] is True
     layer.load_state({"at_risk": False})
