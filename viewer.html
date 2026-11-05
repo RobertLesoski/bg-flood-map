@@ -429,6 +429,10 @@
     #addr-card .acts button { flex: 1; min-height: 44px; background: #1f2a37; color: var(--t1); border: 1px solid #33425a; border-radius: 6px; font: inherit; cursor: pointer; }
     @media print { body > *:not(#addr-print) { display: none !important; } #addr-print { display: block !important; color: #000; background: #fff; padding: 20px; font: 14px/1.5 sans-serif; } #addr-print table { border-collapse: collapse; width: 100%; } #addr-print td, #addr-print th { border: 1px solid #888; padding: 4px 8px; text-align: left; } }
     #addr-print { display: none; }
+    #about-storm { margin: 6px 0; font-size: 12px; color: var(--t2); } #about-storm summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; color: var(--t1); }
+    #about-body dt { font-weight: 600; color: var(--t1); margin-top: 6px; } #about-body dd { margin: 0 0 0 0; line-height: 1.45; color: var(--t2); } #about-body ul { margin: 2px 0 0 16px; padding: 0; }
+    .srcl { font-size: 9px; color: var(--t3); text-transform: uppercase; letter-spacing: .03em; }
+    #cog-panel.cog-none .lbl { opacity: .55; }
 
     #nlq-box { margin: 0 0 8px; } #nlq-q { width: 100%; min-height: 44px; background: var(--bg3); color: var(--t1); border: 1px solid #2a4560; border-radius: 8px; padding: 0 12px; font: inherit; font-size: 13px; }
     #nlq-out { font-size: 12px; color: var(--t2); line-height: 1.5; margin-top: 4px; } #nlq-out button { display: block; width: 100%; text-align: left; min-height: 40px; background: none; border: 0; border-bottom: 1px solid #1e1e3a; color: var(--t1); font: inherit; font-size: 12px; cursor: pointer; }
@@ -604,6 +608,7 @@
         <button type="button" id="fx-source-more" aria-expanded="false">details</button>
       </div>
       <div id="fx-source-note" style="display:none"></div>
+      <details id="about-storm"><summary>About this storm (data sources)</summary><div id="about-body" aria-live="polite">Loading…</div></details>
 
       <div id="hpc-stats">
         <div class="hpc-stat"><div class="v" id="hpc-feat-cnt">—</div><div class="k">Features</div></div>
@@ -625,6 +630,16 @@
     <label class="lr"><input type="checkbox" id="rf-cb" aria-label="Colour at-risk roads by flood level" /><div class="sw" style="background:linear-gradient(90deg,var(--tier-shallow),var(--tier-severe));height:5px"></div><span class="lbl">At-risk roads by flood level (max depth, this storm)</span></label>
     <div id="rf-legend" class="leg" hidden></div>
     <button type="button" id="roads-toggle">Flooded roads for this storm</button><div id="roads-list" aria-live="polite"></div>
+
+    <div id="cog-panel">
+      <label class="lr"><input type="checkbox" id="cog-cb" aria-label="Real solver depth raster overlay" /><div class="sw" style="background:linear-gradient(90deg,var(--tier-shallow),var(--tier-severe));height:5px"></div><span class="lbl" id="cog-lbl">Real solver depth (raster, 5 m cells)</span></label>
+      <div id="cog-opts" hidden>
+        <div class="select-row"><span style="white-space:nowrap">Shows</span>
+          <select id="cog-mode" aria-label="Which real-depth raster to draw"><option value="max">Peak depth over the run</option><option value="hour">Depth at the hour on the slider</option></select></div>
+        <div class="opacity-row"><span>Opacity</span><input type="range" id="cog-op" min="0.2" max="1" step="0.05" value="0.8" aria-label="Real-depth overlay opacity" /></div>
+      </div>
+      <div class="leg-note" id="cog-note" hidden></div>
+    </div>
 
     <!-- Fluid controls (Fluid flow mode only) -->
     <details id="fx-panel" class="fx-off">
@@ -1597,6 +1612,7 @@ function initLegends() {
 let scrubUntil = 0, timeTouched = QP.has('hour'), lastUrlTimer = 0, fluidErr = '';
 function fluidTimeUI(t, setSlider = true) {
   fluidTime = t;
+  if (COG.on && COG.mode === 'hour') cogHourSoon();
   const tmax = HPC_HOURS.length, clock = fmtClock(t), hl = `Hour ${fmtHour(t)} of ${tmax}`;
   if (setSlider && performance.now() > scrubUntil) $('hpc-hour-slider').value = t;
   $('hpc-hour-label').textContent = hl;
@@ -1988,6 +2004,7 @@ async function startFluid(seq) {
   layer.setTime(fluidTime);
   fluidTimeUI(fluidTime);
   updateQualityInfo();
+  cogSync();
   return { ok: true };
 }
 
@@ -2169,6 +2186,170 @@ async function loadCountyInfra() {
 }
 
 
+// ─── Real solver depth from Cloud-Optimized GeoTIFFs (cog/cog-depth.js reads layers/cog/<domain>/<storm>/*.tif with HTTP Range requests) ───
+// Peak = max_depth.tif (highest depth the solver reached at that cell during the run); hour = depth_<N*3600>s.tif (depth at t = N h).
+// ~5 m cells (6.25 m mercator), whole centimetres. Everything here is optional: no files for a storm = the viewer behaves as before.
+const COG = { modP: null, mod: null, store: null, known: {}, on: false, mode: 'max', opacity: 0.8, proto: false, clickSeq: 0, hourTimer: 0, applySeq: 0, cardSeq: 0 };
+const COG_SRC = 'cog-depth-src', COG_LYR = 'cog-depth';
+let cogTransparentPng = null;
+const COG_ERR_ROW = '<tr><td colspan="2" style="color:#e8a;font-size:11px">Real solver depth could not be read (offline, or the raster is unreachable). Tiles are fetched on demand and are not stored for offline use.</td></tr>';
+function cogLoad() {
+  if (!COG.modP) COG.modP = import('./cog/cog-depth.js').then(m => {
+    COG.mod = m; COG.store = new m.CogStore({ base: QP.get('cogbase') || './layers/cog' });
+    if (PHONE) m.setTileCacheBytes(32 * 1024 * 1024);
+    return m;
+  }, e => { COG.modP = null; throw e; });
+  return COG.modP;
+}
+const cogStorm = () => flowKeyOf(HPC_SCENARIO);                         // folder name of the storm on screen (25yr, ev4) or null (city first run)
+async function cogMeta() {
+  const s = cogStorm(); if (!s) return null;
+  try { await cogLoad(); const m = await COG.store.meta(DOMAIN, s); COG.known[DOMAIN + '/' + s] = Boolean(m); return m; }
+  catch (e) { return null; }                                            // offline or module missing: behave as if there were no rasters
+}
+const cogKnown = () => COG.known[DOMAIN + '/' + cogStorm()] === true;
+function cogHour(meta) {                                                // hour grid nearest to the slider that has a raster
+  const hs = COG.mod.hoursOf(meta); if (!hs.length) return null;
+  const t = Math.round(fluidTime); let best = hs[0];
+  for (const h of hs) if (Math.abs(h - t) < Math.abs(best - t)) best = h;
+  return best;
+}
+const cogFmt = r => !r ? '—' : r.status === 'nodata' ? 'no data (outside the modelled area)' : r.status === 'dry' ? 'no water (0 cm)' : `${r.cm} cm (${(r.cm / 30.48).toFixed(2)} ft)`;
+function cogFootprint(geom, which, meta) {                              // max over the pixels the footprint covers; MultiPolygon: max over its parts
+  const polys = polysOf(geom), storm = cogStorm();
+  return Promise.all(polys.map(p => COG.store.footprintMax(DOMAIN, storm, p, which))).then(list => {
+    let best = null;
+    for (const r of list) if (r && r.status === 'value' && (!best || r.cm > best.cm)) best = r;
+    return COG.mod.depthResult(best ? { status: 'value', raw: best.cm } : { status: 'nodata' });
+  });
+}
+// -> {storm, label, max, hour, hourN} or null when this storm has no rasters. geom (optional) = a footprint to take the maximum over.
+async function cogQuery(ll, geom) {
+  const meta = await cogMeta(); if (!meta) return null;
+  const storm = cogStorm(), st = COG.store, hN = cogHour(meta);
+  const one = which => geom ? cogFootprint(geom, which, meta) : st.depthAt(DOMAIN, storm, ll.lng, ll.lat, which);
+  const [max, hour] = await Promise.all([meta.files['max_depth.tif'] ? one('max') : null, hN === null ? null : one(hN)]);
+  return { storm, label: HPC_SCENARIOS[HPC_SCENARIO].label, max, hour, hourN: hN, footprint: Boolean(geom) };
+}
+function cogRowsHtml(q) {
+  const row = (k, v) => `<tr><td>${k}</td><td>${v}</td></tr>`, where = q.footprint ? 'within the footprint (highest cell)' : 'at this point';
+  return row('Real solver depth, peak over the run', cogFmt(q.max)) +
+    (q.hour ? row(`Real solver depth at hour ${q.hourN}`, cogFmt(q.hour)) : '') +
+    `<tr><td colspan="2" style="color:#667;font-size:10px;padding-top:6px">Modelled depth ${where} from the ${escHtml(q.label)} solver raster (about 5 m cells, whole cm), not a measurement. Peak = the highest depth reached during the run; the hour value is the depth at t = ${q.hourN === null ? 'N' : q.hourN} h. Not validated against observed floods.</td></tr>`;
+}
+async function cogAppendInfo(ll, geom) {                                // adds the real-depth rows under whatever the info panel already shows
+  const seq = ++COG.clickSeq;
+  let q = null, err = false; try { q = await cogQuery(ll, geom); } catch (e) { err = true; console.info('[cog] query failed', e.message || e); }
+  if ((!q && !err) || seq !== COG.clickSeq || $('info').style.display === 'none') return;
+  $('info-table').insertAdjacentHTML('beforeend', q ? cogRowsHtml(q) : COG_ERR_ROW);
+}
+async function cogShowPoint(ll) {                                       // a click on bare map (no feature, no water): show the depth there
+  const seq = ++COG.clickSeq;
+  let q = null, err = false; try { q = await cogQuery(ll); } catch (e) { err = true; console.info('[cog] query failed', e.message || e); }
+  if (seq !== COG.clickSeq) return;
+  if (!q && !err) { $('info').style.display = 'none'; return; }
+  $('info-title').textContent = 'Modelled water depth';
+  $('info-table').innerHTML = `<tr><td>Storm</td><td>${escHtml(HPC_SCENARIOS[HPC_SCENARIO].label)}</td></tr><tr><td>Location</td><td>${ll.lat.toFixed(5)}, ${ll.lng.toFixed(5)}</td></tr>` + (q ? cogRowsHtml(q) : COG_ERR_ROW);
+  $('info').style.display = 'block';
+}
+
+// ── XYZ overlay: a custom protocol renders each 256 px tile from the COG (overview level chosen by zoom) in the active palette ──
+function cogPngBytes(rgba) {
+  if (typeof OffscreenCanvas === 'function') {
+    const c = new OffscreenCanvas(256, 256); c.getContext('2d').putImageData(new ImageData(rgba, 256, 256), 0, 0);
+    return c.convertToBlob({ type: 'image/png' }).then(b => b.arrayBuffer());
+  }
+  return new Promise((res, rej) => { const c = document.createElement('canvas'); c.width = c.height = 256; c.getContext('2d').putImageData(new ImageData(rgba, 256, 256), 0, 0); c.toBlob(b => b ? b.arrayBuffer().then(res, rej) : rej(new Error('png')), 'image/png'); });
+}
+async function cogEmptyPng() { if (!cogTransparentPng) cogTransparentPng = await cogPngBytes(new Uint8ClampedArray(256 * 256 * 4)); return cogTransparentPng.slice(0); }
+function cogRegisterProtocol() {
+  if (COG.proto) return; COG.proto = true;
+  maplibregl.addProtocol('cogdepth', async (params, abortController) => {
+    const m = /^cogdepth:\/\/(\w+)\/([\w]+)\/(max|\d+)\/(\w+)\/(\d+)\/(\d+)\/(\d+)/.exec(params.url);
+    if (!m) throw new Error('bad cogdepth url');
+    const [, dom, storm, which, pal, z, x, y] = m;
+    await cogLoad();
+    const cog = await COG.store.open(dom, storm, which === 'max' ? 'max' : +which);
+    if (!cog) return { data: await cogEmptyPng() };
+    const px = await COG.mod.renderDepthTile(cog, +z, +x, +y, { colors: (PALETTES[pal] || PALETTES.cvd).water, alpha: 255, signal: abortController.signal });
+    let any = false; for (let i = 3; i < px.length; i += 4) if (px[i]) { any = true; break; }
+    return { data: any ? await cogPngBytes(px) : await cogEmptyPng() };
+  });
+}
+function cogRemoveOverlay() {
+  try { if (map.getLayer(COG_LYR)) map.removeLayer(COG_LYR); if (map.getSource(COG_SRC)) map.removeSource(COG_SRC); } catch (e) { /* ignore */ }
+  if (fluidLayer) { try { fluidLayer.setBeforeId(null); } catch (e) { /* ignore */ } }
+}
+async function cogApplyOverlay() {
+  const seq = ++COG.applySeq;
+  cogRemoveOverlay();
+  const note = $('cog-note');
+  if (!COG.on) { note.hidden = true; return; }
+  let meta = null; try { meta = await cogMeta(); } catch (e) { /* none */ }
+  if (seq !== COG.applySeq) return;
+  if (!meta) { note.hidden = false; note.textContent = 'No real-depth rasters for this storm on this device.'; return; }
+  const m = COG.mod, hN = COG.mode === 'hour' ? cogHour(meta) : null;
+  if (COG.mode === 'hour' && hN === null) { note.hidden = false; note.textContent = 'No hourly rasters for this storm.'; return; }
+  const which = COG.mode === 'hour' ? hN : 'max', pal = ui.palette;
+  const bb = meta.bounds_merc, sw = m.mercToLngLat(bb[0], bb[1]), ne = m.mercToLngLat(bb[2], bb[3]);
+  cogRegisterProtocol();
+  map.addSource(COG_SRC, { type: 'raster', tiles: [`cogdepth://${DOMAIN}/${cogStorm()}/${which}/${pal}/{z}/{x}/{y}`], tileSize: 256, minzoom: 7, maxzoom: 16, bounds: [sw[0], sw[1], ne[0], ne[1]] });
+  const before = ['roads-line', 'all-parcels-fill', 'buildings-ext'].find(id => map.getLayer(id));
+  map.addLayer({ id: COG_LYR, type: 'raster', source: COG_SRC, paint: { 'raster-opacity': COG.opacity, 'raster-resampling': 'nearest', 'raster-fade-duration': 0 } }, before);
+  if (fluidLayer) { try { fluidLayer.setBeforeId(COG_LYR); } catch (e) { /* ignore */ } }
+  note.hidden = false;
+  note.textContent = (COG.mode === 'hour' ? `Real solver depth at hour ${hN} (the hour grid nearest the slider). ` : 'Real solver depth: the highest depth reached during the run. ') +
+    'Tiers as in the legend (0.1 / 0.3 / 0.6 / 1.2 m); under 0.1 m is not drawn. About 5 m cells; zoomed-out views use averaged overviews, so thin shallow water fades. Click the map for the value at a point.';
+}
+function cogHourSoon() { clearTimeout(COG.hourTimer); COG.hourTimer = setTimeout(() => { if (COG.on && COG.mode === 'hour') cogApplyOverlay(); }, 350); }
+async function cogSync() {                                              // after a storm or domain change: is there a raster, what does the panel say
+  aboutSync();
+  const meta = await cogMeta(), cb = $('cog-cb'), has = Boolean(meta);
+  cb.disabled = !has; $('cog-panel').classList.toggle('cog-none', !has);
+  $('cog-lbl').textContent = has ? 'Real solver depth (raster, 5 m cells)' : 'Real solver depth (not available for this storm)';
+  $('cog-opts').hidden = !(has && COG.on);
+  if (COG.on) cogApplyOverlay();
+}
+function initCog() {
+  const cb = $('cog-cb');
+  cb.checked = false; cb.disabled = true;
+  cb.addEventListener('change', () => { COG.on = cb.checked; $('cog-opts').hidden = !COG.on; cogApplyOverlay(); });
+  $('cog-mode').addEventListener('change', e => { COG.mode = e.target.value; cogApplyOverlay(); });
+  $('cog-op').addEventListener('input', e => { COG.opacity = +e.target.value; if (map.getLayer(COG_LYR)) map.setPaintProperty(COG_LYR, 'raster-opacity', COG.opacity); });
+  cogSync();
+}
+
+function cogBuildingByOsm(id) {                                          // full footprint of a county building from the loaded dump (a click on the map only has the tile fragment)
+  if (id === undefined || id === null || !buildingsData) return null;
+  if (COG.bmapFor !== buildingsData) { COG.bmapFor = buildingsData; COG.bmap = new Map(); for (const f of buildingsData.features) { const o = f.properties && f.properties.osm_id; if (o !== undefined && o !== null) COG.bmap.set(Number(o), f); } }
+  return COG.bmap.get(Number(id)) || null;
+}
+function cogFootprintGeom(f) {
+  const id = f.layer && f.layer.id;
+  if (id !== 'buildings-ext' && id !== 'hpc-bldgs-ext') return null;
+  const full = cogBuildingByOsm(f.properties && f.properties.osm_id);
+  return (full && full.geometry) || f.geometry;
+}
+
+// ─── About this storm: facts from layers/storm_info.json (built by scripts/build_storm_info.py; same text as STORM_DATA_SOURCES.md) ───
+const ABOUT = { data: null, p: null };
+function aboutLoad() {
+  if (!ABOUT.p) ABOUT.p = fetch('./layers/storm_info.json').then(r => r.ok ? r.json() : null).then(d => (ABOUT.data = d), () => null);
+  return ABOUT.p;
+}
+async function aboutSync() {
+  const body = $('about-body'); if (!body) return;
+  const key = cogStorm(), d = await aboutLoad(), s = d && d.storms && d.storms[key];
+  if (!s) { body.textContent = key ? 'No storm description is available (layers/storm_info.json missing).' : 'The first 2-year city run has no description file.'; return; }
+  const city = DOMAIN === 'city', row = (k, v) => v ? `<dt>${k}</dt><dd>${escHtml(v)}</dd>` : '';
+  const list = a => a && a.length ? '<ul>' + a.map(x => `<li>${escHtml(x)}</li>`).join('') + '</ul>' : '';
+  body.innerHTML = `<b>${escHtml(s.title)}</b><dl>` + row('Type', s.type) + row('Date / period', s.period) + row('Rainfall source', s.rain_source) + row('Total depth', s.rain_total) + row('Peak intensity', s.rain_peak) +
+    row('Duration', s.duration) + row('Return period', s.return_period) + row('Temporal distribution', s.hyetograph) + row('Rain file units', s.rain_units) +
+    row(city ? 'Solver run (city)' : 'Solver run (county)', city ? s.city_solver_run || 'Not recorded for this storm.' : s.solver_run) +
+    `<dt>Outputs and conversion</dt><dd>${list(city ? s.conversion.filter(c => /^City domain/.test(c)) : s.conversion.filter(c => !/^City domain/.test(c)))}</dd>` +
+    `<dt>Known limits</dt><dd>${list(s.limits)}</dd><dt>Not verified</dt><dd>${list(s.not_verified)}</dd></dl>` + (s.notes && s.notes.length ? `<div>${escHtml(s.notes.join(' '))}</div>` : '') +
+    '<div class="leg-note">Same text as STORM_DATA_SOURCES.md. Model output, not validated against observed flooding.</div>';
+}
 // ─── Palettes ───
 // Colour-blind safe = the cividis colour map (Nunez, Anderton & Renslow 2018, PLoS ONE 13(7):e0199239; stops as in Plotly's "Cividis"),
 // run REVERSED so lighter = shallower and darker = deeper. Stops used: t=0.85 #f0da46, t=0.58 #a09875, t=0.30 #575d6d, t=0.00 #00224e
@@ -2194,6 +2375,7 @@ function applyPalette() {
   for (const id of ['hpc-3d', 'hpc-fill']) if (map.getLayer(id)) map.setPaintProperty(id, id === 'hpc-3d' ? 'fill-extrusion-color' : 'fill-color', HPC_WATER_EXPR.slice());
   if ($('rf-cb') && $('rf-cb').checked) refreshRoadFlood();
   if (fluidLayer) { try { fluidLayer.setOptions({ palette: P.renderer }); } catch (e) { console.warn('[palette]', e); } }
+  if (COG.on) cogApplyOverlay();
   document.querySelectorAll('#fl-list-body .fl-item[data-fi]').forEach(el => { const r = fxRows[+el.dataset.fi]; if (r) el.querySelector('.fl-tier-dot').style.background = TIER_COLOR[r.tier]; });
 }
 function applyTextSize() {
@@ -2248,22 +2430,55 @@ function riskSummary(label, rows) {      // template text, no model
   const first = wet[0], worst = wet[wet.length - 1];
   return `${label} first floods in the ${first.label} storm (${TIER_NAMES[first.tier]}, ${TIER_FT[first.tier]}). In the ${worst.label} storm the modelled water reaches ${TIER_FT[worst.tier]} (${TIER_NAMES[worst.tier]}).`;
 }
-function showAddrCard(i) {
-  const d = ADDR.idx, label = addrLabel(i), lng = d.origin[0] + d.x[i] / d.scale, lat = d.origin[1] + d.y[i] / d.scale;
-  const rows = d.storms.map(sv => { const f = addrFlood(sv.key).get(i); return { key: sv.key, label: sv.label.replace(' storm', ''), cm: f ? f[0] : 0, tier: f ? f[1] : 0, first: f ? f[2] : 0, hrs: f ? f[3] : 0 }; });
-  ADDR.cur = { i, label, lng, lat };
-  const tr = rows.map(r => `<tr><td>${escHtml(r.label)}</td><td><span class="tg-sw" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${r.tier ? TIER_COLOR[TIER_NAMES[r.tier]] : 'transparent'};border:1px solid #888"></span> ${TIER_GLYPH[TIER_NAMES[r.tier]] || ''} ${TIER_NAMES[r.tier]}</td><td>${r.tier ? TIER_FT[r.tier] : '—'}</td><td>${r.tier ? (r.cm / 30.48).toFixed(1) + ' ft' : '—'}</td></tr>`).join('');
+function addrTierOfCm(cm) { return cm >= 10 ? COG.mod.tierIndex(cm) + 1 : 0; }      // 0 dry (< 0.1 m), 1..4 shallow..severe
+function renderAddrCard(i, how) {
+  const d = ADDR.idx, { label, rows } = ADDR.cur;
+  const cell = r => r.src === 'cog'
+    ? (r.cm > 0 ? `${r.cm} cm · ${(r.cm / 30.48).toFixed(1)} ft` : 'no water') + ' <span class="srcl">solver</span>'
+    : (r.tier ? (r.cm / 30.48).toFixed(1) + ' ft' + (ADDR.cur.anyCog ? ' <span class="srcl">grid</span>' : '') : '—');
+  const tr = rows.map(r => `<tr><td>${escHtml(r.label)}</td><td><span class="tg-sw" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${r.tier ? TIER_COLOR[TIER_NAMES[r.tier]] : 'transparent'};border:1px solid #888"></span> ${TIER_GLYPH[TIER_NAMES[r.tier]] || ''} ${TIER_NAMES[r.tier]}</td><td>${r.tier ? TIER_FT[r.tier] : '—'}</td><td>${cell(r)}</td></tr>`).join('');
   const val = d.val[i] ? ' · assessed $' + d.val[i].toLocaleString('en-US') : '';
   const sum = riskSummary(label, rows);
-  const note = 'Depth ranges come from the depth-tier bounds, not a measured value. The flow data are model output and are not yet validated against the historical events.' + (d.storms.some(s => s.source === 'tiers') ? ' City grids are built from depth tiers (approximate).' : '');
+  const gridNote = 'Depth ranges come from the depth-tier bounds (0.1 / 0.3 / 0.6 / 1.2 m), not a measured value. The flow data are model output and are not yet validated against the historical events.' + (d.storms.some(s => s.source === 'tiers') ? ' City grids are built from depth tiers (approximate).' : '');
+  const note = ADDR.cur.anyCog
+    ? `Rows marked solver use the real modelled solver depth: the peak over the run, ${how === 'footprint' ? 'the highest cell inside the building footprint' : 'at the address point'} (about 5 m cells, whole cm). Rows marked grid come from the coarser 20 to 25 m flow grid in the address index (approximate). ` + gridNote
+    : gridNote;
   const html = `<h3>${escHtml(label)}</h3><div>${d.kind[i] ? 'Lot (no footprint)' : 'Building'}${val}</div><p>${escHtml(sum)}</p>
-    <table><tr><th>Storm</th><th>Tier</th><th>Range</th><th>Modelled</th></tr>${tr}</table><div class="note">${note}</div>
+    <table><tr><th>Storm</th><th>Tier</th><th>Range</th><th>Peak depth</th></tr>${tr}</table><div class="note">${note}</div><div class="note" id="addr-cog-st"></div>
     <div class="acts"><button type="button" id="addr-share">Share link</button><button type="button" id="addr-print-btn">Print / PDF</button></div>`;
   $('addr-card').innerHTML = html; $('addr-card').style.display = 'block';
-  $('addr-print').innerHTML = `<h1>Flood risk card: ${escHtml(label)}</h1><p>${escHtml(sum)}</p><table><tr><th>Storm</th><th>Tier</th><th>Range</th><th>Modelled</th></tr>${tr.replace(/<span[^>]*><\/span>/g, '')}</table><p>${note}</p><p>${escHtml(location.origin + location.pathname)}?domain=${DOMAIN}&addr=${i}</p><p>Bowling Green Flood Map, DSOC / AIR, Western Kentucky University</p>`;
+  $('addr-print').innerHTML = `<h1>Flood risk card: ${escHtml(label)}</h1><p>${escHtml(sum)}</p><table><tr><th>Storm</th><th>Tier</th><th>Range</th><th>Peak depth</th></tr>${tr.replace(/<span[^>]*><\/span>/g, '')}</table><p>${note}</p><p>${escHtml(location.origin + location.pathname)}?domain=${DOMAIN}&addr=${i}</p><p>Bowling Green Flood Map, DSOC / AIR, Western Kentucky University</p>`;
   $('addr-share').onclick = async () => { const u = `${location.origin}${location.pathname}?domain=${DOMAIN}&addr=${i}`; try { await navigator.clipboard.writeText(u); $('addr-share').textContent = 'Link copied'; } catch (e) { prompt('Copy this link', u); } };
   $('addr-print-btn').onclick = () => window.print();
+}
+// Per-building depth from the real solver rasters (peak over the run, max over the footprint) replaces the grid-derived value for every storm that has one.
+async function upgradeAddrCard(i) {
+  const seq = ++COG.cardSeq, d = ADDR.idx, cur = ADDR.cur, st = () => $('addr-cog-st');
+  try { await cogLoad(); } catch (e) { return; }
+  const geom = d.kind[i] === 0 && d.bid[i] >= 0
+    ? (DOMAIN === 'county' ? (cogBuildingByOsm(d.bid[i]) || {}).geometry : buildingsData && buildingsData.features[d.bid[i]] && buildingsData.features[d.bid[i]].geometry)
+    : null;
+  const how = geom ? 'footprint' : 'point';
+  if (st()) st().textContent = 'Checking for real solver depths…';
+  const res = await Promise.all(cur.rows.map(async r => {
+    try {
+      const meta = await COG.store.meta(DOMAIN, r.key); if (!meta || !meta.files['max_depth.tif']) return null;
+      return geom ? await cogFootprint(geom, 'max') : await COG.store.depthAt(DOMAIN, r.key, cur.lng, cur.lat, 'max');
+    } catch (e) { return null; }
+  }));
+  if (seq !== COG.cardSeq || ADDR.cur !== cur) return;
+  let n = 0;
+  res.forEach((q, k) => { if (q && (q.status === 'depth' || q.status === 'dry')) { const r = cur.rows[k]; r.src = 'cog'; r.cm = q.cm; r.tier = addrTierOfCm(q.cm); n++; } });
+  if (!n) { if (st()) st().textContent = ''; return; }
+  cur.anyCog = true; renderAddrCard(i, how);
+}
+function showAddrCard(i) {
+  const d = ADDR.idx, label = addrLabel(i), lng = d.origin[0] + d.x[i] / d.scale, lat = d.origin[1] + d.y[i] / d.scale;
+  const rows = d.storms.map(sv => { const f = addrFlood(sv.key).get(i); return { key: sv.key, label: sv.label.replace(' storm', ''), cm: f ? f[0] : 0, tier: f ? f[1] : 0, first: f ? f[2] : 0, hrs: f ? f[3] : 0, src: 'grid' }; });
+  ADDR.cur = { i, label, lng, lat, rows, anyCog: false };
+  renderAddrCard(i, 'point');
   map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 16.5), pitch: 50 });
+  upgradeAddrCard(i);
 }
 async function initAddress() {
   const q = $('addr-q'), res = $('addr-results');
@@ -2861,12 +3076,13 @@ map.on('load', async () => {
     const feats = map.queryRenderedFeatures(e.point, { layers: activeLayers });
     // Water is the background of parcels and FEMA zones: only a building or road on top of it takes the click.
     if (fluidProbeActive() && !feats.some(f => f.layer.id === 'hpc-bldgs-ext' || f.layer.id === 'buildings-ext' || f.layer.id === 'roads-line') &&
-        fluidWet(fluidLayer, e.lngLat, fxProbe)) { showWaterInfo(fxProbe); return; }
-    if (!feats.length) { document.getElementById('info').style.display = 'none'; return; }
+        fluidWet(fluidLayer, e.lngLat, fxProbe)) { showWaterInfo(fxProbe); if (cogKnown()) cogAppendInfo(e.lngLat, null); return; }
+    if (!feats.length) { if (cogKnown()) cogShowPoint(e.lngLat); else document.getElementById('info').style.display = 'none'; return; }   // real solver depth anywhere on the map when rasters exist
     const elevM = map.queryTerrainElevation(e.lngLat, { exaggerated: false });
     const top = feats[0];
     const flooded = viewMode === 'fluid' && (top.layer.id === 'buildings-ext' || top.layer.id === 'hpc-bldgs-ext') ? fluidFlooded(top) : null;
     showInfo(flooded || top, elevM);
+    if (cogKnown()) cogAppendInfo(e.lngLat, cogFootprintGeom(flooded || top));
   });
 
   document.getElementById('info-close').addEventListener('click', () => {
@@ -2887,6 +3103,7 @@ map.on('load', async () => {
 });
 
 map.on('error', e => console.warn('MapLibre:', e.error?.message || e));
+initCog();
 initSheet();
 initPwa();
 initStartScreen();

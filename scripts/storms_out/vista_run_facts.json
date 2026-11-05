@@ -1,0 +1,365 @@
+{
+ "_note": "Copied from Vista on 2026-11-04: runs/*/<storm>/run_summary.json (+ rain-file stats computed from runs/storm_<storm>.rain with trapezoid integration) and sacct for the county solver array 1114427 (partition gh, started 2026-11-02 21:25-21:27 CST).",
+ "county": {
+  "2yr": {
+   "storm": "2yr",
+   "solver": "v2",
+   "total_rain_mm": 88.8997942129592,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 125295372,
+   "impervious_cells": 250641,
+   "runoff_depth_mm": 33.164166283031605,
+   "wall_minutes": 422.87460781733193,
+   "mass_error_pct": 2.227595130313848e-09,
+   "rain_file": {
+    "total_mm": 88.9,
+    "peak_mm_per_hr": 7.41,
+    "last_time_s": 86400.0,
+    "points": 577
+   },
+   "slurm_elapsed": "07:03:06"
+  },
+  "5yr": {
+   "storm": "5yr",
+   "solver": "v2",
+   "total_rain_mm": 106.67975305555252,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 125295372,
+   "impervious_cells": 250641,
+   "runoff_depth_mm": 46.288884051775376,
+   "wall_minutes": 454.8480713526408,
+   "mass_error_pct": 1.1689730438001499e-09,
+   "rain_file": {
+    "total_mm": 106.68,
+    "peak_mm_per_hr": 8.89,
+    "last_time_s": 86400.0,
+    "points": 577
+   },
+   "slurm_elapsed": "07:35:03"
+  },
+  "10yr": {
+   "storm": "10yr",
+   "solver": "v2",
+   "total_rain_mm": 124.45971189814459,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 125295372,
+   "impervious_cells": 250641,
+   "runoff_depth_mm": 60.2741937679658,
+   "wall_minutes": 481.6525099714597,
+   "mass_error_pct": 1.0556606643702204e-08,
+   "rain_file": {
+    "total_mm": 124.46,
+    "peak_mm_per_hr": 10.37,
+    "last_time_s": 86400.0,
+    "points": 577
+   },
+   "slurm_elapsed": "08:01:51"
+  },
+  "25yr": {
+   "storm": "25yr",
+   "solver": "v2",
+   "total_rain_mm": 149.85965310185097,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 125295372,
+   "impervious_cells": 250641,
+   "runoff_depth_mm": 81.32893316486549,
+   "wall_minutes": 520.3416477680206,
+   "mass_error_pct": 7.20737258865072e-09,
+   "rain_file": {
+    "total_mm": 149.86,
+    "peak_mm_per_hr": 12.49,
+    "last_time_s": 86400.0,
+    "points": 577
+   },
+   "slurm_elapsed": "08:40:33"
+  },
+  "50yr": {
+   "storm": "50yr",
+   "solver": "v2",
+   "total_rain_mm": 170.1796060648154,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 125295372,
+   "impervious_cells": 250641,
+   "runoff_depth_mm": 98.84071680736247,
+   "wall_minutes": 556.1527800083161,
+   "mass_error_pct": 9.457534429054778e-09,
+   "rain_file": {
+    "total_mm": 170.18,
+    "peak_mm_per_hr": 14.18,
+    "last_time_s": 86400.0,
+    "points": 577
+   },
+   "slurm_elapsed": "09:16:22"
+  },
+  "100yr": {
+   "storm": "100yr",
+   "solver": "v2",
+   "total_rain_mm": 193.0395531481506,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 125295372,
+   "impervious_cells": 250641,
+   "runoff_depth_mm": 119.06460643587717,
+   "wall_minutes": 596.1936158617337,
+   "mass_error_pct": 6.345365557790033e-09,
+   "rain_file": {
+    "total_mm": 193.04,
+    "peak_mm_per_hr": 16.09,
+    "last_time_s": 86400.0,
+    "points": 577
+   },
+   "slurm_elapsed": "09:56:24"
+  },
+  "ev1": {
+   "storm": "ev1",
+   "solver": "v2",
+   "total_rain_mm": 27.18505555555547,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 125295372,
+   "impervious_cells": 250641,
+   "runoff_depth_mm": 1.1489915197978682,
+   "wall_minutes": 197.77234964768093,
+   "mass_error_pct": 4.006483716267748e-10,
+   "rain_file": {
+    "total_mm": 27.19,
+    "peak_mm_per_hr": 4.06,
+    "last_time_s": 86400.0,
+    "points": 49
+   },
+   "slurm_elapsed": "03:17:59"
+  },
+  "ev2": {
+   "storm": "ev2",
+   "solver": "v2",
+   "total_rain_mm": 54.1045396472247,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 125295372,
+   "impervious_cells": 250641,
+   "runoff_depth_mm": 11.411222310486584,
+   "wall_minutes": 292.88308498462044,
+   "mass_error_pct": -1.3353556974377906e-09,
+   "rain_file": {
+    "total_mm": 54.1,
+    "peak_mm_per_hr": 7.62,
+    "last_time_s": 86400.0,
+    "points": 49
+   },
+   "slurm_elapsed": "04:53:06"
+  },
+  "ev3": {
+   "storm": "ev3",
+   "solver": "v2",
+   "total_rain_mm": 86.11107964722015,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 125295372,
+   "impervious_cells": 250641,
+   "runoff_depth_mm": 31.196295635468015,
+   "wall_minutes": 371.1581569115321,
+   "mass_error_pct": -1.2600832713405715e-08,
+   "rain_file": {
+    "total_mm": 86.11,
+    "peak_mm_per_hr": 24.38,
+    "last_time_s": 86400.0,
+    "points": 49
+   },
+   "slurm_elapsed": "06:11:22"
+  },
+  "ev4": {
+   "storm": "ev4",
+   "solver": "v2",
+   "total_rain_mm": 126.23986972222154,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 125295372,
+   "impervious_cells": 250641,
+   "runoff_depth_mm": 61.713066210980685,
+   "wall_minutes": 506.94217582146325,
+   "mass_error_pct": 2.1947497545428057e-08,
+   "rain_file": {
+    "total_mm": 126.24,
+    "peak_mm_per_hr": 27.18,
+    "last_time_s": 86400.0,
+    "points": 49
+   },
+   "slurm_elapsed": "08:27:08"
+  },
+  "ev5": {
+   "storm": "ev5",
+   "solver": "v2",
+   "total_rain_mm": 153.16161194444445,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 125295372,
+   "impervious_cells": 250641,
+   "runoff_depth_mm": 84.13060543093519,
+   "wall_minutes": 647.1005137721697,
+   "mass_error_pct": -2.5352219315508197e-09,
+   "rain_file": {
+    "total_mm": 153.16,
+    "peak_mm_per_hr": 29.21,
+    "last_time_s": 86400.0,
+    "points": 49
+   },
+   "slurm_elapsed": "10:47:19"
+  },
+  "ev6": {
+   "storm": "ev6",
+   "solver": "v2",
+   "total_rain_mm": 188.2133297222144,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 125295372,
+   "impervious_cells": 250641,
+   "runoff_depth_mm": 114.75543245831501,
+   "wall_minutes": 596.3805142998696,
+   "mass_error_pct": 1.5685376327797954e-08,
+   "rain_file": {
+    "total_mm": 188.21,
+    "peak_mm_per_hr": 51.82,
+    "last_time_s": 86400.0,
+    "points": 49
+   },
+   "slurm_elapsed": "09:56:36"
+  }
+ },
+ "city": {
+  "5yr": {
+   "storm": "5yr",
+   "solver": "v2",
+   "total_rain_mm": 106.67975305555252,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 80030000,
+   "impervious_cells": 1566224,
+   "runoff_depth_mm": 47.2470634426205,
+   "wall_minutes": 975.5086187799772,
+   "mass_error_pct": -3.31998873100622e-09,
+   "rain_file": {
+    "total_mm": 106.68,
+    "peak_mm_per_hr": 8.89,
+    "last_time_s": 86400.0,
+    "points": 577
+   }
+  },
+  "10yr": {
+   "storm": "10yr",
+   "solver": "v2",
+   "total_rain_mm": 124.45971189814459,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 80030000,
+   "impervious_cells": 1566224,
+   "runoff_depth_mm": 61.29855558287909,
+   "wall_minutes": 1027.315721642971,
+   "mass_error_pct": -5.219839076305927e-09,
+   "rain_file": {
+    "total_mm": 124.46,
+    "peak_mm_per_hr": 10.37,
+    "last_time_s": 86400.0,
+    "points": 577
+   }
+  },
+  "25yr": {
+   "storm": "25yr",
+   "solver": "v2",
+   "total_rain_mm": 149.85965310185097,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 80030000,
+   "impervious_cells": 1566224,
+   "runoff_depth_mm": 82.4291629981225,
+   "wall_minutes": 1092.0377324581145,
+   "mass_error_pct": -3.130815459881165e-09,
+   "rain_file": {
+    "total_mm": 149.86,
+    "peak_mm_per_hr": 12.49,
+    "last_time_s": 86400.0,
+    "points": 577
+   }
+  },
+  "50yr": {
+   "storm": "50yr",
+   "solver": "v2",
+   "total_rain_mm": 170.1796060648154,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 80030000,
+   "impervious_cells": 1566224,
+   "runoff_depth_mm": 99.99003819021324,
+   "wall_minutes": 1134.7013751149177,
+   "mass_error_pct": -4.0887307105965935e-09,
+   "rain_file": {
+    "total_mm": 170.18,
+    "peak_mm_per_hr": 14.18,
+    "last_time_s": 86400.0,
+    "points": 577
+   }
+  },
+  "100yr": {
+   "storm": "100yr",
+   "solver": "v2",
+   "total_rain_mm": 193.0395531481506,
+   "cn_pervious": 75.0,
+   "cn_impervious": 98.0,
+   "outflow": true,
+   "outflow_slope": 0.005,
+   "valid_cells": 80030000,
+   "impervious_cells": 1566224,
+   "runoff_depth_mm": 120.2600306704698,
+   "wall_minutes": 1179.5917035778364,
+   "mass_error_pct": -6.9244907298418035e-09,
+   "rain_file": {
+    "total_mm": 193.04,
+    "peak_mm_per_hr": 16.09,
+    "last_time_s": 86400.0,
+    "points": 577
+   }
+  }
+ },
+ "county_job": {
+  "array_job": 1114427,
+  "partition": "gh",
+  "gpu": "one H100 per storm (COUNTY_RUN.md)",
+  "grid": "5 m, EPSG:32616, 125,295,372 valid cells"
+ }
+}

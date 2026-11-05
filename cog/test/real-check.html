@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>COG real-tile check</title>
+<style>body{font:13px/1.45 monospace;background:#111;color:#ddd;padding:12px}.ok{color:#6c6}.bad{color:#f66}</style></head>
+<body><h3>Browser reader vs rasterio on the real county COGs (layers/cog/county)</h3><pre id="out"></pre>
+<script type="module">
+import * as C from '../cog-depth.js';
+const exp = await (await fetch('./real_expected.json')).json();
+const store = new C.CogStore({ base: '../../layers/cog' });
+const out = document.getElementById('out'); let bad = 0, total = 0; const lines = [];
+for (const [storm, files] of Object.entries(exp)) {
+  for (const [which, rec] of Object.entries(files)) {
+    const cog = await store.open('county', storm, which === 'max' ? 'max' : +which);
+    let n = 0, wrong = 0;
+    for (const p of rec.points) {
+      const r = await cog.sampleLngLat(p.lng, p.lat, { level: 0 }); n++;
+      const got = r.status === 'outside' ? null : r.raw;
+      if (got !== p.v) { wrong++; if (wrong < 4) lines.push(`  MISMATCH ${storm} ${which} ${p.kind} got ${got} want ${p.v}`); }
+    }
+    // the footprint and tile-render paths on real data: a 40 m square around a few deep points must have max >= its centre pixel
+    let fp = 0, fpbad = 0;
+    for (const p of rec.points.filter(q => q.kind === 'deep').slice(0, 10)) {
+      const dl = 20 / 111000, ring = [[p.lng - dl, p.lat - dl], [p.lng + dl, p.lat - dl], [p.lng + dl, p.lat + dl], [p.lng - dl, p.lat + dl], [p.lng - dl, p.lat - dl]];
+      const m = await C.maxInPolygon(cog, [ring]); fp++; if (m.status !== 'value' || m.cm < p.v) fpbad++;
+    }
+    total += n; bad += wrong + fpbad;
+    lines.push(`${storm} ${which === 'max' ? 'max_depth' : 'hour ' + which} (${rec.file}): ${n} points, ${wrong} mismatches; footprint max >= centre: ${fp - fpbad}/${fp}; levels ${cog.levels.length}, ${cog.width}x${cog.height}`);
+  }
+}
+const st = C.tileCacheStats();
+out.textContent = lines.join('\n') + `\nTOTAL ${total} points, ${bad} problems; tile cache ${st.tiles} tiles ${(st.bytes / 1e6).toFixed(1)} MB`;
+document.title = bad ? 'REAL CHECK FAIL' : 'REAL CHECK PASS ' + total;
+window.__real = { total, bad, lines };
+</script></body></html>

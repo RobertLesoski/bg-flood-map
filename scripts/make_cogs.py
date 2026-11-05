@@ -37,7 +37,8 @@ def convert(src_path, dst_path, res_m=6.25):
     with rasterio.open(src_path) as s:
         tr, w, h = calculate_default_transform(s.crs, "EPSG:3857", s.width, s.height, *s.bounds, resolution=res_m)
         vrt = WarpedVRT(s, crs="EPSG:3857", transform=tr, width=w, height=h, resampling=Resampling.bilinear,
-                        src_nodata=s.nodata if s.nodata is not None else -9999.0, nodata=-9999.0)
+                        src_nodata=s.nodata if s.nodata is not None else -9999.0, nodata=-9999.0,
+                        tolerance=0.01)   # GDAL's default 0.125 source-pixel approximation of the UTM->mercator warp gave up to 7 cm error on noisy real depths (verify_cogs.py); 0.01 gives under 0.5 cm
         fd, tmp = tempfile.mkstemp(suffix=".tif", dir=os.path.dirname(os.path.abspath(dst_path)))
         os.close(fd)
         prof = dict(driver="GTiff", width=w, height=h, count=1, dtype="uint16", crs="EPSG:3857", transform=tr, nodata=NODATA,
@@ -82,6 +83,22 @@ def verify(path):
         return bool(ok)
 
 
+def hour_map(files):
+    """{'N': file name}: hour N = the file whose save time is nearest N*3600 s (solver save times are not exact: depth_003604s.tif is hour 1,
+    depth_000015s.tif is hour 0, depth_010798s.tif is hour 3 - a floor would put it on hour 2)."""
+    best = {}
+    for n in files:
+        m = re.match(r"depth_(\d+)s\.tif$", n)
+        if not m:
+            continue
+        sec = int(m.group(1))
+        h = int(round(sec / 3600.0))
+        d = abs(sec - h * 3600)
+        if h not in best or d < best[h][0]:
+            best[h] = (d, n)
+    return {str(h): best[h][1] for h in sorted(best)}
+
+
 def run(src, dst, res_m=6.25, force=False, log=print):
     os.makedirs(dst, exist_ok=True)
     mp = os.path.join(dst, "cog_meta.json")
@@ -121,8 +138,7 @@ def run(src, dst, res_m=6.25, force=False, log=print):
             b = d.bounds
             meta.update({"crs": "EPSG:3857", "units": "cm", "dtype": "uint16", "nodata": NODATA, "res_m": res_m,
                          "bounds_merc": [b.left, b.bottom, b.right, b.top], "width": d.width, "height": d.height,
-                         "hours": {str(int(re.search(r"depth_(\d+)s", n).group(1)) // 3600): n
-                                   for n in meta["files"] if n.startswith("depth_")},
+                         "hours": hour_map(meta["files"]),
                          "note": "depth_cm = value (65535 = outside the model domain); read image 0 (full resolution) for queries"})
     json.dump(meta, open(mp, "w"), indent=1)
     log("  total %.1f MB in %.0fs" % (sum(f.get("bytes", 0) for f in meta["files"].values()) / 1e6, time.perf_counter() - t0))

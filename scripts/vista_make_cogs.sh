@@ -1,15 +1,15 @@
 #!/bin/bash
-# RUN ON VISTA (login node):  bash vista_make_cogs.sh [--domain county|city|both] [--only "25yr ev4"] [--res-m 6.25] [--dry-run] [--here] [--partition gh]
+# RUN ON VISTA (login node):  bash vista_make_cogs.sh [--domain county|city|both] [--only "25yr ev4"] [--res-m 6.25] [--dry-run] [--here] [--partition gh] [--dst-suffix _v2]
 # Turns runs/county_v2/<storm>/{max_depth,depth_*s}.tif (city: runs/output_v2/<storm>) into Cloud-Optimized GeoTIFFs
 # (EPSG:3857, uint16 centimetres, 512 tiles, deflate, overviews) under $SCRATCH/bgflood/county_cog/<storm>/ (city: city_cog/<storm>/).
 # CPU only, resumable (finished files are skipped), one batch task per storm; --here runs in this shell (use an idev session).
 # Needs scripts/make_cogs.py in $SCRATCH/bgflood (scp it) and rasterio + numpy in the miniforge env.
 set -u
 BASE="${SCRATCH:?SCRATCH is not set - run this on Vista}/bgflood"
-DOM=county; ONLY=""; RES=6.25; DRY=0; HERE=0; PART=gh
+DOM=county; ONLY=""; RES=6.25; DRY=0; HERE=0; PART=gh; SUF=""
 while [[ $# -gt 0 ]]; do case "$1" in
   --domain) DOM="$2"; shift ;; --only) ONLY="$2"; shift ;; --res-m) RES="$2"; shift ;; --dry-run) DRY=1 ;; --here) HERE=1 ;;
-  --partition) PART="$2"; shift ;; *) echo "unknown option $1"; exit 1 ;; esac; shift; done
+  --partition) PART="$2"; shift ;; --dst-suffix) SUF="$2"; shift ;; *) echo "unknown option $1"; exit 1 ;; esac; shift; done
 [[ -f "$SCRATCH/miniforge3/bin/activate" ]] || { echo "FAIL: $SCRATCH/miniforge3/bin/activate missing"; exit 1; }
 source "$SCRATCH/miniforge3/bin/activate"
 [[ -f "$BASE/make_cogs.py" ]] || { echo "FAIL: scp scripts/make_cogs.py to $BASE/"; exit 1; }
@@ -23,8 +23,8 @@ add() {  # domain srcdir dstdir storms
     if [[ "$n" -lt 24 ]]; then echo "SKIP $1 $s: only $n depth files in $2/$s"; else echo "ok   $1 $s: $n depth files"; TASKS+=("$2/$s|$3/$s"); fi
   done
 }
-if [[ "$DOM" == county || "$DOM" == both ]]; then add county "$BASE/runs/county_v2" "$BASE/county_cog" "$CNT"; fi
-if [[ "$DOM" == city || "$DOM" == both ]]; then add city "$BASE/runs/output_v2" "$BASE/city_cog" "$CTY"; fi
+if [[ "$DOM" == county || "$DOM" == both ]]; then add county "$BASE/runs/county_v2" "$BASE/county_cog$SUF" "$CNT"; fi
+if [[ "$DOM" == city || "$DOM" == both ]]; then add city "$BASE/runs/output_v2" "$BASE/city_cog$SUF" "$CTY"; fi
 [[ ${#TASKS[@]} -gt 0 ]] || { echo "nothing to do"; exit 1; }
 if [[ $HERE -eq 1 ]]; then
   for t in "${TASKS[@]}"; do python "$BASE/make_cogs.py" --src "${t%|*}" --dst "${t#*|}" --res-m "$RES"; done
@@ -40,7 +40,7 @@ mkdir -p "$BASE/logs"
   echo "#SBATCH --ntasks=1"
   echo "#SBATCH --cpus-per-task=8"
   echo "#SBATCH --time=06:00:00"
-  echo "T=(${TASKS[*]})"
+  printf 'T=('; printf "'%s' " "${TASKS[@]}"; echo ')'
   echo 'P=${T[$SLURM_ARRAY_TASK_ID]}'
   echo "source $SCRATCH/miniforge3/bin/activate"
   echo "python $BASE/make_cogs.py --src \"\${P%|*}\" --dst \"\${P#*|}\" --res-m $RES"

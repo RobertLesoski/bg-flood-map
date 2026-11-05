@@ -37,6 +37,7 @@
 //        showFlowpaths loads flowpaths.rgba.gz lazily, the first time it is turned on.
 //        Further layer options: governorOverMs, governorRecoverMs, statsTopN, statsMinDepthM, qualityMode.
 //   layer.setVisible(bool) / visible       hidden = nothing drawn, loop stopped
+//   layer.setBeforeId(id|null)             draw the water directly below that layer (null = default anchors)
 //   layer.on(name, fn) / off(name, fn) / once(name, fn)
 //   layer.updateRegion(force = false)      recompute the drawn region now (normally done on moveend/zoomend/resize)
 //   layer.dispose()                        removes layer, source, listeners, timers, GL resources, grids. Afterwards every
@@ -391,6 +392,9 @@ export class FluidLayer {
   get targetTime() { return this._target; }
   get isPlaying() { return this._playing; }
   get visible() { return this._visible; }
+  // Anchor layer the water sits directly below (null = the default roads-line / all-parcels-fill / buildings-ext). The viewer points it at
+  // its real-depth overlay while that is on, so the overlay is drawn above the water (see cog/cog-depth.js).
+  setBeforeId(id) { this._beforeId = id || null; this._fixOrder(); }
   get hasPicture() { return this._shown; }
   get qualityLevel() { return this._level; }
   get region() { return this._region ? this._region.slice() : null; }

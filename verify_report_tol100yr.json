@@ -1,0 +1,126 @@
+{
+ "100yr": {
+  "max": {
+   "file": "max_depth.tif",
+   "structure": {
+    "size": [
+     10475,
+     12156
+    ],
+    "epsg": 3857,
+    "dtype": "uint16",
+    "tiled": true,
+    "block": [
+     512,
+     512
+    ],
+    "overviews": [
+     2,
+     4,
+     8,
+     16,
+     32
+    ],
+    "nodata": 65535.0,
+    "res": 6.25,
+    "bytes": 44075055,
+    "bounds_cog": [
+     -9653845.257347828,
+     4390038.473274844,
+     -9588376.507347828,
+     4466013.473274844
+    ],
+    "bounds_src_in_3857": [
+     -9653845.257347828,
+     4390045.269319902,
+     -9588381.441348435,
+     4466013.473274844
+    ],
+    "covers_source": true,
+    "ok": true
+   },
+   "compare": {
+    "points": 300,
+    "by_kind": {
+     "deep": 60,
+     "shallow": 60,
+     "dry": 60,
+     "edge": 60,
+     "outside": 60
+    },
+    "bilinear_err": {
+     "n": 186,
+     "max_abs": 1.0,
+     "mean_abs": 0.021505376344086023,
+     "within_1cm": 1.0,
+     "within_2cm": 1.0
+    },
+    "nearest_err": {
+     "n": 186,
+     "max_abs": 57.0,
+     "mean_abs": 2.575268817204301,
+     "within_1cm": 0.7365591397849462,
+     "within_2cm": 0.8010752688172043
+    },
+    "cog_nodata_but_src_valid": 0,
+    "cog_value_but_src_nodata_or_outside": 0,
+    "src_outside_or_nodata_and_cog_nodata": 114,
+    "valid_edge_points": 0,
+    "worst_bilinear": [
+     {
+      "kind": "deep",
+      "col": 2242,
+      "row": 3252,
+      "cog": 329,
+      "bilinear": 330,
+      "nearest": 314
+     },
+     {
+      "kind": "deep",
+      "col": 3510,
+      "row": 8235,
+      "cog": 19,
+      "bilinear": 18,
+      "nearest": 5
+     },
+     {
+      "kind": "deep",
+      "col": 7702,
+      "row": 7663,
+      "cog": 181,
+      "bilinear": 182,
+      "nearest": 170
+     }
+    ],
+    "worst_nearest": [
+     {
+      "kind": "shallow",
+      "col": 672,
+      "row": 2396,
+      "cog": 129,
+      "bilinear": 129,
+      "nearest": 72
+     },
+     {
+      "kind": "deep",
+      "col": 7168,
+      "row": 7911,
+      "cog": 308,
+      "bilinear": 308,
+      "nearest": 281
+     },
+     {
+      "kind": "deep",
+      "col": 5838,
+      "row": 7017,
+      "cog": 434,
+      "bilinear": 434,
+      "nearest": 410
+     }
+    ],
+    "classes_in_dry_points_cog_nonzero": 3
+   },
+   "seconds": 0.7
+  }
+ }
+}

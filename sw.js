@@ -1,17 +1,18 @@
 /* sw.js - offline shell for the Bowling Green Flood Map (PWA).
  *
  * Policy (see also the comments in viewer.html where it registers this file):
- *   shell   = viewer.html, manifest, icons, fluid/*.js, logo      -> cache-first with background refresh (stale-while-revalidate);
+ *   shell   = viewer.html, manifest, icons, fluid/*.js, cog/cog-depth.js, logo      -> cache-first with background refresh (stale-while-revalidate);
  *             precached at install. When the refresh brought a different file, the page is told ('shell-updated').
  *   cdn     = MapLibre JS/CSS from unpkg                           -> cache-first, stored at first use (opaque responses are fine for script/style)
  *   data    = small layers (*.geojson, meta.json, < 6 MB)          -> network-first, the last good copy is the offline fallback
+ *             (layers/storm_info.json, the 'About this storm' texts, is loaded when the viewer starts, so it is in this cache after the first visit)
  *   tiles   = OpenStreetMap + Terrarium DEM tiles                  -> stale-while-revalidate, at most TILE_MAX tiles kept
  *   NEVER cached, never touched (the browser handles them): flow grids (*.rgba.gz), hourly flood layers (layers/flood_hpc/),
- *             county building/road dumps (*.geojson.gz), anything with a Range header, anything that is not GET.
+ *             county building/road dumps (*.geojson.gz), anything with a Range header (the real-depth COG tiles in layers/cog/*.tif are always Range reads), anything that is not GET.
  * Bump VERSION when a shell file changes in a way the stale-while-revalidate refresh should not be trusted with.
  * Works on https:// and on http://localhost / 127.0.0.1 only (service workers need a secure context).
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = 'bgflood-shell-' + VERSION;
 const CDN = 'bgflood-cdn-' + VERSION;
 const DATA = 'bgflood-data-' + VERSION;
@@ -24,6 +25,7 @@ const SHELL_FILES = [
   'viewer.html', 'manifest.webmanifest', 'dsoc_logo.png',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png',
   'fluid/fluid-layer.js', 'fluid/fluid-renderer.js', 'fluid/fluid-data.js', 'fluid/fluid-stats.js',
+  'cog/cog-depth.js',
 ];
 const CDN_HOSTS = ['unpkg.com'];
 const TILE_HOSTS = ['tile.openstreetmap.org', 's3.amazonaws.com'];

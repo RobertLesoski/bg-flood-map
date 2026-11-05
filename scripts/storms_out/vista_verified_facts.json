@@ -1,0 +1,558 @@
+{
+ "_note": "Collected 2026-11-05 from Vista (sacct, run_summary.json, rain files, dem checks, scripts/verify_cog_accuracy.py). Every value was read from Vista by the verification agent.",
+ "county_slurm": {
+  "array_job": 1114427,
+  "partition": "gh",
+  "task_order": [
+   "2yr",
+   "5yr",
+   "10yr",
+   "25yr",
+   "50yr",
+   "100yr",
+   "ev1",
+   "ev2",
+   "ev3",
+   "ev4",
+   "ev5",
+   "ev6"
+  ],
+  "tasks": {
+   "2yr": {
+    "task": 0,
+    "start": "2026-11-02T21:25:11",
+    "end": "2026-11-03T04:28:17",
+    "elapsed": "07:03:06",
+    "node": "c612-121",
+    "state": "COMPLETED"
+   },
+   "5yr": {
+    "task": 1,
+    "start": "2026-11-02T21:25:11",
+    "end": "2026-11-03T05:00:14",
+    "elapsed": "07:35:03",
+    "node": "c619-111",
+    "state": "COMPLETED"
+   },
+   "10yr": {
+    "task": 2,
+    "start": "2026-11-02T21:25:11",
+    "end": "2026-11-03T05:27:02",
+    "elapsed": "08:01:51",
+    "node": "c620-012",
+    "state": "COMPLETED"
+   },
+   "25yr": {
+    "task": 3,
+    "start": "2026-11-02T21:25:11",
+    "end": "2026-11-03T06:05:44",
+    "elapsed": "08:40:33",
+    "node": "c621-081",
+    "state": "COMPLETED"
+   },
+   "50yr": {
+    "task": 4,
+    "start": "2026-11-02T21:25:11",
+    "end": "2026-11-03T06:41:33",
+    "elapsed": "09:16:22",
+    "node": "c621-141",
+    "state": "COMPLETED"
+   },
+   "100yr": {
+    "task": 5,
+    "start": "2026-11-02T21:27:21",
+    "end": "2026-11-03T07:23:45",
+    "elapsed": "09:56:24",
+    "node": "c610-081",
+    "state": "COMPLETED"
+   },
+   "ev1": {
+    "task": 6,
+    "start": "2026-11-02T21:27:21",
+    "end": "2026-11-03T00:45:20",
+    "elapsed": "03:17:59",
+    "node": "c610-092",
+    "state": "COMPLETED"
+   },
+   "ev2": {
+    "task": 7,
+    "start": "2026-11-02T21:27:21",
+    "end": "2026-11-03T02:20:27",
+    "elapsed": "04:53:06",
+    "node": "c610-141",
+    "state": "COMPLETED"
+   },
+   "ev3": {
+    "task": 8,
+    "start": "2026-11-02T21:27:21",
+    "end": "2026-11-03T03:38:43",
+    "elapsed": "06:11:22",
+    "node": "c611-001",
+    "state": "COMPLETED"
+   },
+   "ev4": {
+    "task": 9,
+    "start": "2026-11-02T21:27:21",
+    "end": "2026-11-03T05:54:29",
+    "elapsed": "08:27:08",
+    "node": "c611-011",
+    "state": "COMPLETED"
+   },
+   "ev5": {
+    "task": 10,
+    "start": "2026-11-02T21:27:21",
+    "end": "2026-11-03T08:14:40",
+    "elapsed": "10:47:19",
+    "node": "c619-022",
+    "state": "COMPLETED"
+   },
+   "ev6": {
+    "task": 11,
+    "start": "2026-11-02T21:27:21",
+    "end": "2026-11-03T07:23:57",
+    "elapsed": "09:56:36",
+    "node": "c619-082",
+    "state": "COMPLETED"
+   }
+  }
+ },
+ "city_slurm": {
+  "array_job": 1102881,
+  "partition": "gh",
+  "job_name": "bgflood5v2",
+  "task_order": [
+   "5yr",
+   "10yr",
+   "25yr",
+   "50yr",
+   "100yr"
+  ],
+  "mapping_evidence": "task elapsed time equals run_summary wall_minutes of the storm (e.g. task 0 = 16:15:42 = 975.7 min = 5yr 975.5 min)",
+  "tasks": {
+   "5yr": {
+    "task": 0,
+    "start": "2026-10-28T12:04:23",
+    "end": "2026-10-29T04:20:05",
+    "elapsed": "16:15:42",
+    "node": "c638-082",
+    "state": "COMPLETED"
+   },
+   "10yr": {
+    "task": 1,
+    "start": "2026-10-28T12:18:43",
+    "end": "2026-10-29T05:26:13",
+    "elapsed": "17:07:30",
+    "node": "c641-052",
+    "state": "COMPLETED"
+   },
+   "25yr": {
+    "task": 2,
+    "start": "2026-10-28T12:24:32",
+    "end": "2026-10-29T06:36:44",
+    "elapsed": "18:12:12",
+    "node": "c637-031",
+    "state": "COMPLETED"
+   },
+   "50yr": {
+    "task": 3,
+    "start": "2026-10-28T12:28:11",
+    "end": "2026-10-29T07:23:04",
+    "elapsed": "18:54:53",
+    "node": "c636-092",
+    "state": "COMPLETED"
+   },
+   "100yr": {
+    "task": 4,
+    "start": "2026-10-28T12:28:46",
+    "end": "2026-10-29T08:08:34",
+    "elapsed": "19:39:48",
+    "node": "c622-002",
+    "state": "COMPLETED"
+   }
+  }
+ },
+ "county_cog_job": {
+  "verified_set": {
+   "folder": "county_cog_tol",
+   "job": 1123323,
+   "partition": "gg",
+   "warp_tolerance_px": 0.01,
+   "local_copy": "layers/cog/county (324 files byte-identical, sha256)"
+  },
+  "other_set": {
+   "folder": "county_cog",
+   "job": 1122676,
+   "partition": "gg",
+   "warp_tolerance_px": 0.125
+  }
+ },
+ "cog_accuracy_local_set": {
+  "2yr": {
+   "max_depth_points": 659,
+   "hourly_points": 1189,
+   "bilinear_max_cm": 1.0,
+   "bilinear_max_depth_mean_cm": 0.0236,
+   "bilinear_p99_cm": 1.0,
+   "nearest_max_cm": 106.0,
+   "nearest_mean_cm": 2.852,
+   "nearest_p99_cm": 51.41000000000008,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "5yr": {
+   "max_depth_points": 659,
+   "hourly_points": 1213,
+   "bilinear_max_cm": 1.0,
+   "bilinear_max_depth_mean_cm": 0.0178,
+   "bilinear_p99_cm": 1.0,
+   "nearest_max_cm": 86.0,
+   "nearest_mean_cm": 2.3009,
+   "nearest_p99_cm": 33.08000000000004,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "10yr": {
+   "max_depth_points": 659,
+   "hourly_points": 1230,
+   "bilinear_max_cm": 1.0,
+   "bilinear_max_depth_mean_cm": 0.0212,
+   "bilinear_p99_cm": 1.0,
+   "nearest_max_cm": 132.0,
+   "nearest_mean_cm": 2.3715,
+   "nearest_p99_cm": 36.320000000000164,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "25yr": {
+   "max_depth_points": 659,
+   "hourly_points": 1264,
+   "bilinear_max_cm": 1.0,
+   "bilinear_max_depth_mean_cm": 0.0107,
+   "bilinear_p99_cm": 1.0,
+   "nearest_max_cm": 85.0,
+   "nearest_mean_cm": 2.2705,
+   "nearest_p99_cm": 34.0,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "50yr": {
+   "max_depth_points": 659,
+   "hourly_points": 1271,
+   "bilinear_max_cm": 1.0,
+   "bilinear_max_depth_mean_cm": 0.0124,
+   "bilinear_p99_cm": 1.0,
+   "nearest_max_cm": 60.0,
+   "nearest_mean_cm": 2.5353,
+   "nearest_p99_cm": 41.35000000000002,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "100yr": {
+   "max_depth_points": 659,
+   "hourly_points": 1280,
+   "bilinear_max_cm": 1.0,
+   "bilinear_max_depth_mean_cm": 0.0215,
+   "bilinear_p99_cm": 1.0,
+   "nearest_max_cm": 87.0,
+   "nearest_mean_cm": 2.1889,
+   "nearest_p99_cm": 31.399999999999977,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "ev1": {
+   "max_depth_points": 560,
+   "hourly_points": 977,
+   "bilinear_max_cm": 1.0,
+   "bilinear_max_depth_mean_cm": 0.0087,
+   "bilinear_p99_cm": 0.0,
+   "nearest_max_cm": 47.0,
+   "nearest_mean_cm": 1.6234,
+   "nearest_p99_cm": 37.0,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "ev2": {
+   "max_depth_points": 659,
+   "hourly_points": 1099,
+   "bilinear_max_cm": 1.0,
+   "bilinear_max_depth_mean_cm": 0.0159,
+   "bilinear_p99_cm": 1.0,
+   "nearest_max_cm": 93.0,
+   "nearest_mean_cm": 2.1204,
+   "nearest_p99_cm": 33.72000000000003,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "ev3": {
+   "max_depth_points": 659,
+   "hourly_points": 1102,
+   "bilinear_max_cm": 1.0,
+   "bilinear_max_depth_mean_cm": 0.0161,
+   "bilinear_p99_cm": 1.0,
+   "nearest_max_cm": 74.0,
+   "nearest_mean_cm": 2.4395,
+   "nearest_p99_cm": 34.559999999999945,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "ev4": {
+   "max_depth_points": 659,
+   "hourly_points": 1306,
+   "bilinear_max_cm": 1.0,
+   "bilinear_max_depth_mean_cm": 0.0214,
+   "bilinear_p99_cm": 1.0,
+   "nearest_max_cm": 80.0,
+   "nearest_mean_cm": 2.3221,
+   "nearest_p99_cm": 29.160000000000082,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "ev5": {
+   "max_depth_points": 659,
+   "hourly_points": 1350,
+   "bilinear_max_cm": 1.0,
+   "bilinear_max_depth_mean_cm": 0.016,
+   "bilinear_p99_cm": 1.0,
+   "nearest_max_cm": 107.0,
+   "nearest_mean_cm": 2.1623,
+   "nearest_p99_cm": 31.5,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "ev6": {
+   "max_depth_points": 659,
+   "hourly_points": 1331,
+   "bilinear_max_cm": 1.0,
+   "bilinear_max_depth_mean_cm": 0.0125,
+   "bilinear_p99_cm": 1.0,
+   "nearest_max_cm": 86.0,
+   "nearest_mean_cm": 1.6726,
+   "nearest_p99_cm": 30.48999999999978,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  }
+ },
+ "cog_accuracy_county_cog": {
+  "2yr": {
+   "max_depth_points": 659,
+   "hourly_points": 1189,
+   "bilinear_max_cm": 12.0,
+   "bilinear_max_depth_mean_cm": 0.337,
+   "bilinear_p99_cm": 5.0,
+   "nearest_max_cm": 110.0,
+   "nearest_mean_cm": 2.991,
+   "nearest_p99_cm": 53.41000000000008,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "5yr": {
+   "max_depth_points": 659,
+   "hourly_points": 1213,
+   "bilinear_max_cm": 11.0,
+   "bilinear_max_depth_mean_cm": 0.3167,
+   "bilinear_p99_cm": 4.389999999999986,
+   "nearest_max_cm": 94.0,
+   "nearest_mean_cm": 2.3327,
+   "nearest_p99_cm": 36.16000000000008,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "10yr": {
+   "max_depth_points": 659,
+   "hourly_points": 1230,
+   "bilinear_max_cm": 14.0,
+   "bilinear_max_depth_mean_cm": 0.3286,
+   "bilinear_p99_cm": 6.0,
+   "nearest_max_cm": 141.0,
+   "nearest_mean_cm": 2.3926,
+   "nearest_p99_cm": 38.66000000000008,
+   "hull_violations": 1,
+   "structure_ok": true,
+   "files": 26
+  },
+  "25yr": {
+   "max_depth_points": 659,
+   "hourly_points": 1264,
+   "bilinear_max_cm": 9.0,
+   "bilinear_max_depth_mean_cm": 0.2549,
+   "bilinear_p99_cm": 4.0,
+   "nearest_max_cm": 88.0,
+   "nearest_mean_cm": 2.3149,
+   "nearest_p99_cm": 35.0,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "50yr": {
+   "max_depth_points": 659,
+   "hourly_points": 1271,
+   "bilinear_max_cm": 15.0,
+   "bilinear_max_depth_mean_cm": 0.2991,
+   "bilinear_p99_cm": 4.0,
+   "nearest_max_cm": 63.0,
+   "nearest_mean_cm": 2.5353,
+   "nearest_p99_cm": 42.05000000000007,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "100yr": {
+   "max_depth_points": 659,
+   "hourly_points": 1280,
+   "bilinear_max_cm": 15.0,
+   "bilinear_max_depth_mean_cm": 0.2809,
+   "bilinear_p99_cm": 5.0,
+   "nearest_max_cm": 88.0,
+   "nearest_mean_cm": 2.1729,
+   "nearest_p99_cm": 31.7199999999998,
+   "hull_violations": 1,
+   "structure_ok": true,
+   "files": 26
+  },
+  "ev1": {
+   "max_depth_points": 560,
+   "hourly_points": 977,
+   "bilinear_max_cm": 4.0,
+   "bilinear_max_depth_mean_cm": 0.1326,
+   "bilinear_p99_cm": 3.0,
+   "nearest_max_cm": 49.0,
+   "nearest_mean_cm": 1.5909,
+   "nearest_p99_cm": 36.0,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "ev2": {
+   "max_depth_points": 659,
+   "hourly_points": 1099,
+   "bilinear_max_cm": 7.0,
+   "bilinear_max_depth_mean_cm": 0.2088,
+   "bilinear_p99_cm": 4.0,
+   "nearest_max_cm": 91.0,
+   "nearest_mean_cm": 2.1363,
+   "nearest_p99_cm": 33.360000000000014,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "ev3": {
+   "max_depth_points": 659,
+   "hourly_points": 1102,
+   "bilinear_max_cm": 13.0,
+   "bilinear_max_depth_mean_cm": 0.2768,
+   "bilinear_p99_cm": 3.409999999999968,
+   "nearest_max_cm": 84.0,
+   "nearest_mean_cm": 2.4964,
+   "nearest_p99_cm": 36.729999999999905,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "ev4": {
+   "max_depth_points": 659,
+   "hourly_points": 1306,
+   "bilinear_max_cm": 15.0,
+   "bilinear_max_depth_mean_cm": 0.2929,
+   "bilinear_p99_cm": 4.039999999999964,
+   "nearest_max_cm": 66.0,
+   "nearest_mean_cm": 2.2867,
+   "nearest_p99_cm": 30.059999999999945,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "ev5": {
+   "max_depth_points": 659,
+   "hourly_points": 1350,
+   "bilinear_max_cm": 14.0,
+   "bilinear_max_depth_mean_cm": 0.2713,
+   "bilinear_p99_cm": 4.3700000000000045,
+   "nearest_max_cm": 105.0,
+   "nearest_mean_cm": 2.1658,
+   "nearest_p99_cm": 32.0,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  },
+  "ev6": {
+   "max_depth_points": 659,
+   "hourly_points": 1331,
+   "bilinear_max_cm": 12.0,
+   "bilinear_max_depth_mean_cm": 0.2193,
+   "bilinear_p99_cm": 3.8299999999999272,
+   "nearest_max_cm": 75.0,
+   "nearest_mean_cm": 1.6619,
+   "nearest_p99_cm": 29.829999999999927,
+   "hull_violations": 0,
+   "structure_ok": true,
+   "files": 26
+  }
+ },
+ "solver": {
+  "file": "flood_solver_v2.py",
+  "md5": "cdeedae979e04c38f7ce324afb741eaf",
+  "identical_to_repo_copy": true,
+  "cfl_alpha_default": 0.3,
+  "max_depth_definition": "max over the saved depth_*.tif snapshots (hourly + final), not over every time step",
+  "impervious_rule": "Manning n raster < 0.02 (roads) or 0.07-0.09 (buildings)",
+  "impervious_cells_county": 250641,
+  "impervious_cells_city": 1566224
+ },
+ "dem": {
+  "county_dem": "dem_warren_5m.tif, 10404 x 12043 cells of 5 m, EPSG:32616, written 2026-11-01 11:41 right after the USGS_13_n37w087/n38w087 3DEP tiles were downloaded (11:41), by build_county_grid.sh (gdalwarp bilinear, 3DEP first, dem_bg_2m.tif last = wins)",
+  "usgs_3dep_1_3_arcsec_pixel": "9.259e-5 deg = about 10.3 m N-S and 8.2 m E-W at 37 N",
+  "city_dem_2m": "dem_bg_2m.tif, 2 m, covers x 536000-556000, y 4084000-4104000 (20 x 20 km, about 13 % of the county grid); README: 1 m lidar tiles merged and resampled to 2 m (exact command not in the repo)",
+  "checks": {
+   "dem5_minus_3dep_outside_city": {
+    "n": 368,
+    "mean_abs_m": 0.206,
+    "p95_m": 0.769,
+    "max_m": 2.141
+   },
+   "dem5_minus_city2m_inside_city": {
+    "n": 32,
+    "mean_abs_m": 0.058,
+    "p95_m": 0.19,
+    "max_m": 0.223
+   },
+   "dem5_minus_3dep_inside_city": {
+    "n": 32,
+    "mean_abs_m": 0.222,
+    "p95_m": 0.803,
+    "max_m": 0.914
+   }
+  }
+ },
+ "building_ponding": {
+  "note": "max depth over footprint, 144 random county buildings inside the model, from the COGs",
+  "ev1": {
+   "median_cm": 3.0,
+   "share_zero": 0.042,
+   "share_ge10cm": 0.014
+  },
+  "2yr": {
+   "median_cm": 3.0,
+   "share_zero": 0.028,
+   "share_ge10cm": 0.063
+  },
+  "100yr": {
+   "median_cm": 3.0,
+   "share_zero": 0.021,
+   "share_ge10cm": 0.125
+  }
+ }
+}

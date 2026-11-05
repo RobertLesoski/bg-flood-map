@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>COG reader harness</title>
+<style>body{font:13px/1.45 monospace;background:#111;color:#ddd;padding:12px}.ok{color:#6c6}.bad{color:#f66}h3{margin:14px 0 4px}</style></head>
+<body><h2>COG reader harness (cog/cog-depth.js against cog/test/fixture, truth from rasterio/PROJ)</h2><div id="out"></div><pre id="sum"></pre>
+<script type="module">
+import * as C from '../cog-depth.js';
+const out = document.getElementById('out'); window.__verbose = /verbose/.test(location.search);
+let pass = 0, fail = 0; const failures = [];
+function check(name, ok, detail) { if (ok) pass++; else { fail++; failures.push(name + ' ' + (detail || '')); } if (!ok || window.__verbose) out.insertAdjacentHTML('beforeend', `<div class="${ok ? 'ok' : 'bad'}">${ok ? 'PASS' : 'FAIL'} ${name} ${detail || ''}</div>`); }
+function section(t) { out.insertAdjacentHTML('beforeend', `<h3>${t}</h3>`); }
+const exp = await (await fetch('./fixture/expected.json')).json();
+const fx = Object.fromEntries(await Promise.all(Object.keys(exp.files).map(async n => [n, await C.openCog('./fixture/' + n)])));
+
+section('1 georeferencing and structure');
+for (const [n, info] of Object.entries(exp.files)) {
+  const cog = fx[n];
+  check(n + ' size', cog.width === info.width && cog.height === info.height, `${cog.width}x${cog.height}`);
+  check(n + ' origin', Math.abs(cog.x0 - info.origin[0]) < 1e-6 && Math.abs(cog.y0 - info.origin[1]) < 1e-6);
+  check(n + ' res', Math.abs(cog.res - info.res) < 1e-9);
+  check(n + ' epsg/nodata', cog.epsg === 3857 && cog.nodata === exp.nodata);
+  check(n + ' level count', cog.levels.length === info.overviews.length + 1, cog.levels.length);
+  check(n + ' level sizes', cog.levels.every((L, i) => L.width === info.level_sizes[i][0] && L.height === info.level_sizes[i][1]), JSON.stringify(cog.levels.map(L => [L.width, L.height])));
+  check(n + ' tiled 512', cog.levels[0].tileW === 512 && cog.levels[0].tileH === 512);
+}
+
+section('2 lng/lat -> EPSG:3857 vs PROJ (rasterio.warp) at ' + exp.lnglat.length + ' points');
+let maxErr = 0, maxBack = 0;
+for (const p of exp.lnglat) {
+  const [x, y] = C.lngLatToMerc(p.lng, p.lat);
+  const e = Math.hypot(x - p.x, y - p.y); maxErr = Math.max(maxErr, e);
+  const [lg, lt] = C.mercToLngLat(p.x, p.y); maxBack = Math.max(maxBack, Math.abs(lg - p.lng) * 111000, Math.abs(lt - p.lat) * 111000);
+}
+check('lnglat->merc max error < 1e-6 m', maxErr < 1e-6, 'max ' + maxErr.toExponential(2) + ' m');
+check('merc->lnglat round trip < 1e-6 m', maxBack < 1e-6, 'max ' + maxBack.toExponential(2) + ' m');
+
+section('3 sample values: every point, every level, vs GDAL');
+const counts = {};
+for (const [n, info] of Object.entries(exp.files)) {
+  const cog = fx[n]; let tested = 0, wrong = 0, outside = 0, nodata = 0;
+  for (const p of info.points) {
+    for (let li = 0; li < cog.levels.length; li++) {
+      const r = await cog.sampleMerc(p.x, p.y, { level: li });
+      const want = p.v[li];
+      tested++;
+      if (want === null) { if (r.status !== 'outside') { wrong++; failures.push(`${n} L${li} (${p.x},${p.y}) want outside got ${r.status}`); } else outside++; continue; }
+      if (r.raw !== want) { wrong++; if (wrong < 5) failures.push(`${n} L${li} (${p.x},${p.y}) want ${want} got ${r.raw}`); }
+      if ((want === exp.nodata) !== (r.status === 'nodata')) { wrong++; failures.push(`${n} nodata flag mismatch`); }
+      if (want === exp.nodata) nodata++;
+    }
+  }
+  counts[n] = { tested, wrong, outside, nodata };
+  check(`${n} ${tested} samples (${outside} outside, ${nodata} nodata) all equal to GDAL`, wrong === 0, `${wrong} wrong`);
+}
+// the same point through lng/lat (JS conversion) must hit the same pixel as the mercator coordinates from Python (points are pixel centres or far from edges)
+{
+  const cog = fx['a_direct.tif'], info = exp.files['a_direct.tif']; let bad = 0, n = 0;
+  for (const p of info.points) {
+    const [x, y] = C.lngLatToMerc(p.lng, p.lat);
+    const [cf, rf] = cog.pixelAt(x, y, 0), [cf2, rf2] = cog.pixelAt(p.x, p.y, 0);
+    n++; if (Math.abs(cf - cf2) > 0.5 || Math.abs(rf - rf2) > 0.5) bad++;      // required: under half a pixel (it is in fact ~1e-7)
+    if (Math.abs(cf - cf2) > 1e-3 || Math.abs(rf - rf2) > 1e-3) failures.push('pixel drift ' + (cf - cf2) + ' ' + (rf - rf2));
+  }
+  check(`lng/lat -> pixel within half a pixel of Python for ${n} points`, bad === 0);
+}
+
+section('4 b_pipeline (make_cogs.convert of a linear ramp) against the analytic value');
+{
+  const cog = fx['b_pipeline.tif'], info = exp.files['b_pipeline.tif']; let n = 0, worst = 0;
+  for (const p of info.points) {
+    if (p.analytic_cm === null || p.analytic_cm === undefined) continue;
+    const r = await cog.sampleMerc(p.x, p.y, { level: 0 }); n++;
+    const d = Math.abs(r.raw - p.analytic_cm); worst = Math.max(worst, d);
+  }
+  check(`${n} interior points within 1 cm of the analytic ramp (worst ${worst} cm)`, n > 100 && worst <= 1, 'worst ' + worst);
+}
+
+section('5 footprints (max over the pixels) vs rasterio.geometry_mask');
+{
+  const cog = fx['a_direct.tif']; let eqTouched = 0, geCenter = 0, n = 0, over = 0, special = 0, specOk = 0;
+  for (const f of exp.footprints) {
+    const r = await C.maxInPolygon(cog, [f.ring]);
+    if (f.special) { special++; if (r.status !== 'value') specOk++; continue; }
+    n++;
+    const cmax = f.center.max === null ? -1 : f.center.max, tmax = f.touched.max === null ? -1 : f.touched.max;
+    const got = r.status === 'value' ? r.cm : -1;
+    if (got === tmax) eqTouched++;
+    if (got >= cmax) geCenter++;
+    if (got > tmax) over++;           // we may touch a few more pixels than GDAL's line burn: tolerated only when that pixel is not the max by a lot
+  }
+  check(`${n} footprints: result >= max of centre-inside pixels`, geCenter === n, geCenter + '/' + n);
+  check(`${n} footprints: equals GDAL all_touched max in >= 85 % (${eqTouched}/${n}); exceeded it ${over} times`, eqTouched / n >= 0.85);
+  check(`${specOk}/${special} nodata-only / outside footprints report no value`, specOk === special);
+}
+
+section('6 XYZ tile renderer (tier colours) vs per-pixel truth');
+{
+  const cog = fx['a_direct.tif'], colors = ['#112233', '#223344', '#334455', '#445566'];
+  // z=17: 1.194 m per tile pixel (finer than the 6.25 m file): level 0 nearest. Pick tiles over the file.
+  const z = 17, span = 2 * Math.PI * 6378137 / 2 ** z;
+  let wrong = 0, drawn = 0, total = 0, blank = 0;
+  const tiles = [];
+  for (const [pc, pr] of [[300, 300], [950, 730], [360, 230]]) {          // random area, the nodata block, the dry block
+    const tx = Math.floor((cog.x0 + pc * 6.25 + 20037508.342789244) / span), ty = Math.floor((20037508.342789244 - (cog.y0 - pr * 6.25)) / span);
+    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) tiles.push([tx + dx, ty + dy]);
+  }
+  for (const [X, Y] of tiles) {
+    const px = await C.renderDepthTile(cog, z, X, Y, { colors, alpha: 200 });
+    for (let j = 0; j < 256; j += 7) for (let i = 0; i < 256; i += 5) {
+      const x = -20037508.342789244 + X * span + (i + 0.5) * span / 256, y = 20037508.342789244 - Y * span - (j + 0.5) * span / 256;
+      const r = await cog.sampleMerc(x, y, { level: 0 }); total++;
+      const o = (j * 256 + i) * 4;
+      let wantT = -1; if (r.status === 'value') wantT = C.tierIndex(r.raw);
+      const gotT = px[o + 3] === 0 ? -1 : [[17, 34, 51], [34, 51, 68], [51, 68, 85], [68, 85, 102]].findIndex(c => c[0] === px[o] && c[1] === px[o + 1] && c[2] === px[o + 2]);
+      if (gotT >= 0) drawn++; else blank++;
+      if (wantT !== gotT || (gotT >= 0 && px[o + 3] !== 200)) wrong++;
+    }
+  }
+  check(`${total} tile pixels (${drawn} coloured, ${blank} transparent) match the sampled tier`, wrong === 0 && drawn > 50 && blank > 50, wrong + ' wrong');
+  // overview selection: a coarse tile must use a coarser level and still be coloured where the area is deeply wet
+  check('levelFor picks coarser levels for coarser pixels', cog.levelFor(1) === 0 && cog.levelFor(6.25) === 0 && cog.levelFor(13) === 1 && cog.levelFor(26) === 2 && cog.levelFor(1e6) === cog.levels.length - 1,
+    [1, 6.25, 13, 26, 1e6].map(v => cog.levelFor(v)).join(','));
+}
+
+section('7 hour file mapping and store behaviour');
+{
+  const meta = { files: { 'max_depth.tif': {}, 'depth_000015s.tif': {}, 'depth_003604s.tif': {}, 'depth_007200s.tif': {}, 'depth_086400s.tif': {}, 'depth_003602s.tif': {} } };
+  const hf = C.hourFiles(meta);
+  check('hour 0 = 000015s, hour 1 = 003602s (closest to 3600), 2, 24', hf[0] === 'depth_000015s.tif' && hf[1] === 'depth_003602s.tif' && hf[2] === 'depth_007200s.tif' && hf[24] === 'depth_086400s.tif', JSON.stringify(hf));
+  const store = new C.CogStore({ base: './fixture-missing' });
+  check('missing storm -> meta null, has() false', (await store.meta('county', 'nope')) === null && (await store.has('county', 'nope')) === false);
+  check('depth result classes', C.depthResult({ status: 'value', raw: 0 }).status === 'dry' && C.depthResult({ status: 'value', raw: 123 }).cm === 123 && C.depthResult({ status: 'nodata', raw: 65535 }).status === 'nodata' && C.depthResult({ status: 'outside', raw: null }).status === 'nodata');
+}
+
+section('8 failure modes');
+{
+  let e1 = null; try { await C.openCog('./fixture/does-not-exist.tif'); } catch (e) { e1 = e; }
+  check('404 -> CogError kind missing', e1 && e1.kind === 'missing');
+  let e2 = null; try { await C.openCog('./fixture/expected.json'); } catch (e) { e2 = e; }
+  check('a JSON file is rejected as not a TIFF', e2 && /TIFF/.test(e2.message), e2 && e2.message);
+}
+
+const stats = C.tileCacheStats();
+document.getElementById('sum').textContent = `passed ${pass}  failed ${fail}\n` + failures.slice(0, 40).join('\n') + `\ncache ${stats.tiles} tiles ${(stats.bytes / 1e6).toFixed(1)} MB\n` + JSON.stringify(counts);
+document.title = `COG harness: ${fail ? 'FAIL' : 'PASS'} ${pass}/${pass + fail}`;
+window.__results = { pass, fail, failures, counts };
+</script></body></html>
