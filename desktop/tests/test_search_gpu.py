@@ -200,7 +200,7 @@ def test_facility_markers_pick_and_card(env):
     assert ok[i] and 0 < px[i] < W and 0 < py[i] < H
     assert c.pick_facility(float(px[i]), float(py[i])) == i
     assert c.pick_facility(float(px[i]) + 80.0, float(py[i]) + 80.0) in (-1,) or c.pick_facility(float(px[i]) + 80.0, float(py[i]) + 80.0) != i
-    assert panels_search.on_click(env.m, float(px[i]), float(py[i]))
+    assert panels_search.on_click(env.m, float(px[i]), float(py[i])) is False        # card opens, the click still reaches the building pick
     assert c.facility_sel == i and c.result is None
     env.draw(3)
     _clean(env)

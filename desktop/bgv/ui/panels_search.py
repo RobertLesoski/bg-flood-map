@@ -5,7 +5,7 @@
     draw(ui)                    once per frame, called from UiManager.frame()  (markers, search bar, cards, windows, hints, help)
     menu(ui)                    the body of the "Find" menu (menus.py)
     on_key(ui, ev) -> bool      first look at every key_down (UiManager.on_key)
-    on_click(ui, x, y) -> bool  a click on the 3D view: a facility marker takes it (UiManager._click)
+    on_click(ui, x, y) -> bool  a click on the 3D view: a facility marker opens its card (the click still selects the building, UiManager._click)
     post_frame(app, manager)    after the frame: writes a queued risk report (OverlayLayer.post_frame)
 """
 from __future__ import annotations
@@ -153,7 +153,7 @@ def on_key(ui, ev) -> bool:
         if kl == "l":
             c.show_roads = not c.show_roads
             return True
-        if k == "Escape":
+        if k == "Escape" and not (ui.show_help or ui.show_about or ui.st.hidden):     # dialogs / hidden UI keep their old priority
             if c.query:
                 c.query, c.committed = "", False
                 return True
@@ -164,6 +164,7 @@ def on_key(ui, ev) -> bool:
 
 
 def on_click(ui, x: float, y: float) -> bool:
+    """A click on a facility marker opens its card; it does NOT swallow the click, so the building under the marker is selected too."""
     c = controller(ui)
     if c.facilities is None or not c.markers_on:
         return False
@@ -171,8 +172,7 @@ def on_click(ui, x: float, y: float) -> bool:
     if i < 0:
         return False
     c.select_facility(i)
-    bridge.clear_selection(ui.app)
-    return True
+    return False            # the click still selects the building under the marker (a school building is both)
 
 
 def post_frame(app, manager):

@@ -25,7 +25,7 @@ files get five small hooks, each wrapped so a failure in the search code can nev
 1. `bgv/ui/manager.py`
    * `UiManager.frame()`: `self.safe("search", panels_search.draw)` just before `dialogs.draw`, and `panels_search` added to the local import.
    * `UiManager.on_key()`: first statement after the key is parsed: `panels_search.on_key(self, ev)` (Ctrl+F, `/`, M, L, Ctrl+P, Esc).
-   * `UiManager._click()`: `panels_search.on_click(self, x, y)` before `bridge.click_select` (a click on a facility marker takes the click).
+   * `UiManager._click()`: `panels_search.on_click(self, x, y)` before `bridge.click_select` (a click on a facility marker opens its card; the click still selects the building).
 2. `bgv/ui/menus.py`: a new `Find` menu before `Help`; its body is `panels_search.menu(ui)`.
 3. `bgv/ui/dialogs.py`: `draw()` now calls `help.draw(ui, controller)` (the new Help / About window) instead of `_help` / `_about`, which
    remain as the fallback when the new window raises. `ui.show_help` / `ui.show_about` keep their meaning.
