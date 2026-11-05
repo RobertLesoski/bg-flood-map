@@ -137,3 +137,21 @@ cd $SCRATCH/bgflood && bash vista_climate_scenarios.sh --dry-run && bash vista_c
 Flow grids: `layers/flow_county/` (rsync above). Terrain: `scp -o MACs=hmac-sha2-256 rlesoski@vista.tacc.utexas.edu:/scratch/11931/rlesoski/bgflood/dem/dem_warren_5m.tif "<data root>\layers\"`.
 Start `python -m bgv --domain county` (or choose County on the loading screen). Buildings/roads are read from `kentucky-latest.osm.pbf` once (about a minute) and cached.
 No data yet? `python -m bgv --make-county-demo <folder>` for synthetic DEMO DATA.
+
+## Real-depth sampling in the web viewer (how it works, accuracy limits)
+
+`cog/cog-depth.js` (no dependencies, no CDN) reads the COGs with HTTP Range requests: the file head once, then only the 512 px tiles in view, decoded with
+`DecompressionStream('deflate')` and kept in a 64 MB LRU (32 MB on phones). Folder layout: `layers/cog/<domain>/<storm>/{cog_meta.json,max_depth.tif,depth_*s.tif}`
+(`?cogbase=` overrides the base folder, used by the demo/tests). Hour N = the file whose save time is nearest N*3600 s (names are not exact: `depth_003604s`, `depth_000015s`).
+- **Click / tap anywhere**: lng/lat -> EPSG:3857 (spherical formula, matches PROJ to 2e-8 m) -> pixel at full resolution -> value. Shows the PEAK over the run (`max_depth.tif`)
+  and the depth at the hour grid nearest the slider. "no water (0 cm)" and "no data (outside the modelled area)" are distinct. On a building the value is the highest cell
+  inside the footprint (pixels whose centre is inside plus pixels the outline touches).
+- **Overlay** (checkbox "Real solver depth"): a MapLibre custom protocol renders 256 px tiles from the COG (overview chosen by zoom) in the active palette with the viewer's
+  tiers (0.1 / 0.3 / 0.6 / 1.2 m); under 0.1 m is transparent. Zoomed-out tiles use AVERAGED overviews, so thin shallow water fades there.
+- **Risk card**: per storm, the peak depth of the building footprint from the raster replaces the grid value (rows labelled "solver"); storms without COGs keep the 20-25 m grid value (labelled "grid").
+- Limits: values are the solver's float metres resampled bilinearly 5 m UTM -> 6.25 m mercator (about 5 m on the ground) and rounded to whole cm, so a single cell can differ
+  from the source cell by the local gradient over up to one source cell (see the verification numbers in WEB_COG_PROGRESS.md); overview levels are averages, not queries;
+  county terrain outside the city is about 10 m, so building-scale values there are indicative; model output, not validated against observed floods; tiles are fetched on demand and
+  are NOT available offline (the offline shell still works, the query says it could not be read).
+- Tests: `python -m pytest scripts/tests/test_cog_reader.py` (fixture, PROJ check, Range service) and `cog/test/cog-harness.html` in a browser (reader vs GDAL on every level).
+  `python scripts/make_cog_fixture.py --viewer-demo cog/test/demo` makes SYNTHETIC demo COGs to try the viewer with `viewer.html?domain=county&cogbase=./cog/test/demo`.

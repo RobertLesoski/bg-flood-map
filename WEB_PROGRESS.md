@@ -26,3 +26,6 @@ DONE: swipe compare (hour/storm/none, flat maps, divider), flooded-roads list (+
 
 ## Note 6
 Layer harness 6 fails PRE-EXIST (same with original fluid js; 177/184 at last poll). At-risk roads by max-depth tier (toggle rf-cb, city+county, joined by OSM id to layers/county/roads.geojson.gz, legend, popup). Swipe not seen visually (pane only 539x279). Servers 8123/8124 stopped.
+
+## Note 7 (real-depth COG)
+DONE: cog/cog-depth.js reader, click-to-query anywhere, optional real-depth overlay (own palette/tiers, peak or hour), risk card per-building solver depth, setBeforeId in fluid-layer.js, sw.js shell v2. Tests: scripts/tests/test_cog_reader.py (10), cog/test/cog-harness.html (30+). Details/log: WEB_COG_PROGRESS.md.
