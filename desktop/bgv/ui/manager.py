@@ -247,6 +247,8 @@ class UiManager:
         kl = k.lower() if len(k) == 1 else k
         app = self.app
         mods = ev.get("modifiers") or ()
+        if registry.on_key_hooks(self, ev):                          # feature modules (cinematic tools ...)
+            return True
         if k == "F12":
             self.shot_request = "scene" if "Shift" in mods else "ui"
             return True
@@ -429,6 +431,7 @@ class UiManager:
             self.L.sx0, self.L.sy0, self.L.sx1, self.L.sy1 = 0.0, 0.0, W, H
             self.safe("probe", panels_overlay.draw_probe)
             self.safe("osm credit", lambda ui: _osm_credit(ui.app, ui.L, ui.s))
+            registry.draw_overlays(self)
             self.toasts.draw(W * 0.5, H - 24)
             self._draw_hidden_hint(W, H)
             self._finish_frame()
@@ -451,6 +454,7 @@ class UiManager:
         self.safe("probe", panels_overlay.draw_probe)
         self.safe("dialogs", dialogs.draw)
         self._draw_extensions()
+        registry.draw_overlays(self)
         self.toasts.draw((self.L.sx0 + self.L.sx1) * 0.5, self.L.sy1 - 14.0 * self.s)
         self._finish_frame()
 

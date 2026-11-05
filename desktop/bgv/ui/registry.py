@@ -90,6 +90,13 @@ class Tool:
         return False
 
 
+# Whole-menu / always-drawn / key-event hooks (used by feature modules that own a complete top-level menu, an overlay that must
+# also show while the interface is hidden with H, or raw key_down events).  Ported from the cinematic branch's hooks.py.
+OVERLAYS: dict = {}           # name -> fn(ui), drawn every frame, also while the interface is hidden
+TOP_MENUS: dict = {}          # label -> fn(ui) drawing `if imgui.begin_menu(label): ...; imgui.end_menu()`
+KEY_HOOKS: dict = {}          # name -> fn(ui, ev) -> True when it consumed the key_down event (asked before built-in hotkeys)
+_SHORTCUTS_DONE: set = set()
+
 MENU_ITEMS: list[MenuItem] = []
 PANELS: list[Panel] = []
 SECTIONS: list[SidebarSection] = []
@@ -179,3 +186,52 @@ def call(ui, fn, *args, default=None, what=""):
             except Exception:
                 pass
         return default
+
+
+def register_overlay(name, fn):
+    OVERLAYS[name] = fn
+
+
+def register_top_menu(label, fn):
+    TOP_MENUS[label] = fn
+
+
+def register_key_hook(name, fn):
+    KEY_HOOKS[name] = fn
+
+
+def register_shortcuts(name, rows):
+    """Append rows [(key, description) | (section, None)] to the F1 help dialog's table (once per `name`)."""
+    if name in _SHORTCUTS_DONE:
+        return
+    _SHORTCUTS_DONE.add(name)
+    try:
+        from . import dialogs
+        dialogs.SHORTCUTS.extend(rows)
+    except Exception:
+        pass
+
+
+def draw_overlays(ui):
+    for name, fn in list(OVERLAYS.items()):
+        ui.safe(name, fn)
+
+
+def draw_top_menus(ui):
+    for label, fn in list(TOP_MENUS.items()):
+        ui.safe("menu " + label, fn)
+
+
+def on_key_hooks(ui, ev) -> bool:
+    for name, fn in list(KEY_HOOKS.items()):
+        try:
+            if fn(ui, ev):
+                return True
+        except Exception as e:
+            if name not in ui.error_logged:
+                ui.error_logged.add(name)
+                try:
+                    ui.app.report_error(f"key hook {name}", e)
+                except Exception:
+                    pass
+    return False

@@ -99,3 +99,13 @@ View menu: **Interface theme** (dark / light) and **Colour palette** (Standard t
 roads, legend and lists). Both are remembered. Look: sun-dependent sky and horizon, aerial perspective tinted toward the sun, calmer and less glaring shallow
 floodwater, window facades on close buildings (`docs/shots/polish/`). Other features plug in through `bgv/ui/registry.py` (menu items, panels, tools, hotkeys,
 sidebar sections, one file `bgv/ui/ext_<name>.py` each) and the depth API `app.depth_at / building_depth / depth_profile`: see `docs/EXTENSION_API.md`.
+
+## Cinematic tools (Cinematic menu, key C)
+
+Bookmarks (Ctrl+B saves the view, Ctrl+1..9 flies to it, per area, saved with the settings), an automatic **tour** (T: hospitals, schools, fire,
+police and shelters named in `infrastructure.geojson` plus the most flooded named roads, spline camera path with ease in / out, captions with the
+place name, storms and hour advance, pause / skip / stop), a **time-lapse** player (L: any rate, range, loop / ping-pong / once; the shader blends the
+two hourly flow frames, so water never steps), and **clip export** (PNG sequence up to 4K, MP4 when ffmpeg is installed, otherwise `make_mp4.bat`;
+every frame carries the "model unvalidated, velocity derived" stamp, the storm / hour caption and the data source). Depth read-outs come from the
+solver depth COG tiles (`layers/cog/<domain>/<storm>`, label "solver depth (tiles, 6.25 m; verification pending)") or, for the city, the flow grid.
+Hooks into shared files and settings: `docs/CINEMATIC_HOOKS.md`.

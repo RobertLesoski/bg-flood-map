@@ -111,7 +111,7 @@ class TileSet:
             base = f"solver depth (native tiles, {r})"
         else:
             base = f"solver depth (tiles, {r}"+ ")" if self.res_m else "solver depth (tiles)"
-        return base if self.verified else base[:-1] + ", verification pending)"
+        return base if self.verified else base[:-1] + "; verification pending)"
     def nearest_hour(self, t: float):
         if not self.hours:
             return None
@@ -162,9 +162,11 @@ class TileService:
         self.enabled = bool(settings.get("tiles_enabled", True))
         self.reason = ""
         b = base or os.environ.get("BGV_COG_DIR") or settings.get("cog_dir")
-        folder = os.environ.get("BGV_COG_FOLDER") or settings.get("cog_folder") or "cog"      # e.g. "cog_native" when finer tiles land
+        from .depthtiles import tile_dir_name as _tdn            # ONE folder policy: cog_folder / BGV_COG_FOLDER (aliases tile_dir / BGV_TILE_DIR)
+        folder = _tdn(settings)      # e.g. "cog_native" when finer tiles land
         self.base = Path(b) if b else Path(root) / "layers" / folder
-        self.verified = bool(settings.get("tiles_verified", False))
+        from .depthtiles import tiles_verified as _tv                 # ONE policy: WEB_COG_PROGRESS.md `Status: verified`
+        self.verified = bool(settings.get("tiles_verified", False) or _tv())
         if domain is not None and getattr(domain, "demo", False):
             self.enabled, self.reason = False, "the county demo data is synthetic and has no solver tiles"
         self._sets: dict = {}

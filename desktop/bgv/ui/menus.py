@@ -162,6 +162,7 @@ def draw(ui):
                     if imgui.menu_item(it.label, it.shortcut, on, en)[0]:
                         registry.call(ui, it.action, what=f"menu.{it.label}")
                 imgui.end_menu()
+            registry.draw_top_menus(ui)                          # feature menus (Cinematic ...)
             if imgui.begin_menu("Help"):
                 if imgui.menu_item("Controls and shortcuts", "F1", False)[0]:
                     ui.show_help = True
