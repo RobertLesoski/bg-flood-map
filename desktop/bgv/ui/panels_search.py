@@ -752,7 +752,7 @@ def _facility_body(ui, c):
         c.persist()
     imgui.spacing()
     eff = fs.depth_cm(storm)
-    order = np.argsort(-eff, kind="stable")
+    order = fs.order(storm)
     avail = imgui.get_content_region_avail()
     if imgui.begin_table("##fl", 3, int(imgui.TableFlags_.scroll_y | imgui.TableFlags_.row_bg | imgui.TableFlags_.sizing_fixed_fit), V2(0, max(avail.y - 8.0 * s, 80.0))):
         try:

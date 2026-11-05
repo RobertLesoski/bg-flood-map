@@ -191,7 +191,19 @@ def main(argv=None) -> int:
     print(f"[shot] wrote {out} {w}x{h} errors: {list(app.errors) or 'none'} panel errors: {m.panel_errors or 'none'}")
     print("[shot] status:", {k: (v.state, v.message[:80]) for k, v in c.status.items()})
     if args.bench > 0:
+        tools.wait_for_flow(app, all_hours=True)
+        frames(20)
         ft = []
+        cpu_ms = {}
+        orig_safe = type(m).safe
+
+        def timed_safe(self, name, fn, *a):                 # thread CPU time per panel (immune to other processes' contention)
+            t0 = time.thread_time()
+            try:
+                return orig_safe(self, name, fn, *a)
+            finally:
+                cpu_ms.setdefault(name, []).append((time.thread_time() - t0) * 1000.0)
+        type(m).safe = timed_safe
         t_end = time.perf_counter() + args.bench
         while time.perf_counter() < t_end:
             t1 = time.perf_counter()
@@ -201,6 +213,12 @@ def main(argv=None) -> int:
         a = np.array(ft)
         print(f"[bench] frames {len(a)} mean {a.mean():.2f} ms p95 {np.percentile(a, 95):.2f} p99 {np.percentile(a, 99):.2f} "
               f"max {a.max():.2f} -> {1000.0 / a.mean():.0f} fps (offscreen, UI on, panels as shown)")
+        type(m).safe = orig_safe
+        top = {k: float(np.mean(v)) for k, v in cpu_ms.items()}
+        mine = sum(v for k, v in top.items() if k.startswith("search.") and k != "search")
+        print(f"[bench] thread-CPU ms per frame: search panels total {mine:.2f} (" + ", ".join(f"{k} {v:.2f}" for k, v in sorted(top.items(), key=lambda kv: -kv[1])[:10]) + ")")
+        pm = sorted(m.panel_ms.items(), key=lambda kv: -kv[1])[:8]
+        print("[bench] UI panel ms (smoothed, CPU): " + ", ".join(f"{k} {v:.2f}" for k, v in pm) + f"; lite={m.lite}")
     app.shutdown()
     return 0
 

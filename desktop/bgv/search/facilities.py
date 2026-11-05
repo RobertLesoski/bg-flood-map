@@ -88,6 +88,8 @@ class FacilitySet:
         self.d_tiles: dict[str, np.ndarray] = {}
         self.d_near: dict[str, np.ndarray] = {}
         self._eff: dict[str, np.ndarray] = {}
+        self._first = None
+        self._order: dict[str, np.ndarray] = {}
         self.tier_sources: set = set()          # storms whose flow grid is a depth-TIER preview (severe = ">= 120 cm", not a depth)
 
     def is_approx(self, storm: str) -> bool:
@@ -125,6 +127,8 @@ class FacilitySet:
         self.d_tiles = {}
         self.d_near: dict[str, np.ndarray] = {}
         self._eff = {}
+        self._first = None
+        self._order = {}
         if ts is None or self.n == 0:
             return
         for s in storms or self.storms:
@@ -154,10 +158,22 @@ class FacilitySet:
         return self.depth_cm(storm) >= FLOOD_MIN_CM
 
     def first_flooded(self, i: int) -> str | None:
-        for s in self.storms:
-            if self.depth_cm(s)[i] >= FLOOD_MIN_CM:
-                return s
-        return None
+        if self._first is None:                                  # cached: the lists call this for every row every frame
+            ff = [None] * self.n
+            for s in reversed(self.storms):
+                m = self.depth_cm(s) >= FLOOD_MIN_CM
+                for k in np.flatnonzero(m):
+                    ff[int(k)] = s
+            self._first = ff
+        return self._first[i]
+
+    def order(self, storm: str) -> np.ndarray:
+        """Facility indices, deepest first in `storm` (cached)."""
+        o = self._order.get(storm)
+        if o is None:
+            o = np.argsort(-self.depth_cm(storm), kind="stable")
+            self._order[storm] = o
+        return o
 
     def max_cm(self, i: int) -> tuple[int, str | None]:
         best, bs = 0, None
