@@ -243,10 +243,7 @@ def register_click_hook(name, fn):
 
 
 def on_click_hooks(ui, x, y) -> bool:
-    import os
     for name, fn in list(CLICK_HOOKS.items()):
-        print("CLICKHOOK", name, flush=True)
-        if name in os.environ.get("SKIPCLICK",""): continue
         try:
             if fn(ui, x, y):
                 return True
