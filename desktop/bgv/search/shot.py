@@ -178,7 +178,7 @@ def main(argv=None) -> int:
     if args.report:
         c.request_report()
     time.sleep(0.2)
-    img = frames(5)
+    img = frames(30 if args.hint else 5)
     if args.report:
         ov.post_frame(app)
         frames(1)

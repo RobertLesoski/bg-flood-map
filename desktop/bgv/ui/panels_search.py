@@ -29,9 +29,10 @@ V4 = imgui.ImVec4
 
 CTL_ATTR = "_search_ctl"
 WIN_FLAGS = int(imgui.WindowFlags_.no_collapse | imgui.WindowFlags_.no_saved_settings)
+# NOTE: imgui puts a NoBringToFrontOnFocus window at the BACK of the stack (behind the legend and every other overlay panel), so the
+# cards and the dropdown deliberately do not use that flag
 CARD_FLAGS = int(imgui.WindowFlags_.no_move | imgui.WindowFlags_.no_resize | imgui.WindowFlags_.no_collapse
-                 | imgui.WindowFlags_.no_title_bar | imgui.WindowFlags_.no_saved_settings
-                 | imgui.WindowFlags_.no_bring_to_front_on_focus | imgui.WindowFlags_.always_auto_resize)
+                 | imgui.WindowFlags_.no_title_bar | imgui.WindowFlags_.no_saved_settings | imgui.WindowFlags_.always_auto_resize)
 TIER_LABEL = ("below 10 cm", "Shallow", "Moderate", "Deep", "Severe")
 
 
@@ -57,6 +58,15 @@ def _depth(cm, tier: int, approx: bool) -> str:
     if cm < 1:
         return "dry"
     return f"{'~' if approx else ''}{cm} cm"
+
+
+def _cm(cm, approx: bool) -> str:
+    """Depth in cm for the lists; a depth-tier preview never claims more than '>= 120 cm' for the severe tier."""
+    if approx and cm >= 120:
+        return ">= 120 cm"
+    if cm < 1:
+        return "-"
+    return ("~" if approx else "") + f"{int(cm)} cm"
 
 
 def _source_colour(label: str):
@@ -276,7 +286,7 @@ def _markers(ui, c):
         cm = int(eff[hover])
         imgui.begin_tooltip()
         imgui.text(f.name or "(unnamed)")
-        dim(f"{fac.style(f.type)[0]}  |  {storm}: " + (f"{cm} cm  {TIER_LABEL[tl.tier_of_cm(cm)]}" if cm >= 10 else "not flooded"))
+        dim(f"{fac.style(f.type)[0]}  |  {storm}: " + (f"{_cm(cm, fs.is_approx(storm))}  {TIER_LABEL[tl.tier_of_cm(cm)]}" if cm >= 10 else "not flooded"))
         dim("click for details")
         imgui.end_tooltip()
 
@@ -375,12 +385,15 @@ def _choose(ui, c, hit):
     c.select_record(hit.idx)
 
 
+def _dd_visible(c) -> bool:
+    if not c.query.strip() or c.committed:
+        return False
+    return bool(getattr(c, "input_active", False) or c.dd_hover or getattr(c, "force_dd", False))
+
+
 def _dropdown(ui, c):
-    q = c.query.strip()
-    if not q or c.committed:
+    if not _dd_visible(c):
         c.dd_hover = False
-        return
-    if not (getattr(c, "input_active", False) or c.dd_hover or getattr(c, "force_dd", False)):
         return
     L, s = ui.L, ui.s
     x, y, w = c.bar_rect
@@ -430,7 +443,8 @@ def _hit_row(ui, c, n, h, w):
     dl.add_rect_filled(V2(p0.x + 2, p0.y + 3), V2(p0.x + 6 * s, p1.y - 3), col32(col), 2.0)
     dl.add_text(V2(p0.x + 12 * s, p0.y + 4 * s), col32(theme.TEXT), h.label)
     rec_kind = "lot" if c.index.kind[h.idx] == 1 else "building"
-    sub = rec_kind + ("  |  up to " + (f"{cm} cm {TIER_LABEL[tier]}" if cm >= 10 else "dry") + "  |  " + (src if final else "index (grid), tiles loading..."))
+    approx = src == tl.INDEX_LABEL and c.index_is_tiers
+    sub = rec_kind + ("  |  up to " + (f"{_cm(cm, approx)} {TIER_LABEL[tier]}" if cm >= 10 else "dry") + "  |  " + (src if final else "index (grid), tiles loading..."))
     dl.add_text(V2(p0.x + 12 * s, p0.y + 4 * s + imgui.get_text_line_height()), col32(theme.TEXT_DIM if tier < 1 else col), sub)
 
 
@@ -442,6 +456,8 @@ def _cards(ui, c):
     x, y, w = c.bar_rect
     y += getattr(c, "bar_h", 38.0 * s) + 8.0 * s
     maxh = L.sy1 - y - 10.0 * s
+    if _dd_visible(c):                      # while the typeahead list is open it takes the place of the card
+        return
     if c.result is not None:
         _result_card(ui, c, x, y, w, maxh)
     elif c.facility_sel >= 0 and c.facilities is not None:
@@ -548,7 +564,7 @@ def _storm_row(ui, c, r, both):
     imgui.table_next_column()
     p = imgui.get_cursor_screen_pos()
     dl = imgui.get_window_draw_list()
-    col = _tier_col(r.shown_tier)
+    col = _tier_col(r.shown_tier) if r.shown_tier else theme.TEXT_DIM
     if cur:
         dl.add_rect_filled(V2(p.x - 4, p.y - 1), V2(p.x - 1, p.y + imgui.get_text_line_height() + 1), col32(theme.ACCENT), 1.0)
     clicked, _ = imgui.selectable(f"{r.short}##r{r.key}", cur, int(imgui.SelectableFlags_.span_all_columns), V2(0, 0))
@@ -610,13 +626,15 @@ def _facility_card(ui, c, x, y, w, maxh):
         if cur is not None:
             cm = cur["effective_cm"]
             t = tl.tier_of_cm(cm)
-            text_c(_tier_col(t), f"{cur['storm']}: " + (f"{cm} cm  {TIER_LABEL[t]}" if cm >= 10 else "not flooded (below 10 cm)"))
+            text_c(_tier_col(t), f"{cur['storm']}: " + (f"{_cm(cm, fs.is_approx(cur['storm']))}  {TIER_LABEL[t]}" if cm >= 10 else "not flooded (below 10 cm)"))
             text_c(_source_colour(cur["source"]), cur["source"])
+            if fs.is_approx(cur["storm"]):
+                text_c(theme.WARN, "Preview from depth tiers: severe means 1.2 m or more, not a depth")
         ff = info["first_flooded"]
         text_c(theme.WARN if ff else theme.OK, f"First flooded in: {ff}" if ff else "Not flooded (>= 10 cm) in any modelled storm")
         mx, ms = info["max_cm"], info["max_storm"]
         if ms:
-            dim(f"Deepest: {mx} cm in {ms}")
+            dim(f"Deepest: {_cm(mx, fs.is_approx(ms))} in {ms}")
         imgui.spacing()
         has_t = any(p_["tile_cm"] is not None for p_ in info["per_storm"])
         ncol = 5 if has_t else 2
@@ -655,7 +673,7 @@ def _facility_card(ui, c, x, y, w, maxh):
                         imgui.text_colored(V4(*theme.TEXT_DIM), "-" if p_["near_cm"] is None else f"{p_['near_cm']} cm")
                     else:
                         imgui.table_next_column()
-                        imgui.text_colored(V4(*_tier_col(t)), f"{p_['index_cm']} cm")
+                        imgui.text_colored(V4(*_tier_col(t)), _cm(p_["index_cm"], fs.is_approx(p_["storm"])) if p_["index_cm"] >= 1 else "dry")
             finally:
                 imgui.end_table()
         imgui.spacing()
@@ -712,6 +730,8 @@ def _facility_body(ui, c):
     text_c(theme.WARN if n_fl else theme.OK, f"{n_fl} of {n} facilities flooded (>= 10 cm) in {storm}")
     src = fs.source(storm)
     text_c(_source_colour(src), src)
+    if fs.is_approx(storm):
+        text_c(theme.WARN, "Preview from depth tiers: severe means 1.2 m or more, not a depth")
     imgui.spacing()
     counts = {}
     for t in fs.types:
@@ -720,10 +740,12 @@ def _facility_body(ui, c):
     first = True
     for t in sorted(counts, key=lambda k: -counts[k]):
         label, rgb, _ = fac.style(t)
-        if not first:
-            imgui.same_line() if imgui.get_content_region_avail().x > 130.0 * s else None
+        text = f"{label} {counts[t]}"
+        need = imgui.calc_text_size(text).x + 30.0 + imgui.get_style().item_spacing.x
+        if not first and imgui.get_content_region_avail().x > need:
+            imgui.same_line()
         first = False
-        if chip_toggle(f"##ft{t}", f"{label} {counts[t]}", t not in c.types_off, (*rgb, 1.0)):
+        if chip_toggle(f"##ft{t}", text, t not in c.types_off, (*rgb, 1.0)):
             (c.types_off.discard if t in c.types_off else c.types_off.add)(t)
             changed = True
     if changed:
@@ -762,7 +784,7 @@ def _facility_body(ui, c):
                     if imgui.is_item_hovered():
                         imgui.set_tooltip(f"{f.name or '(unnamed)'}\n{label}")
                     imgui.table_next_column()
-                    imgui.text_colored(V4(*_tier_col(t)), f"{cm} cm" if cm >= 10 else "-")
+                    imgui.text_colored(V4(*_tier_col(t)), _cm(cm, fs.is_approx(storm)) if cm >= 10 else "-")
                     imgui.table_next_column()
                     ff = fs.first_flooded(i)
                     imgui.text_colored(V4(*theme.TEXT_DIM), ff or "-")
@@ -887,7 +909,7 @@ def _road_row(ui, c, t, i):
     imgui.text_colored(V4(*(theme.WARN if pct >= 50 else theme.TEXT)), f"{pct:.0f}%")
     imgui.table_next_column()
     mx = int(t.max_cm[i])
-    imgui.text_colored(V4(*_tier_col(tl.tier_of_cm(mx))), f"{mx} cm")
+    imgui.text_colored(V4(*_tier_col(tl.tier_of_cm(mx))), _cm(mx, t.source == "tiers") if mx >= 1 else "-")
     imgui.table_next_column()
     L_ = float(t.len_m[i])
     imgui.text_colored(V4(*theme.TEXT_DIM), f"{L_ / 1000:.1f} km" if L_ >= 1000 else f"{L_:.0f} m")

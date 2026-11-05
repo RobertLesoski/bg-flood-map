@@ -88,6 +88,11 @@ class FacilitySet:
         self.d_tiles: dict[str, np.ndarray] = {}
         self.d_near: dict[str, np.ndarray] = {}
         self._eff: dict[str, np.ndarray] = {}
+        self.tier_sources: set = set()          # storms whose flow grid is a depth-TIER preview (severe = ">= 120 cm", not a depth)
+
+    def is_approx(self, storm: str) -> bool:
+        """The shown depth of this storm comes from a depth-tier preview grid (no tile replaced it)."""
+        return storm in self.tier_sources and storm not in self.d_tiles
 
     @classmethod
     def load(cls, path) -> "FacilitySet":

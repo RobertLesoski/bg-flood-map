@@ -73,6 +73,7 @@ class SearchController:
         self._loading_roads: set = set()
         self._geo_started = False
         self._fp_started = False
+        self._fp_lock = threading.RLock()
         # query / result state
         self._hits_cache: tuple | None = None
         self.result: Result | None = None
@@ -156,6 +157,15 @@ class SearchController:
         key = self.domain.key
         if key != self.domain_key:
             self._reset(key)
+        fs, idx = self.facilities, self.index
+        if fs is not None and idx is not None and not getattr(fs, "_linked", False):
+            fs._linked = True
+            fs.tier_sources = {s["key"] for s in idx.storms if s.get("source") == "tiers"}
+
+    @property
+    def index_is_tiers(self) -> bool:
+        idx = self.index
+        return bool(idx is not None and idx.storms and all(s.get("source") == "tiers" for s in idx.storms))
 
     def _reset(self, key: str):
         self.gen += 1
@@ -265,23 +275,35 @@ class SearchController:
         st.state, st.seconds, st.message, st.path = "ready", time.perf_counter() - t0, f"{len(g.ways):,} ways", g.source
 
     def ensure_footprints(self):
+        """Warm the footprint cache in the background (only when depth tiles exist)."""
         if self._fp_started or self.tiles is None:
             return
         self._fp_started = True
-        self._submit(self._load_footprints, self.domain_key)
+        self._submit(self.get_footprints)
 
-    def _load_footprints(self, key):
-        st = self.status["footprints"]
-        st.state = "loading"
-        try:
-            bpath = self.domain.scene_paths(self.app.terrain.frame)[0]
-            fp = asm.Footprints.load(bpath)
-        except Exception as e:                                         # noqa: BLE001
-            st.state, st.message = "missing", f"building footprints for the tile lookup unavailable ({type(e).__name__}); the cell under the address point is used"
-            return
-        if key == self.domain_key:
-            self.footprints = fp
-            st.state, st.message, st.path = "ready", f"{len(fp.polys):,} footprints", str(bpath)
+    def get_footprints(self):
+        """Footprints for the tile lookup, loaded once (call from worker threads only: the first call reads ~9 MB of GeoJSON).
+        Returns None when unavailable (the cell under the address point is used instead and the card says so)."""
+        with self._fp_lock:
+            if self.footprints is not None or self.tiles is None:
+                return self.footprints
+            st = self.status["footprints"]
+            if st.state in ("missing", "error"):
+                return None
+            key = self.domain_key
+            st.state = "loading"
+            try:
+                bpath = self.domain.scene_paths(self.app.terrain.frame)[0]
+                fp = asm.Footprints.load(bpath)
+            except Exception as e:                                     # noqa: BLE001
+                st.state = "missing"
+                st.message = (f"building footprints for the tile lookup unavailable ({type(e).__name__}); "
+                              "the cell under the address point is used")
+                return None
+            if key == self.domain_key:
+                self.footprints = fp
+                st.state, st.message, st.path = "ready", f"{len(fp.polys):,} footprints", str(bpath)
+            return self.footprints
 
     def road_table(self, storm: str | None = None):
         """RoadTable of the storm, or None while loading / a message string when it cannot be shown."""
@@ -325,8 +347,7 @@ class SearchController:
         return hits
 
     def _assess_hit(self, i):
-        self.ensure_footprints()
-        fp = self.footprints
+        fp = self.get_footprints() if self.tiles is not None else None
         a = asm.assess(self.index, i, self.tiles, fp)
         if len(self.hit_assess) > 400:
             self.hit_assess.clear()
@@ -360,17 +381,13 @@ class SearchController:
 
     def _assess_result(self, res: Result):
         try:
-            if self.tiles is not None:
-                for _ in range(100):                       # wait (<= 5 s) for the footprints so the result uses them
-                    if self.status["footprints"].state in ("ready", "missing", "error"):
-                        break
-                    time.sleep(0.05)
-            if self.footprints is not None and res.rec.bid >= 0:
-                b2 = self.resolve_building(res.rec, self.footprints)
+            fp = self.get_footprints() if self.tiles is not None else None
+            if fp is not None and res.rec.bid >= 0:
+                b2 = self.resolve_building(res.rec, fp)
                 if b2 is not None and b2 != res.building and self.result is res:
                     res.building = b2
                     self._select_building(b2)
-            res.assessment = asm.assess(self.index, res.rec.i, self.tiles, self.footprints)
+            res.assessment = asm.assess(self.index, res.rec.i, self.tiles, fp)
         except Exception as e:                                         # noqa: BLE001
             res.error = f"{type(e).__name__}: {e}"
             self._log_exc("assess", e)
@@ -548,14 +565,14 @@ class SearchController:
         if res is not None and res.assessment is not None:
             return rpt.from_assessment(res.assessment, label, current_storm=cur, build=build), ""
         if res is not None and res.pending:
-            a = asm.assess(self.index, res.rec.i, self.tiles, self.footprints)
+            a = asm.assess(self.index, res.rec.i, self.tiles, self.get_footprints())
             return rpt.from_assessment(a, label, current_storm=cur, build=build), ""
         from ..ui import bridge
         sel = bridge.selection(app).get("building")
         if sel is not None and self.index is not None:
             i = self.record_for_building(int(sel))
             if i >= 0:
-                a = asm.assess(self.index, i, self.tiles, self.footprints)
+                a = asm.assess(self.index, i, self.tiles, self.get_footprints())
                 return rpt.from_assessment(a, label, current_storm=cur, build=build), ""
         if sel is not None:
             fl = bridge.flood(app)
