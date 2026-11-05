@@ -407,7 +407,15 @@ class AnalysisLayer(Layer):
         if sc is None:
             return
         b, _, f = sc
-        self.target = seriesmod.building_target(b, int(i), f)
+        idx = sig = None
+        try:                                               # the building card's all-touched tile index, when ready
+            from ..data import depthapi
+            svc = depthapi.service(self.app)
+            if svc.index_state == "ready":
+                idx, sig = svc.index, svc.index_sig
+        except Exception:
+            pass
+        self.target = seriesmod.building_target(b, int(i), f, tile_index=idx, tile_sig=sig)
         self._start_series()
 
     def _start_series(self):

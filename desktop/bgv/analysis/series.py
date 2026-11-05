@@ -70,9 +70,27 @@ def building_footprint_samples(buildings, i: int):
     return np.vstack([xy, c]) if xy.size else c
 
 
-def building_target(buildings, i: int, frame, label: str = "") -> Target:
-    xy = building_footprint_samples(buildings, i)
-    lng_t, lat_t = geodesy.world_to_lnglat(frame, xy[:, 0], xy[:, 1])
+def tile_cell_centres(tile_index, sig, i: int):
+    """(lng, lat) of the centres of building i's all-touched cells on the TILE grid (sig = W, H, res, x0, y0 in Mercator, as
+    TileService.grid_signature), or None.  Sampling these 'nearest' gives exactly the building card's footprint maximum."""
+    if tile_index is None or sig is None or not (0 <= i < tile_index.n):
+        return None
+    pix = np.asarray(tile_index.pixels_of(int(i)), np.int64)
+    if pix.size == 0:
+        return None
+    W, H, res, x0, y0 = sig
+    xm = x0 + (pix % W + 0.5) * res
+    ym = y0 - (pix // W + 0.5) * res
+    return geodesy.merc_to_lnglat(xm, ym)
+
+
+def building_target(buildings, i: int, frame, label: str = "", tile_index=None, tile_sig=None) -> Target:
+    tc = tile_cell_centres(tile_index, tile_sig, i)
+    if tc is not None:            # audit 2026-11: corner+centroid samples missed cells and under-read the card by up to 47 cm
+        lng_t, lat_t = tc
+    else:
+        xy = building_footprint_samples(buildings, i)
+        lng_t, lat_t = geodesy.world_to_lnglat(frame, xy[:, 0], xy[:, 1])
     pix = np.asarray(buildings.index.pixels_of(i), np.int64)
     if pix.size:
         cols, rows = pix % frame.width, pix // frame.width
