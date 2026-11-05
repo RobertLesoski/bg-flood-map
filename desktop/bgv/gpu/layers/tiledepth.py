@@ -84,7 +84,7 @@ class TileDepthLayer(Layer):
         self.mode = "hour"                    # "hour" (the displayed hour's file) | "peak" (max_depth.tif)
         self.pipe = None
         self.status = "off"
-        self.label = ""
+        self.tiles_label = ""  # NOT self.label: that would shadow Layer.label() (the sidebar PopID assert)
         self.level = None
         self.upload_ms = 0.0
         self.max_upload_ms = 0.0
@@ -222,7 +222,7 @@ class TileDepthLayer(Layer):
             self._active = False
             return
         self._ensure_textures(app)
-        self.label = ts.label
+        self.tiles_label = ts.label
         want = self._wanted(app, ts)
         if want is None:
             self.status = "tile file missing for this hour"
@@ -297,8 +297,8 @@ class TileDepthLayer(Layer):
             imgui.same_line()
         imgui.new_line()
         imgui.text_disabled(f"{self.status}" + (f"  |  level {self.level} ({6.25 * 2 ** self.level:g} m cells)" if self.level is not None else ""))
-        if self.label:
-            imgui.text_disabled(self.label)
+        if self.tiles_label:
+            imgui.text_disabled(self.tiles_label)
 
     def save_state(self):
         return {"opacity": self.opacity, "mode": self.mode}

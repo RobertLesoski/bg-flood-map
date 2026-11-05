@@ -102,6 +102,9 @@ def draw(ui):
                 imgui.separator()
                 st.imperial = _toggle("Imperial units on scale bar / legend", "", st.imperial)
                 st.use_tiles = _toggle("Solver depth tiles (probe, building card)", "", st.use_tiles)
+                _td = next((l for l in app.layers if l.name == "tiledepth"), None) if hasattr(app, "layers") else None
+                if _td is not None:
+                    _td.enabled = _toggle("Solver depth overlay on the map", "", bool(_td.enabled))
                 ui.app.settings["restore_last"] = _toggle("Restore last storm and hour at start", "", ui.app.settings.get("restore_last", False))
                 if imgui.begin_menu("Interface theme"):
                     for key, lab in (("dark", "Dark"), ("light", "Light")):

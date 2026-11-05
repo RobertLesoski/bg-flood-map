@@ -215,10 +215,12 @@ def _sec_layers(ui):
         if k % 2:
             imgui.same_line(col2)
         imgui.push_id("lay" + l.name)
-        ch, v = imgui.checkbox(l.label(), bool(l.enabled))
-        if ch:
-            l.enabled = bool(v)
-        imgui.pop_id()
+        try:                                                  # a raising label() must not leave the ID stack unbalanced
+            ch, v = imgui.checkbox(l.label(), bool(l.enabled))
+            if ch:
+                l.enabled = bool(v)
+        finally:
+            imgui.pop_id()
         k += 1
     imgui.spacing()
     imgui.set_next_item_open(False, imgui.Cond_.once)          # also in the View menu; closed to leave room for the statistics
