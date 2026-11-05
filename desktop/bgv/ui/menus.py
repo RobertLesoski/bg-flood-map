@@ -126,6 +126,8 @@ def draw(ui):
                 if imgui.menu_item("Fly to selected building", "F", False, sel is not None)[0]:
                     bridge.fly_to_building(app, int(sel))
                 imgui.end_menu()
+            from . import panels_analysis          # ANALYSIS hook: the Analysis menu
+            panels_analysis.menu(ui)
             if imgui.begin_menu("Help"):
                 if imgui.menu_item("Controls and shortcuts", "F1", False)[0]:
                     ui.show_help = True

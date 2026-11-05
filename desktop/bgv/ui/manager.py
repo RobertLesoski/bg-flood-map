@@ -236,6 +236,9 @@ class UiManager:
                 app.set_storm(names[int(k) - 1])
                 return True
             return False
+        from . import panels_analysis                  # ANALYSIS hook: Esc / Enter / Backspace while a map tool is active
+        if panels_analysis.on_key(self, k):
+            return True
         if k == "Escape":
             if self.show_about or self.show_help:
                 self.show_about = self.show_help = False
@@ -367,7 +370,7 @@ class UiManager:
 
     def frame(self):
         """Draw the whole UI (inside imgui new_frame / render)."""
-        from . import dialogs, menus, panels_overlay, panels_risk, panels_side, panels_time
+        from . import dialogs, menus, panels_analysis, panels_overlay, panels_risk, panels_side, panels_time
         app = self.app
         st = self.st
         io = imgui.get_io()
@@ -388,6 +391,7 @@ class UiManager:
             self.L.foot = 0.0
             self.L.sx0, self.L.sy0, self.L.sx1, self.L.sy1 = 0.0, 0.0, W, H
             self.safe("probe", panels_overlay.draw_probe)
+            self.safe("analysis", panels_analysis.draw_hidden)
             self.safe("osm credit", lambda ui: _osm_credit(ui.app, ui.L, ui.s))
             self.toasts.draw(W * 0.5, H - 24)
             self._draw_hidden_hint(W, H)
@@ -408,6 +412,7 @@ class UiManager:
         self.safe("osm credit", lambda ui: _osm_credit(ui.app, ui.L, ui.s))     # BASEMAP: licence credit while the map shows
         self.safe("perf", panels_overlay.draw_perf)
         self.safe("probe", panels_overlay.draw_probe)
+        self.safe("analysis", panels_analysis.draw)                      # ANALYSIS: tools window + map overlays
         self.safe("dialogs", dialogs.draw)
         self.toasts.draw((self.L.sx0 + self.L.sx1) * 0.5, self.L.sy1 - 14.0 * self.s)
         self._finish_frame()
@@ -496,6 +501,9 @@ class UiManager:
         bridge.selection(self.app)["hover_building"] = bid
 
     def _click(self, x: float, y: float):
+        from . import panels_analysis                  # ANALYSIS hook: an active map tool (measure / profile / point) takes the click
+        if panels_analysis.handle_click(self, x, y):
+            return
         bridge.click_select(self.app, x, y)
         if bridge.selection(self.app).get("building") is not None:
             self.scroll_to_selected = True

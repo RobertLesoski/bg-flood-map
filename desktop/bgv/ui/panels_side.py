@@ -15,7 +15,7 @@ V2 = imgui.ImVec2
 
 # layers whose options live in "Water & Flow"; everything else with options goes to "Quality"
 WATER_LAYERS = ("water", "particles", "arrows")
-HIDDEN_LAYERS = ("overlay", "panels")
+HIDDEN_LAYERS = ("overlay", "panels", "compare", "analysis")      # compare / analysis: ANALYSIS tools, driven from their own window
 
 # quality presets: layer name -> {attribute: value per preset}; applied by attribute so layers need no extra API
 QUALITY = {
