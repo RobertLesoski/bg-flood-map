@@ -29,3 +29,7 @@ Layer harness 6 fails PRE-EXIST (same with original fluid js; 177/184 at last po
 
 ## Note 7 (real-depth COG)
 DONE: cog/cog-depth.js reader, click-to-query anywhere, optional real-depth overlay (own palette/tiers, peak or hour), risk card per-building solver depth, setBeforeId in fluid-layer.js, sw.js shell v2. Tests: scripts/tests/test_cog_reader.py (10), cog/test/cog-harness.html (30+). Details/log: WEB_COG_PROGRESS.md.
+
+## Note 8 (storm picker explains each storm)
+DONE: scripts/build_storm_blurbs.py -> layers/storm_blurbs.json (numbers from storms_out/*.json + build_storm_info.DESIGN; wording and public-report context hand-written, flagged 'not verified by this project'); scripts/tests/test_storm_blurbs.py (5). viewer.html: short line + tooltip/aria-label on each of the 12 options, a storm card under the picker (name, short line, expandable 'What is this storm?' with long text, rain, Real-world context + links, model run for city/county, honesty line). sw.js unchanged (layers/*.json already network-first cached).
+VERIFIED (pane): county, all 12 cards render with right text/links/run dates; 375 px no horizontal overflow; no console errors. NOT VERIFIED: link clicks opened, city domain visually, offline, cog harness html, docs/VALIDATION_EV4.md does not exist yet (referenced as 'when available').

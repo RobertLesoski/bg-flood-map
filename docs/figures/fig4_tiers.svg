@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="460.8pt" height="119.736pt" viewBox="0 0 460.8 119.736" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-11-05T13:18:13.639331</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.0, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 119.736 
+L 460.8 119.736 
+L 460.8 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 7.2 86.202 
+L 96.48 86.202 
+L 96.48 33.534 
+L 7.2 33.534 
+z
+" clip-path="url(#pf0857f5312)" style="fill: #f2f2f2; stroke: #444444; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 96.48 86.202 
+L 185.76 86.202 
+L 185.76 33.534 
+L 96.48 33.534 
+z
+" clip-path="url(#pf0857f5312)" style="fill: #ffea46; stroke: #444444; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 185.76 86.202 
+L 275.04 86.202 
+L 275.04 33.534 
+L 185.76 33.534 
+z
+" clip-path="url(#pf0857f5312)" style="fill: #cbba69; stroke: #444444; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 275.04 86.202 
+L 364.32 86.202 
+L 364.32 33.534 
+L 275.04 33.534 
+z
+" clip-path="url(#pf0857f5312)" style="fill: #666970; stroke: #444444; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 364.32 86.202 
+L 453.6 86.202 
+L 453.6 33.534 
+L 364.32 33.534 
+z
+" clip-path="url(#pf0857f5312)" style="fill: #00204d; stroke: #444444; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'" transform="translate(25.669961 56.975178)">below 0.1 m</text>
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'" transform="translate(27.640234 67.177502)">not flooded</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'" transform="translate(125.170547 56.97551)">shallow</text>
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'" transform="translate(115.143867 67.17717)">0.1 to 0.3 m</text>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'" transform="translate(209.713789 56.97551)">moderate</text>
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'" transform="translate(204.423867 67.17717)">0.3 to 0.6 m</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'; fill: #ffffff" transform="translate(309.053672 56.97551)">deep</text>
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'; fill: #ffffff" transform="translate(293.703867 67.17717)">0.6 to 1.2 m</text>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'; fill: #ffffff" transform="translate(394.731797 56.974846)">severe</text>
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'; fill: #ffffff" transform="translate(371.024766 67.17717)">1.2 m and deeper</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'; text-anchor: middle" x="230.4" y="17.7336" transform="rotate(-0 230.4 17.7336)">Depth tiers (flowquery.py TIER_EDGES_M = 0.1, 0.3, 0.6, 1.2 m); cividis-like palette</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pf0857f5312">
+   <rect x="7.2" y="7.2" width="446.4" height="105.336"/>
+  </clipPath>
+ </defs>
+</svg>

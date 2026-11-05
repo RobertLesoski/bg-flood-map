@@ -1,0 +1,269 @@
+{
+ "generated_from": "scripts/build_storm_blurbs.py (facts: storms.json, vista_run_facts.json, vista_verified_facts.json, build_storm_info.DESIGN)",
+ "storms": {
+  "2yr": {
+   "kind": "design",
+   "name": "2-year design storm",
+   "total": "3.5 in (89 mm)",
+   "peak": "0.29 in/hr (7.4 mm/hr)",
+   "duration": "24 hours",
+   "date": "No calendar date (synthetic)",
+   "short": "Synthetic 24 h rain, 3.5 in, 50% chance in any year",
+   "long": "A made-up, smooth 24-hour rain, not a real day. Total 3.5 in (89 mm), peak 0.29 in/hr (7.4 mm/hr). Depth: NOAA Atlas 14 for Warren County, KY. Its return period is 2 years: rain this heavy has about a 50% chance of happening in any given year. That is an average, not a schedule: a 2-year storm can happen two years in a row. The return period describes the rainfall only, not how bad the flood is.",
+   "context": null,
+   "honesty": "A design storm is a statistical yardstick, not a forecast or a real day. Not validated for depth. One comparison to the April 2025 flood (21 reported flooded roads) shows the model puts more water on flooded roads than on typical roads (AUC 0.84), which is a weak sign it finds where water collects, not proof of accurate depths.",
+   "model_run": {
+    "county": "County: 5 m grid (about 52 x 60 km), run finished 2026-11-03 on TACC Vista.",
+    "city": "City: first 2-year run (classic polygons only); its run date is not recorded in the repo."
+   }
+  },
+  "5yr": {
+   "kind": "design",
+   "name": "5-year design storm",
+   "total": "4.2 in (107 mm)",
+   "peak": "0.35 in/hr (8.9 mm/hr)",
+   "duration": "24 hours",
+   "date": "No calendar date (synthetic)",
+   "short": "Synthetic 24 h rain, 4.2 in, 20% chance in any year",
+   "long": "A made-up, smooth 24-hour rain, not a real day. Total 4.2 in (107 mm), peak 0.35 in/hr (8.9 mm/hr). Depth: NOAA Atlas 14 for Warren County, KY. Its return period is 5 years: rain this heavy has about a 20% chance of happening in any given year. That is an average, not a schedule: a 5-year storm can happen two years in a row. The return period describes the rainfall only, not how bad the flood is.",
+   "context": null,
+   "honesty": "A design storm is a statistical yardstick, not a forecast or a real day. Not validated for depth. One comparison to the April 2025 flood (21 reported flooded roads) shows the model puts more water on flooded roads than on typical roads (AUC 0.84), which is a weak sign it finds where water collects, not proof of accurate depths.",
+   "model_run": {
+    "county": "County: 5 m grid (about 52 x 60 km), run finished 2026-11-03 on TACC Vista.",
+    "city": "City: 2 m grid (about 20 x 20 km), run finished 2026-10-29 on TACC Vista."
+   }
+  },
+  "10yr": {
+   "kind": "design",
+   "name": "10-year design storm",
+   "total": "4.9 in (124 mm)",
+   "peak": "0.41 in/hr (10.4 mm/hr)",
+   "duration": "24 hours",
+   "date": "No calendar date (synthetic)",
+   "short": "Synthetic 24 h rain, 4.9 in, 10% chance in any year",
+   "long": "A made-up, smooth 24-hour rain, not a real day. Total 4.9 in (124 mm), peak 0.41 in/hr (10.4 mm/hr). Depth: NOAA Atlas 14 for Warren County, KY. Its return period is 10 years: rain this heavy has about a 10% chance of happening in any given year. That is an average, not a schedule: a 10-year storm can happen two years in a row. The return period describes the rainfall only, not how bad the flood is.",
+   "context": null,
+   "honesty": "A design storm is a statistical yardstick, not a forecast or a real day. Not validated for depth. One comparison to the April 2025 flood (21 reported flooded roads) shows the model puts more water on flooded roads than on typical roads (AUC 0.84), which is a weak sign it finds where water collects, not proof of accurate depths.",
+   "model_run": {
+    "county": "County: 5 m grid (about 52 x 60 km), run finished 2026-11-03 on TACC Vista.",
+    "city": "City: 2 m grid (about 20 x 20 km), run finished 2026-10-29 on TACC Vista."
+   }
+  },
+  "25yr": {
+   "kind": "design",
+   "name": "25-year design storm",
+   "total": "5.9 in (150 mm)",
+   "peak": "0.49 in/hr (12.5 mm/hr)",
+   "duration": "24 hours",
+   "date": "No calendar date (synthetic)",
+   "short": "Synthetic 24 h rain, 5.9 in, 4% chance in any year",
+   "long": "A made-up, smooth 24-hour rain, not a real day. Total 5.9 in (150 mm), peak 0.49 in/hr (12.5 mm/hr). Depth: NOAA Atlas 14 for Warren County, KY. Its return period is 25 years: rain this heavy has about a 4% chance of happening in any given year. That is an average, not a schedule: a 25-year storm can happen two years in a row. The return period describes the rainfall only, not how bad the flood is.",
+   "context": null,
+   "honesty": "A design storm is a statistical yardstick, not a forecast or a real day. Not validated for depth. One comparison to the April 2025 flood (21 reported flooded roads) shows the model puts more water on flooded roads than on typical roads (AUC 0.84), which is a weak sign it finds where water collects, not proof of accurate depths.",
+   "model_run": {
+    "county": "County: 5 m grid (about 52 x 60 km), run finished 2026-11-03 on TACC Vista.",
+    "city": "City: 2 m grid (about 20 x 20 km), run finished 2026-10-29 on TACC Vista."
+   }
+  },
+  "50yr": {
+   "kind": "design",
+   "name": "50-year design storm",
+   "total": "6.7 in (170 mm)",
+   "peak": "0.56 in/hr (14.2 mm/hr)",
+   "duration": "24 hours",
+   "date": "No calendar date (synthetic)",
+   "short": "Synthetic 24 h rain, 6.7 in, 2% chance in any year",
+   "long": "A made-up, smooth 24-hour rain, not a real day. Total 6.7 in (170 mm), peak 0.56 in/hr (14.2 mm/hr). Depth: NOAA Atlas 14 for Warren County, KY. Its return period is 50 years: rain this heavy has about a 2% chance of happening in any given year. That is an average, not a schedule: a 50-year storm can happen two years in a row. The return period describes the rainfall only, not how bad the flood is.",
+   "context": null,
+   "honesty": "A design storm is a statistical yardstick, not a forecast or a real day. Not validated for depth. One comparison to the April 2025 flood (21 reported flooded roads) shows the model puts more water on flooded roads than on typical roads (AUC 0.84), which is a weak sign it finds where water collects, not proof of accurate depths.",
+   "model_run": {
+    "county": "County: 5 m grid (about 52 x 60 km), run finished 2026-11-03 on TACC Vista.",
+    "city": "City: 2 m grid (about 20 x 20 km), run finished 2026-10-29 on TACC Vista."
+   }
+  },
+  "100yr": {
+   "kind": "design",
+   "name": "100-year design storm",
+   "total": "7.6 in (193 mm)",
+   "peak": "0.63 in/hr (16.1 mm/hr)",
+   "duration": "24 hours",
+   "date": "No calendar date (synthetic)",
+   "short": "Synthetic 24 h rain, 7.6 in, 1% chance in any year",
+   "long": "A made-up, smooth 24-hour rain, not a real day. Total 7.6 in (193 mm), peak 0.63 in/hr (16.1 mm/hr). Depth: NOAA Atlas 14 for Warren County, KY. Its return period is 100 years: rain this heavy has about a 1% chance of happening in any given year. This is the 1% chance storm: a 1 in 100 chance every year, which does not mean it can only happen once a century. The return period describes the rainfall only, not how bad the flood is.",
+   "context": null,
+   "honesty": "A design storm is a statistical yardstick, not a forecast or a real day. Not validated for depth. One comparison to the April 2025 flood (21 reported flooded roads) shows the model puts more water on flooded roads than on typical roads (AUC 0.84), which is a weak sign it finds where water collects, not proof of accurate depths.",
+   "model_run": {
+    "county": "County: 5 m grid (about 52 x 60 km), run finished 2026-11-03 on TACC Vista.",
+    "city": "City: 2 m grid (about 20 x 20 km), run finished 2026-10-29 on TACC Vista."
+   }
+  },
+  "ev1": {
+   "kind": "event",
+   "name": "Event 1: Light all-day rain",
+   "total": "1.07 in (27 mm)",
+   "peak": "0.16 in/hr (4.1 mm/hr)",
+   "duration": "24 hours",
+   "date": "December 6, 2013",
+   "short": "Light all-day rain, 2013-12-06, 1.07 in in 24 h",
+   "long": "A real 24-hour block of rain measured at the Bowling Green airport gauge (KBWG), starting 2013-12-06 00:00 UTC. Total 1.07 in (27 mm), wettest hour 0.16 in/hr (4.1 mm/hr), rain in 18 of the 24 hours. The same rain is applied evenly over the whole map.",
+   "context": {
+    "label": "Real-world context",
+    "text": "No flood reports were found in a quick search for this day. Nothing here says it flooded.",
+    "links": [],
+    "flag": "From public reports, not verified by this project."
+   },
+   "honesty": "The model replays the rain of that day; it is not a reconstruction of the real flood. Not validated for depth. One comparison to the April 2025 flood (21 reported flooded roads) shows the model puts more water on flooded roads than on typical roads (AUC 0.84), which is a weak sign it finds where water collects, not proof of accurate depths.",
+   "model_run": {
+    "county": "County: 5 m grid (about 52 x 60 km), run finished 2026-11-03 on TACC Vista.",
+    "city": "No city run of this storm."
+   }
+  },
+  "ev2": {
+   "kind": "event",
+   "name": "Event 2: Steady moderate rain",
+   "total": "2.13 in (54 mm)",
+   "peak": "0.30 in/hr (7.6 mm/hr)",
+   "duration": "24 hours",
+   "date": "March 4, 2015",
+   "short": "Steady moderate rain, 2015-03-04, 2.13 in in 24 h",
+   "long": "A real 24-hour block of rain measured at the Bowling Green airport gauge (KBWG), starting 2015-03-04 00:00 UTC. Total 2.13 in (54 mm), wettest hour 0.30 in/hr (7.6 mm/hr), rain in 23 of the 24 hours. The same rain is applied evenly over the whole map.",
+   "context": {
+    "label": "Real-world context",
+    "text": "NWS Louisville notes heavy rain and flooding on March 4-5, 2015, followed by snow.",
+    "links": [
+     {
+      "label": "NWS Louisville 2015 review",
+      "url": "https://www.weather.gov/lmk/2015_review"
+     }
+    ],
+    "flag": "From public reports, not verified by this project."
+   },
+   "honesty": "The model replays the rain of that day; it is not a reconstruction of the real flood. Not validated for depth. One comparison to the April 2025 flood (21 reported flooded roads) shows the model puts more water on flooded roads than on typical roads (AUC 0.84), which is a weak sign it finds where water collects, not proof of accurate depths.",
+   "model_run": {
+    "county": "County: 5 m grid (about 52 x 60 km), run finished 2026-11-03 on TACC Vista.",
+    "city": "No city run of this storm."
+   }
+  },
+  "ev3": {
+   "kind": "event",
+   "name": "Event 3: Heavy storm",
+   "total": "3.39 in (86 mm)",
+   "peak": "0.96 in/hr (24.4 mm/hr)",
+   "duration": "24 hours",
+   "date": "June 6, 2022",
+   "short": "Heavy storm, 2022-06-06, 3.39 in in 24 h",
+   "long": "A real 24-hour block of rain measured at the Bowling Green airport gauge (KBWG), starting 2022-06-06 15:00 UTC. Total 3.39 in (86 mm), wettest hour 0.96 in/hr (24.4 mm/hr), rain in 9 of the 24 hours. The same rain is applied evenly over the whole map.",
+   "context": {
+    "label": "Real-world context",
+    "text": "No flood reports were found in a quick search for this day. Nothing here says it flooded.",
+    "links": [],
+    "flag": "From public reports, not verified by this project."
+   },
+   "honesty": "The model replays the rain of that day; it is not a reconstruction of the real flood. Not validated for depth. One comparison to the April 2025 flood (21 reported flooded roads) shows the model puts more water on flooded roads than on typical roads (AUC 0.84), which is a weak sign it finds where water collects, not proof of accurate depths.",
+   "model_run": {
+    "county": "County: 5 m grid (about 52 x 60 km), run finished 2026-11-03 on TACC Vista.",
+    "city": "No city run of this storm."
+   }
+  },
+  "ev4": {
+   "kind": "event",
+   "name": "Event 4: April 2025 flood",
+   "total": "4.97 in (126 mm)",
+   "peak": "1.07 in/hr (27.2 mm/hr)",
+   "duration": "24 hours",
+   "date": "April 3, 2025",
+   "short": "Historic flood, 2025-04-03, 4.97 in in 24 h",
+   "long": "A real 24-hour block of rain measured at the Bowling Green airport gauge (KBWG), starting 2025-04-03 13:00 UTC. Total 4.97 in (126 mm), wettest hour 1.07 in/hr (27.2 mm/hr), rain in 20 of the 24 hours. The same rain is applied evenly over the whole map.",
+   "context": {
+    "label": "Real-world context",
+    "text": "NWS Louisville recorded a Bowling Green four-day rainfall record of about 10 in during April 1-6, 2025. The city declared a state of emergency, flooding was reported along Nashville Road, Louisville Road and Russellville Road, and the city counted 196 damaged structures by April 10.",
+    "links": [
+     {
+      "label": "NWS Louisville: April 2025 rain and flooding",
+      "url": "https://www.weather.gov/lmk/HistoricRainfallFloodingApril2-62025"
+     },
+     {
+      "label": "Bowling Green Daily News",
+      "url": "https://bgdailynews.com/?p=685107"
+     }
+    ],
+    "flag": "From public reports, not verified by this project."
+   },
+   "honesty": "The model replays the rain of that day; it is not a reconstruction of the real flood. Not validated for depth. One comparison to the April 2025 flood (21 reported flooded roads) shows the model puts more water on flooded roads than on typical roads (AUC 0.84), which is a weak sign it finds where water collects, not proof of accurate depths.",
+   "validation": {
+    "title": "How well does the model match the real flood?",
+    "lines": [
+     "16 of 21 reported flooded roads reach 30 cm in the model, versus 27 of 100 random roads.",
+     "At 10 cm, all 21 reported roads are flagged, but so are 42 of 100 random roads, so 10 cm does not tell them apart.",
+     "Median road maximum depth: 0.62 m on reported flooded roads vs 0.08 m on random roads."
+    ],
+    "limits": [
+     "The model replays 4.97 in of rain in 24 h; the real event brought about 10.5 in over four days at the airport.",
+     "There is no river inflow, so Barren River flooding is not captured.",
+     "The observations say a road was closed or flooded, not how deep the water was.",
+     "Only 21 roads could be scored."
+    ],
+    "link": {
+     "label": "Full validation write-up (works offline once opened)",
+     "url": "./layers/validation/VALIDATION_EV4.html"
+    }
+   },
+   "model_run": {
+    "county": "County: 5 m grid (about 52 x 60 km), run finished 2026-11-03 on TACC Vista.",
+    "city": "No city run of this storm."
+   }
+  },
+  "ev5": {
+   "kind": "event",
+   "name": "Event 5: Remnants of Hurricane Harvey",
+   "total": "6.03 in (153 mm)",
+   "peak": "1.15 in/hr (29.2 mm/hr)",
+   "duration": "24 hours",
+   "date": "September 1, 2017",
+   "short": "Remnants of Hurricane Harvey, 2017-09-01, 6.03 in in 24 h",
+   "long": "A real 24-hour block of rain measured at the Bowling Green airport gauge (KBWG), starting 2017-09-01 02:00 UTC. Total 6.03 in (153 mm), wettest hour 1.15 in/hr (29.2 mm/hr), rain in 24 of the 24 hours. The same rain is applied evenly over the whole map.",
+   "context": {
+    "label": "Real-world context",
+    "text": "NWS Louisville recorded a Bowling Green daily rainfall record of 4.93 in on September 1, 2017.",
+    "links": [
+     {
+      "label": "NWS Louisville September 2017 summary",
+      "url": "https://www.weather.gov/lmk/september_2017_summary"
+     }
+    ],
+    "flag": "From public reports, not verified by this project."
+   },
+   "honesty": "The model replays the rain of that day; it is not a reconstruction of the real flood. Not validated for depth. One comparison to the April 2025 flood (21 reported flooded roads) shows the model puts more water on flooded roads than on typical roads (AUC 0.84), which is a weak sign it finds where water collects, not proof of accurate depths.",
+   "model_run": {
+    "county": "County: 5 m grid (about 52 x 60 km), run finished 2026-11-03 on TACC Vista.",
+    "city": "No city run of this storm."
+   }
+  },
+  "ev6": {
+   "kind": "event",
+   "name": "Event 6: May 2010 record flood",
+   "total": "7.41 in (188 mm)",
+   "peak": "2.04 in/hr (51.8 mm/hr)",
+   "duration": "24 hours",
+   "date": "May 1, 2010",
+   "short": "May 2010 flood, 2010-05-01, 7.41 in in 24 h",
+   "long": "A real 24-hour block of rain measured at the Bowling Green airport gauge (KBWG), starting 2010-05-01 18:00 UTC. Total 7.41 in (188 mm), wettest hour 2.04 in/hr (51.8 mm/hr), rain in 24 of the 24 hours. The same rain is applied evenly over the whole map.",
+   "context": {
+    "label": "Real-world context",
+    "text": "NWS Louisville describes the May 1-2, 2010 flood, with major flooding on the Green River.",
+    "links": [
+     {
+      "label": "NWS Louisville: how the May 2010 flood happened",
+      "url": "https://www.weather.gov/lmk/flood_050210_how_it_happened"
+     }
+    ],
+    "flag": "From public reports, not verified by this project."
+   },
+   "honesty": "The model replays the rain of that day; it is not a reconstruction of the real flood. Not validated for depth. One comparison to the April 2025 flood (21 reported flooded roads) shows the model puts more water on flooded roads than on typical roads (AUC 0.84), which is a weak sign it finds where water collects, not proof of accurate depths.",
+   "model_run": {
+    "county": "County: 5 m grid (about 52 x 60 km), run finished 2026-11-03 on TACC Vista.",
+    "city": "No city run of this storm."
+   }
+  }
+ }
+}

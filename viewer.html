@@ -429,6 +429,14 @@
     #addr-card .acts button { flex: 1; min-height: 44px; background: #1f2a37; color: var(--t1); border: 1px solid #33425a; border-radius: 6px; font: inherit; cursor: pointer; }
     @media print { body > *:not(#addr-print) { display: none !important; } #addr-print { display: block !important; color: #000; background: #fff; padding: 20px; font: 14px/1.5 sans-serif; } #addr-print table { border-collapse: collapse; width: 100%; } #addr-print td, #addr-print th { border: 1px solid #888; padding: 4px 8px; text-align: left; } }
     #addr-print { display: none; }
+    #storm-card { margin: 6px 0; padding: 8px 10px; border: 1px solid #1a3a5a; border-radius: 8px; background: rgba(10,15,30,.5); font-size: 12px; line-height: 1.45; color: var(--t2); overflow-wrap: anywhere; }
+    #storm-card .sc-name { font-weight: 700; color: var(--t1); } #storm-card .sc-short { margin-top: 2px; }
+    #storm-card summary { cursor: pointer; min-height: 36px; display: flex; align-items: center; color: #74c0fc; font-weight: 600; }
+    #storm-card summary:focus-visible, #storm-card a:focus-visible { outline: 2px solid #ffd43b; outline-offset: 2px; }
+    #storm-card p { margin: 4px 0; } #storm-card .sc-ctx { border-left: 3px solid #74c0fc; padding-left: 8px; } #storm-card .sc-flag { font-style: italic; color: var(--t3); }
+    #storm-card .sc-val { margin: 4px 0; padding-left: 6px; border-left: 3px solid #ffd43b; } #storm-card ul { margin: 2px 0 2px 16px; padding: 0; }
+    #storm-card .sc-hon { font-weight: 600; color: var(--t1); } #storm-card a { color: #74c0fc; text-decoration: underline; display: inline-block; min-height: 24px; }
+    #events-list .ev-s { display: block; font-size: 11px; color: var(--t2); font-weight: 400; overflow-wrap: anywhere; } #events-list button[aria-checked="true"] .ev-s { color: #fff; }
     #about-storm { margin: 6px 0; font-size: 12px; color: var(--t2); } #about-storm summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; color: var(--t1); }
     #about-body dt { font-weight: 600; color: var(--t1); margin-top: 6px; } #about-body dd { margin: 0 0 0 0; line-height: 1.45; color: var(--t2); } #about-body ul { margin: 2px 0 0 16px; padding: 0; }
     .srcl { font-size: 9px; color: var(--t3); text-transform: uppercase; letter-spacing: .03em; }
@@ -569,6 +577,8 @@
         <summary>Historical events</summary>
         <div id="events-list" role="radiogroup" aria-label="Historical rain events"></div>
       </details>
+
+      <div id="storm-card" aria-live="polite"></div>
 
       <div id="hpc-mode-row" role="radiogroup" aria-label="Display mode">
         <button type="button" role="radio" id="mode-fluid" data-mode="fluid" aria-checked="false">Fluid flow</button>
@@ -2668,20 +2678,27 @@ function eventLabel(key, meta) {          // 'Historical event N (KBWG gauge blo
   return m ? (m[1].length === 1 ? 'Historical event ' + m[1] : m[1]) + ' (KBWG gauge block)' : (l || key);
 }
 function availableStorms(dom) { return DOMAINS[dom].storms.filter(k => stormMetas[dom + '/' + k]); }
-function buildScrubber() {
+function renderScrubberItems() {
   const dom = DOMAIN, box = $('storm-scrub'), list = $('events-list');
   const rps = (dom === 'city' ? ['2yr'] : []).concat(availableStorms(dom).filter(k => !/^ev/.test(k)));
   box.innerHTML = rps.map(k => {
     const scn = scnKeyFor(dom, k), sc = HPC_SCENARIOS[scn];
-    const tip = sc.flow ? `${sc.label} storm, ${Number.isFinite(sc.depth) ? sc.depth.toFixed(1) + ' in in 24 h' : ''}` : 'First run: classic polygons only, no fluid data';
-    return `<button type="button" role="radio" aria-checked="false" data-scn="${scn}" title="${tip}" aria-label="${sc.label} storm${sc.flow ? '' : ' (polygons only)'}">${k.replace('yr', '')}<span style="font-weight:400;font-size:11px"> yr${sc.flow ? '' : '*'}</span></button>`;
+    const bl = BLURB.data && BLURB.data.storms[k], tip = (bl ? bl.name + ': ' + bl.short : (sc.flow ? `${sc.label} storm, ${Number.isFinite(sc.depth) ? sc.depth.toFixed(1) + ' in in 24 h' : ''}` : '')) + (sc.flow ? '' : ' (first run: classic polygons only, no fluid data)');
+    return `<button type="button" role="radio" aria-checked="false" data-scn="${scn}" title="${escHtml(tip)}" aria-label="${escHtml(bl ? bl.name + ', ' + bl.short : sc.label + ' storm')}${sc.flow ? '' : ' (polygons only)'}">${k.replace('yr', '')}<span style="font-weight:400;font-size:11px"> yr${sc.flow ? '' : '*'}</span></button>`;
   }).join('');
   const evs = dom === 'county' ? availableStorms(dom).filter(k => /^ev/.test(k)) : [];
   $('events-box').hidden = !evs.length;
   list.innerHTML = evs.map(k => {
     const m = stormMetas[dom + '/' + k], scn = scnKeyFor(dom, k), inch = Number.isFinite(m.storm_depth_in) ? `${m.storm_depth_in.toFixed(2)} in rain total` : '';
-    return `<button type="button" role="radio" aria-checked="false" data-scn="${scn}"><b>${escHtml(eventLabel(k, m))}</b><span class="ev-d">${inch}${m.source === 'rasters' ? ' · full precision' : ' · preview'}</span></button>`;
+    const bl = BLURB.data && BLURB.data.storms[k];
+    return `<button type="button" role="radio" aria-checked="false" data-scn="${scn}"${bl ? ` title="${escHtml(bl.short)}"` : ''}><b>${escHtml(bl ? bl.name : eventLabel(k, m))}</b>${bl ? `<span class="ev-s">${escHtml(bl.short)}</span>` : ''}<span class="ev-d">${bl ? '' : inch + ' · '}${m.source === 'rasters' ? 'full precision' : 'preview'}</span></button>`;
   }).join('');
+  updateScrubberUI(HPC_SCENARIO);
+}
+function buildScrubber() {
+  const dom = DOMAIN, box = $('storm-scrub'), list = $('events-list');
+  renderScrubberItems();
+  blurbLoad().then(d => { if (d) renderScrubberItems(); });
   const pick = scn => { if (scn !== HPC_SCENARIO) { pausePlayback(); setScenario(scn); } };
   // tap, or drag a finger across the segments: the segment under the finger is previewed and committed on release
   let drag = null;
@@ -2705,6 +2722,27 @@ function buildScrubber() {
 function updateScrubberUI(key) {
   for (const b of document.querySelectorAll('#storm-scrub button, #events-list button')) b.setAttribute('aria-checked', String(b.dataset.scn === key));
   const sc = HPC_SCENARIOS[key]; if (sc && sc.event) { const d = $('events-box'); if (d) d.open = true; }
+  stormCardSync(key);
+}
+// ─── Storm explainer: layers/storm_blurbs.json (built by scripts/build_storm_blurbs.py) ───
+const BLURB = { data: null, p: null };
+function blurbLoad() {
+  if (!BLURB.p) BLURB.p = fetch('./layers/storm_blurbs.json').then(r => r.ok ? r.json() : null).then(d => (BLURB.data = d), () => null);
+  return BLURB.p;
+}
+async function stormCardSync(scn) {
+  const box = $('storm-card'); if (!box) return;
+  await blurbLoad();
+  if (scn !== HPC_SCENARIO) return;                                 // a newer pick won
+  const id = String(scn).replace(/^(county_|v2_)/, ''), b = BLURB.data && BLURB.data.storms[id];
+  if (!b) { box.hidden = true; return; }
+  const open = box.querySelector('details') && box.querySelector('details').open;
+  box.hidden = false;
+  const c = b.context, run = DOMAIN === 'city' ? b.model_run.city : b.model_run.county;
+  box.innerHTML = `<div class="sc-name">${escHtml(b.name)}</div><div class="sc-short">${escHtml(b.short)}</div>` +
+    `<details${open ? ' open' : ''}><summary>What is this storm?</summary><p>${escHtml(b.long)}</p><p><b>Date:</b> ${escHtml(b.date)}. <b>Rain:</b> ${escHtml(b.total)} in ${escHtml(b.duration)}, peak ${escHtml(b.peak)}.</p>` +
+    (c ? `<p class="sc-ctx"><b>${escHtml(c.label)}:</b> ${escHtml(c.text)} ` + c.links.map(l => `<a href="${escHtml(l.url)}" target="_blank" rel="noopener noreferrer">${escHtml(l.label)}</a>`).join(' · ') + `<br><span class="sc-flag">${escHtml(c.flag)}</span></p>` : '') +
+    (b.validation ? `<details class="sc-val"><summary>${escHtml(b.validation.title)}</summary><ul>${b.validation.lines.map(x => `<li>${escHtml(x)}</li>`).join('')}</ul><p><b>Limits:</b></p><ul>${b.validation.limits.map(x => `<li>${escHtml(x)}</li>`).join('')}</ul><p><a href="${escHtml(b.validation.link.url)}" target="_blank" rel="noopener noreferrer">${escHtml(b.validation.link.label)}</a></p></details>` : '') + `<p><b>Model run:</b> ${escHtml(run)}</p><p class="sc-hon">${escHtml(b.honesty)}</p></details>`;
 }
 
 // ─── Start screen: City or County ───

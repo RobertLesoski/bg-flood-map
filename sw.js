@@ -132,7 +132,7 @@ self.addEventListener('fetch', (event) => {
   // never touch the big data: flow grids, hourly flood layers, gzipped county dumps, rasters
   if (/\.rgba\.gz$|\.geojson\.gz$|\.tif{1,2}$|\/layers\/flood_hpc\//i.test(p)) return;
   if (shellPaths.has(p)) { event.respondWith(shellSWR(req, url)); return; }
-  if (/\/layers\/.*\.(geojson|json)$/i.test(p)) { event.respondWith(networkFirst(req, DATA, DATA_MAX_BYTES)); return; }
+  if (/\/layers\/.*\.(geojson|json)$|\/layers\/validation\/[^/]+\.(html|png)$/i.test(p)) { event.respondWith(networkFirst(req, DATA, DATA_MAX_BYTES)); return; }
   // everything else (test harnesses, report, scripts, serve.py endpoints): untouched
 });
 
