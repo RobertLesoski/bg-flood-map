@@ -92,7 +92,10 @@ def test_polygon_area_matches_equal_area_projection():
         ang = np.sort(rng.uniform(0, 2 * math.pi, n))
         rad = rng.uniform(0.01, 0.12, n)
         lng, lat = c[0] + rad * np.cos(ang), c[1] + rad * np.sin(ang) * 0.8
-        x, y = transform("EPSG:4326", "EPSG:6933", lng.tolist(), lat.tolist())      # PROJ's cylindrical equal-area
+        t = np.arange(512) / 512.0                      # edges are straight in lng/lat (the function's contract): densify the
+        dl = (lng[:, None] + (np.roll(lng, -1) - lng)[:, None] * t).ravel()     # reference too, else it measures edges
+        dt = (lat[:, None] + (np.roll(lat, -1) - lat)[:, None] * t).ravel()     # straight in the projection
+        x, y = transform("EPSG:4326", "EPSG:6933", dl.tolist(), dt.tolist())      # PROJ's cylindrical equal-area
         x, y = np.array(x), np.array(y)
         ref = abs(0.5 * np.sum(x * np.roll(y, -1) - np.roll(x, -1) * y))
         got = geodesy.polygon_area_m2(lng, lat)
