@@ -1,0 +1,15 @@
+# Pinned to the versions verified in the dev environment (anaconda3, Python 3.14)
+wgpu==0.32.0
+rendercanvas==2.7.2
+glfw==2.11.0
+imgui-bundle==1.93.0
+numpy==2.4.6
+numba==0.65.1
+scipy==1.18.0
+rasterio==1.5.2
+shapely==2.1.2
+mapbox_earcut
+pillow==12.3.0
+requests==2.34.2
+imageio-ffmpeg==0.7.0
+pyinstaller
