@@ -361,3 +361,22 @@ def test_ui_survives_missing_hub_data(env):
         _clean(env)
     finally:
         app.flood, app.timeline = keep
+
+
+def test_no_registered_layer_shadows_label_and_the_overlay_toggle_draws(env):
+    """Regression (Missing PopID): a layer attribute named `label` hid Layer.label(); the sections panel then threw
+    between push_id / pop_id.  Every layer's label() must stay callable; toggling the solver depth overlay draws cleanly."""
+    for l in env.app.layers:
+        assert callable(getattr(l, "label", None)) and isinstance(l.label(), str), l.name
+    td = env.app.get_layer("tiledepth")
+    if td is None:
+        pytest.skip("tiledepth layer not registered")
+    was = td.enabled
+    td.enabled = True
+    try:
+        env.draw(6)
+        _clean(env)
+    finally:
+        td.enabled = was
+    env.draw(2)
+    _clean(env)

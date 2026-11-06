@@ -61,6 +61,20 @@ def apply_view_args(app: App, args):
         app.haze_density = args.haze
 
 
+def _wait_async_layers(app, canvas, timeout: float = 30.0):
+    """--render: enabled layers that read in the background (solver depth overlay) get frames until their data is shown."""
+    t0 = time.perf_counter()
+    while time.perf_counter() - t0 < timeout:
+        busy = [l for l in app.layers if getattr(l, "enabled", True) and l.name == "tiledepth"
+                and (getattr(l, "_busy", False) or getattr(l, "_up", None) is not None
+                     or str(getattr(l, "status", "")).startswith("reading") or getattr(l, "_front", 0) < 0
+                     and "no solver tiles" not in str(getattr(l, "status", "")))]
+        if not busy:
+            return
+        canvas.draw()
+        time.sleep(0.02)
+
+
 def wait_for_flow(app: App, all_hours: bool = False, timeout: float = 600.0) -> float:
     t0 = time.perf_counter()
     while True:
@@ -96,6 +110,7 @@ def run_render(args) -> int:
     canvas.request_draw(app.draw_frame)
     app.anim_time = float(args.anim)
     img = canvas.draw()
+    _wait_async_layers(app, canvas)
     # second draw: all one-time costs (shader compile, first-use texture clears) are paid; keep the animation phase
     app.anim_time = float(args.anim)
     app._t_last = None

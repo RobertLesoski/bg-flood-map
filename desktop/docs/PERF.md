@@ -1,4 +1,4 @@
-# bgv performance log
+﻿# bgv performance log
 
 Hardware: Intel Core i5-10300H (4 cores / 8 threads), NVIDIA GTX 1650 4 GB (Vulkan, wgpu 0.32), Intel UHD iGPU (unused),
 8 GB RAM, Windows 11, Python 3.14.  1920x1080, MSAA 4x, all layers on, no UI in the benchmark (UI cost: `python -m
@@ -98,7 +98,7 @@ once (cached), then cached. OSM has 24.6k buildings in the county; not stress-te
 Unchanged within noise: the sun-aware sky, water shoulder and window facades cost about 0.1 - 0.2 ms GPU; tile reads happen in the probe worker thread, never on a frame
 (a cached tile read is microseconds; the footprint index is built once in a worker and cached). County p99 / max are dominated by interference from other processes
 on the machine (the previous county log had p99 17.7 on a quiet PC): re-measure on a quiet machine before trusting them.
-Experimental solver-depth overlay (`tiledepth` layer, NOT registered in the shipped build - measured with the registry line added by hand, 1024 x 1024-cell clipmap window around the camera target, two textures, worker-thread reads):
+Experimental solver-depth overlay (`tiledepth` layer, registered, off by default since the viewer-fix-overlay2 merge; numbers below were measured before registration, 1024 x 1024-cell clipmap window around the camera target, two textures, worker-thread reads):
 city synced mean 9.73 ms, GPU +0.5 ms (5.49 vs 5.0); county 13.4 ms synced mean (about 75 fps, 174 fps free-running) but p99 46 ms / max 92 ms (earlier runs with a 2048 window:
 p99 50 - 105 ms, max 300 - 620 ms) while the scripted benchmark dives and the window is re-read. It meets 60 fps on average but is not hitch-free: it stays an opt-in experiment.
 

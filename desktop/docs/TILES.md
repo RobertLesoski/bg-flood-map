@@ -1,4 +1,4 @@
-# Solver depth tiles (COGs) in the desktop viewer
+﻿# Solver depth tiles (COGs) in the desktop viewer
 
 The viewer shows two kinds of depth. The **flow grid** (`layers/flow*/<storm>`, 20-25 m cells, sqrt-coded, drives the 3D water, the
 statistics and the at-risk list) and, when present, the **solver tiles**: Cloud-Optimized GeoTIFFs of the solver output itself
@@ -55,9 +55,9 @@ hour (the tile sees narrow water the 20 m grid averages away, and the grid smear
 grid 1,903 flooded buildings, tiles 1,698; 1,152 flooded in both, 751 grid only, 546 tiles only.
 These differences are expected (cell size and the footprint maximum) and are not errors of either source.
 
-## Experimental overlay (NOT registered: unfinished)
-`bgv/gpu/layers/tiledepth.py` is written and was rendered once (devshot `--enable tiledepth`, see below) but is NOT registered in `gpu/layers/registry.py`: adding its line makes the sidebar trip an imgui
-ID-stack assert ("Missing PopID", root cause not found) and the county benchmark showed hitches. To try it, add `"bgv.gpu.layers.tiledepth:TileDepthLayer"` after the water line of the registry.
+## Solver depth overlay (registered, off by default)
+`bgv/gpu/layers/tiledepth.py` is registered (default off): View menu "Solver depth overlay on the map", or `--enable-layers tiledepth`. The old "Missing PopID" assert was a `label` attribute shadowing `Layer.label()` (renamed `tiles_label`; the sections checkbox pops its ID in try/finally; regression test in test_ui_gpu). `--render` now waits until the overlay window is read and uploaded. Alignment checked offscreen (county 100yr h14, top-down 4 km over downtown/Barren River): overlay patches and river channel coincide with the flow-grid water, no visible offset.
+Performance tuning of the overlay is tracked separately (branch viewer-perf2).
 What it does: the tiles draped on the terrain in tier colours (>= 0.1 / 0.3 / 0.6 / 1.2 m), hour or peak. A 1024 x 1024-cell window
 around the camera target (level 0 = 6.25 m cells only when closer than about 1.7 km, otherwise the 12.5 m ... overviews), read in a worker thread and uploaded in 256 KB slices into
 the idle of two textures. Rendered and visually checked (ponds and channels line up with the flow-grid water); NOT hitch-free: see `PERF.md` (county benchmark p99 46 ms / max 92 ms
