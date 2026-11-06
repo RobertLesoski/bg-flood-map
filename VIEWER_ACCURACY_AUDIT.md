@@ -27,6 +27,7 @@ Bugs fixed
 - timeline flooded-building count: same sampling, under-counted 15-50 % vs the card statistic. prepare_points uses the all-touched index; TimelineWorker recomputes when the index arrives (separate disk cache key). test_audit_timeline_counts.py.
 
 Resume checklist
-- [ ] 8: address depth vs grid (needs bid -> scene building mapping), facilities, roads-at-risk list, exported report
+- [x] 8 facilities: 98 facilities x 5 storms, tile point depth vs rasterio sample: 0 cm error, flooded counts equal (3-4). File d_ values (index source) disagree with tiles on 7-28 of 98 at the 10 cm line: different source, viewer prefers tiles.
+- [ ] 8: address depth vs grid (bid -> scene building mapping), roads-at-risk list, exported report
 - [ ] compare_grids uses one cell_ground_m^2 for the whole county (cos-lat variation ~0.3 %), not changed
 - [ ] tile_sample shows 1 cm as depth while probes zero < 2 cm (labelling choice, not changed)
