@@ -122,3 +122,18 @@ tool windows (analysis window, facilities list ...). Screenshots of every tool i
 (other processes), so the layer's cost is below the run-to-run noise there.  Offscreen UI harness with image read-back (orbit, 1080p, county):
 overview 18.9 ms off / 22.2 ms on (about +3 ms from the line polylines), close view 14.9 / 14.6 ms (67 fps).  Not a clean >= 60 fps
 proof for the county overview under load: marked as measured-but-noisy.
+
+## viewer-perf2 measurements (2026-11-05, `--benchmark --seconds 8 --size 1920x1080`, 3 runs, median [min-max])
+Machine was heavily loaded (other agents running pytest / features_perf.py); spreads below show it. VRAM is the app's estimate.
+
+| domain/config | synced fps | p99 ms | GPU ms | VRAM MB | max ms |
+|---|---|---|---|---|---|
+| city base | 108.3 [106.6-111.1] | 27.0 [25.0-28.2] | 4.9 | 1253 | 32 [31-89] |
+| city utilities | 89.3 [77.9-117.6] | 29.6 | 6.4 | 1253 | 43 |
+| city tiledepth | 112.6 [34.8-114.6] | 20.2 [19.7-112] | 5.3 | 1257 | 25 [24-212] |
+| county base | 70.8 [53.4-88.4] | 66.5 [64.9-72.7] | 5.5 | 1130 | 170 |
+| county utilities | 109.4 [55.2-113.7] | 36.4 [19-138] | 4.5 | 1130 | 71 |
+| county tiledepth | 36.5 [28.4-111.7] | 72.3 [22-175] | 6.5 | 1134 | 244 |
+
+Tools (probe, timeline, swipe, tour, time-lapse, facilities) have no benchmark switch and were not measured.
+Regression tests that count bytes/allocations instead of time: `tests/test_perf_alloc.py`.
