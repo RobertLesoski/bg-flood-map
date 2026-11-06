@@ -841,12 +841,25 @@ def draw_window(ui):
     if not f.open:
         return
     L, s = ui.L, ui.s
-    w = min(460.0 * s, max(260.0 * s, (L.sx1 - L.sx0) * 0.5))
-    imgui.set_next_window_pos(V2(L.sx1 - w - 12 * s, L.sy0 + 60 * s), imgui.Cond_.appearing)
-    imgui.set_next_window_size(V2(w, min(560 * s, (L.sy1 - L.sy0) - 80 * s)), imgui.Cond_.appearing)
-    imgui.set_next_window_size_constraints(V2(240 * s, 160 * s), V2(L.W, L.H))
+    # keep the window inside the 3D view rectangle (never over the sidebar, timeline, at-risk list or menu bar); the user can
+    # move / resize it inside that rectangle; a layout change (resize, UI scale, right panel) pulls it back in
+    x0, y0, x1, y1 = L.sx0 + 8 * s, L.sy0 + 8 * s, L.sx1 - 8 * s, L.sy1 - 8 * s
+    vw, vh = max(x1 - x0, 1.0), max(y1 - y0, 1.0)
+    want_w = min(460.0 * s, vw)
+    want_h = min(560.0 * s, vh - 52 * s) if vh > 160 * s else vh
+    r = f.__dict__.get("win_rect")
+    lay = (round(x0), round(y0), round(x1), round(y1))
+    if r is None or f.__dict__.get("win_layout") != lay or r[0] < x0 - 1 or r[1] < y0 - 1 or r[0] + r[2] > x1 + 1 or r[1] + r[3] > y1 + 1:
+        w = min(r[2], vw) if r is not None and f.__dict__.get("win_layout") == lay else want_w
+        h = min(r[3], vh) if r is not None and f.__dict__.get("win_layout") == lay else want_h
+        imgui.set_next_window_pos(V2(max(x0, x1 - w), min(max(y0, y0 + 44 * s), max(y0, y1 - h))), imgui.Cond_.always)
+        imgui.set_next_window_size(V2(w, h), imgui.Cond_.always)
+        f.win_layout = lay
+    imgui.set_next_window_size_constraints(V2(min(240 * s, vw), min(160 * s, vh)), V2(vw, vh))
     vis, opened = imgui.begin("Flood tools", True, int(imgui.WindowFlags_.no_collapse | imgui.WindowFlags_.no_saved_settings))
     try:
+        p, sz = imgui.get_window_pos(), imgui.get_window_size()
+        f.win_rect = (p.x, p.y, sz.x, sz.y)
         if not opened:
             f.open = False
         if vis and imgui.begin_tab_bar("##ftabs"):
