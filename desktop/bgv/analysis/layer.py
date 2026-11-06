@@ -273,7 +273,7 @@ class AnalysisLayer(Layer):
         self.source = make_depth_source(app)
         self.source.mode = self.st.depth_source
         self.series_worker = seriesmod.SeriesWorker(lambda: self.source)
-        self.timeline_worker = tlmod.TimelineWorker(self.scene, lambda: self.source)
+        self.timeline_worker = tlmod.TimelineWorker(self.scene, lambda: self.source, self._tile_index)
         self._prof_job = LatestJob()
         self.cmp = CompareController(self)
         app.analysis = self
@@ -402,12 +402,29 @@ class AnalysisLayer(Layer):
         self.target = seriesmod.point_target(lng, lat)
         self._start_series()
 
+    def _tile_index(self):
+        """The building card's all-touched footprint index on the tile grid when it is ready, else None."""
+        try:
+            from ..data import depthapi
+            svc = depthapi.service(self.app)
+            return svc.index if svc.index_state == "ready" else None
+        except Exception:
+            return None
+
     def set_target_building(self, i: int):
         sc = self.scene()
         if sc is None:
             return
         b, _, f = sc
-        self.target = seriesmod.building_target(b, int(i), f)
+        idx = sig = None
+        try:                                               # the building card's all-touched tile index, when ready
+            from ..data import depthapi
+            svc = depthapi.service(self.app)
+            if svc.index_state == "ready":
+                idx, sig = svc.index, svc.index_sig
+        except Exception:
+            pass
+        self.target = seriesmod.building_target(b, int(i), f, tile_index=idx, tile_sig=sig)
         self._start_series()
 
     def _start_series(self):

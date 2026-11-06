@@ -164,12 +164,26 @@ def tile_hour_stats(raster, frame, bpts, rpts, band_rows: int = 512):
             "max_depth_m": mx, "volume_m3": vol}
 
 
-def prepare_points(raster, frame, buildings, roads):
-    """Pixel tables (sorted by row) of the building footprint samples and the road samples for one tile raster grid."""
-    X, Y, ids = building_points(buildings)
-    r, c = _tile_pixels(raster, frame, X, Y)
-    ok = r >= 0
-    r, c, ids = r[ok], c[ok], ids[ok]
+def _index_fits(tile_index, raster, buildings) -> bool:
+    if tile_index is None:
+        return False
+    i = raster.info()
+    return (int(tile_index.width), int(tile_index.height)) == (int(i["width"]), int(i["height"])) and tile_index.n == int(buildings.n)
+
+
+def prepare_points(raster, frame, buildings, roads, tile_index=None):
+    """Pixel tables (sorted by row) of the building footprint samples and the road samples for one tile raster grid.
+    `tile_index`: the building card's all-touched PixelIndex on this tile grid; when it fits, a building counts by the same
+    footprint cells as its card (audit 2026-11: corner+centroid samples under-counted flooded buildings by 15-50 %)."""
+    if _index_fits(tile_index, raster, buildings):
+        pix = np.asarray(tile_index.pixels, np.int64)
+        ids = np.repeat(np.arange(tile_index.n, dtype=np.int64), np.diff(np.asarray(tile_index.offsets, np.int64)))
+        r, c = pix // int(tile_index.width), pix % int(tile_index.width)
+    else:
+        X, Y, ids = building_points(buildings)
+        r, c = _tile_pixels(raster, frame, X, Y)
+        ok = r >= 0
+        r, c, ids = r[ok], c[ok], ids[ok]
     o = np.argsort(r, kind="stable")
     bpts = (r[o], c[o], ids[o].astype(np.int64), int(buildings.n))
     rx = np.asarray(roads.sample_x, np.float64)
@@ -183,7 +197,7 @@ def prepare_points(raster, frame, buildings, roads):
 
 
 def compute_tile_timeline(tile_storm, buildings, roads, frame, label: str = "", progress=None, cancel: threading.Event | None = None,
-                          into: FloodTimeline | None = None, hours=range(N_HOURS)) -> FloodTimeline:
+                          into: FloodTimeline | None = None, hours=range(N_HOURS), tile_index=None) -> FloodTimeline:
     """All 25 hourly tiles of a storm at full resolution (about 1 - 3 s per hour, in the calling thread).  `into`: a timeline to
     fill in place (the UI reads it while it grows).  Raises nothing for a missing hour file: that hour is dry."""
     tl = into or FloodTimeline(tile_storm.name, "tiles", label or "tiles")
@@ -199,7 +213,7 @@ def compute_tile_timeline(tile_storm, buildings, roads, frame, label: str = "", 
     crs = r_any.crs
     if crs is None or crs.to_epsg() != 3857:
         raise ValueError("bulk tile statistics need EPSG:3857 tiles")
-    bpts, rpts = prepare_points(r_any, frame, buildings, roads)
+    bpts, rpts = prepare_points(r_any, frame, buildings, roads, tile_index)
     for h in hours:
         if cancel is not None and cancel.is_set():
             raise _Cancelled()
@@ -222,9 +236,9 @@ def compute_tile_timeline(tile_storm, buildings, roads, frame, label: str = "", 
 
 
 # ---------------------------------------------------------------------------------------------------- disk cache
-def _cache_file(tile_storm, frame, buildings, roads):
+def _cache_file(tile_storm, frame, buildings, roads, all_touched: bool = False):
     files = [tile_storm.files[h] for h in sorted(tile_storm.files)]
-    extra = f"{tile_storm.name}|b{buildings.n}|r{roads.n_samples}|{tile_storm.scale}"
+    extra = f"{tile_storm.name}|b{buildings.n}|r{roads.n_samples}|{tile_storm.scale}" + ("|at" if all_touched else "")
     return cachelib.cache_path("tltiles", frame, files, VERSION, extra)
 
 
@@ -234,9 +248,9 @@ def save_cache(tl: FloodTimeline, path):
                       {"storm": tl.storm, "n_buildings": tl.n_buildings, "road_total_km": tl.road_total_km, "version": VERSION})
 
 
-def load_cache(tile_storm, frame, buildings, roads, label: str = "") -> FloodTimeline | None:
+def load_cache(tile_storm, frame, buildings, roads, label: str = "", all_touched: bool = False) -> FloodTimeline | None:
     try:
-        got = cachelib.load_npz(_cache_file(tile_storm, frame, buildings, roads))
+        got = cachelib.load_npz(_cache_file(tile_storm, frame, buildings, roads, all_touched))
     except OSError:
         return None
     if got is None:
@@ -251,9 +265,10 @@ class TimelineWorker:
     """Tile timelines in ONE low-priority background thread; the newest requested storm is computed first, finished timelines
     are cached in memory and on disk (desktop/cache, keyed by the tile files' size + mtime)."""
 
-    def __init__(self, scene_getter, source_getter):
+    def __init__(self, scene_getter, source_getter, index_getter=None):
         self._scene = scene_getter           # -> (buildings, roads, frame) or None while the scene loads
         self._src = source_getter
+        self._index = index_getter           # -> the tile footprint PixelIndex (building card's) or None while it builds
         self._cv = threading.Condition()
         self._want: list[str] = []
         self._timelines: dict[tuple, FloodTimeline] = {}
@@ -265,6 +280,12 @@ class TimelineWorker:
         self._th = threading.Thread(target=self._run, name="bgv-timeline", daemon=True)
         self._th.start()
 
+    def _index_ready(self) -> bool:
+        try:
+            return bool(self._index) and self._index() is not None
+        except Exception:
+            return False
+
     def get(self, storm: str) -> FloodTimeline | None:
         """The timeline (maybe partial) of a tile storm, queueing its computation; None when tiles are not used for it."""
         src = self._src()
@@ -273,7 +294,10 @@ class TimelineWorker:
         key = (src.tiles.dir.as_posix(), storm)
         with self._cv:
             tl = self._timelines.get(key)
-            if tl is not None and (tl.complete or self.busy == storm):
+            stale = tl is not None and not getattr(tl, "all_touched", False) and self._index_ready()
+            if tl is not None and (tl.complete or self.busy == storm) and not stale:
+                return tl
+            if stale and storm in self._want:
                 return tl
             if storm in self._want:
                 self._want.remove(storm)
@@ -314,27 +338,41 @@ class TimelineWorker:
             return
         buildings, roads, frame = sc
         ts = src.tiles.storm(storm)
+        idx = None
+        try:
+            idx = self._index() if self._index else None
+            r0 = next((ts.raster(h) for h in range(N_HOURS) if ts.raster(h) is not None), None)
+            if r0 is None or not _index_fits(idx, r0, buildings):
+                idx = None
+        except Exception:
+            idx = None
+        at = idx is not None
         key = (src.tiles.dir.as_posix(), storm)
         label = src.tiles.label(storm)
         with self._cv:
             tl = self._timelines.get(key)
+        if tl is not None and getattr(tl, "all_touched", False) != at:
+            tl = None                                     # the footprint index arrived: recount by the card's cells
         if tl is None:
-            tl = load_cache(ts, frame, buildings, roads, label)
+            tl = load_cache(ts, frame, buildings, roads, label, at)
+            if tl is not None:
+                tl.all_touched = at
             if tl is not None:
                 with self._cv:
                     self._timelines[key] = tl
                 return
             tl = FloodTimeline(storm, "tiles", label)
+            tl.all_touched = at
             with self._cv:
                 self._timelines[key] = tl
         if tl.complete:
             return
         self.busy = storm
         t0 = time.perf_counter()
-        compute_tile_timeline(ts, buildings, roads, frame, label, cancel=self._cancel, into=tl)
+        compute_tile_timeline(ts, buildings, roads, frame, label, cancel=self._cancel, into=tl, tile_index=idx)
         self.t_elapsed = time.perf_counter() - t0
         try:
-            save_cache(tl, _cache_file(ts, frame, buildings, roads))
+            save_cache(tl, _cache_file(ts, frame, buildings, roads, at))
         except Exception:
             pass
 
