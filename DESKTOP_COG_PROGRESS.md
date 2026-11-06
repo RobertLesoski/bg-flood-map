@@ -64,3 +64,13 @@ FAILING / TODO:
 - test_perf deferred start-up: known flaky, rerun alone.
 - Blank-text UI bug not reproduced; hardening only.
 - Unverified: hydro plants/tanks absent (relations not read); fps noisy.
+
+## Session 4
+- Merged viewer-fix-overlay2 and viewer-accuracy-2 (--no-ff, no conflicts). viewer-accuracy-2 may get more commits: merge again at wrap-up.
+- test_county pick_storm: test updated (stored storm only with restore_last, intended since 7f5b158).
+- Search focus flake (root cause): UI "lite" mode skips every other UI frame when frames are slow -> one-shot set_keyboard_focus_here dropped; io.want_* lag one frame. Fix: focus request pending until the field is active (re-issued every 3rd frame, a per-frame request queued a second activation that re-entered the field after Esc); lite never skips while a text field is active / focus pending; text_focused() also checks the imgui context's active input id.
+- Overlay: --render waits for the tile window; offscreen alignment checked (100yr h14 downtown top-down): matches flow water. test_ui_gpu + test_interaction 76 passed with the layer registered. Overlay perf -> other agent (viewer-perf2).
+- Utilities: 244 "plants" = 241 solar panel generator ways + 3 solar farms. Generators now separate (solar dropped, others sub-type). 358 features. Dams: 3 in OSM box, no NID locally.
+- Blank text: only ONE monitor attached now (1920x1080 primary); second-monitor move/start NOT testable. Primary start + minimise/restore: text fine (scratchpad winrepro.py grabs only the window rect).
+- Flaky perf deferred / window-close: pass 5/5 alone; full-suite-only, not root-caused yet.
+- Full suite #1: 490 passed / 2 failed (area test ref: fixed; deferred start-up). #2: 453 passed, 16 skipped, 1 failed, 22 errors: wgpu 'Not enough memory left' in WriteTexture (GTX 1650 4 GB VRAM exhausted; other agents likely used the GPU at the same time). Deferred start-up failure = App built no layers under that OOM. Next: rerun suite with the GPU idle; if OOM persists, find VRAM leaked across test modules (apps not shut down).

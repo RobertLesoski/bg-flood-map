@@ -1,4 +1,4 @@
-"""Performance machinery (bgv/perf.py, bgv/gpu/fastcull.py, shared frustum, pooled decode, staged start-up).
+﻿"""Performance machinery (bgv/perf.py, bgv/gpu/fastcull.py, shared frustum, pooled decode, staged start-up).
 
 Pure-CPU tests run anywhere; the `gpu` ones use the offscreen canvas and the real data root (skipped when absent)."""
 from __future__ import annotations
@@ -394,8 +394,8 @@ def test_deferred_start_up_builds_the_same_app_in_steps_behind_a_loading_screen(
         while a.loading and time.perf_counter() - t0 < 120:
             canvas.draw()
             fracs.append(a.load_frac)
-        assert not a.loading and a.load_frac == 1.0
-        assert fracs == sorted(fracs) and len(fracs) >= 5          # several frames, progress never goes back
+        assert not a.loading and a.load_frac == 1.0, (a.load_frac, a.load_msg, list(a.errors))
+        assert fracs == sorted(fracs) and len(fracs) >= 5, fracs         # several frames, progress never goes back
         names = [l.name for l in a.layers]
         assert names[:2] == ["basemap", "terrain"] and "water" in names and "overlay" in names, names
         assert not a.errors, list(a.errors)
@@ -403,7 +403,7 @@ def test_deferred_start_up_builds_the_same_app_in_steps_behind_a_loading_screen(
         a.camera.set_view(0.0, 0.0, 6000.0, 30.0, 50.0)
         canvas.draw()
         img = np.asarray(canvas.draw())
-        assert img.shape[:2] == (360, 640) and img[..., :3].std() > 8 and not a.errors
+        assert img.shape[:2] == (360, 640) and img[..., :3].std() > 8 and not a.errors, (img[..., :3].std(), list(a.errors))
     finally:
         a.shutdown()
 
