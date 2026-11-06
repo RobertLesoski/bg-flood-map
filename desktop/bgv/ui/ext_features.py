@@ -241,7 +241,7 @@ def route_tick(ui):
             f.route_res = j.result
     if f.graph is not None and len(f.route_pts) == 2:
         want = (ui.app.storm.name, hour_now(ui.app), f.threshold_cm / 100.0, tuple(f.route_pts))
-        if j.key != want and not j.busy:
+        if j.key != want and not j.busy and not ui.app.playing:      # re-plan when the time stops (a re-plan reads ~1.4 M tile samples)
             plan_route(ui)
 
 
