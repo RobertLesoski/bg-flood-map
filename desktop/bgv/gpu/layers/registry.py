@@ -14,6 +14,7 @@ LAYERS = [
     "bgv.gpu.layers.compare:CompareLayer",        # ANALYSIS: storm swipe (storm B water) / difference layer, right after storm A's water
     "bgv.gpu.layers.buildings:SelectionOverlay",  # selected-building highlight, drawn after the water (visible when submerged)
     "bgv.gpu.layers.flowpaths:FlowpathsLayer",    # flow-paths colour map on the terrain (off by default)
+    "bgv.gpu.layers.hoursflooded:HoursFloodedLayer",  # FEATURES: hours >= 10 cm from the hourly solver tiles (off by default)
     "bgv.gpu.layers.particles:ParticlesLayer",    # GPU flow streaks                             (later agent)
     "bgv.gpu.layers.arrows:ArrowsLayer",          # instanced flow arrows                        (later agent)
     "bgv.gpu.layers.cinematic:CinematicLayer",    # bookmarks, tour, time-lapse, clip export (controller; UI via ui/hooks.py)
