@@ -110,7 +110,7 @@ class DepthGridProvider:
                 self._lru[k] = cm
                 while len(self._lru) > self._max:
                     self._lru.popitem(last=False)
-        return cm.astype(np.float32) * np.float32(0.01)
+        return np.multiply(cm, np.float32(0.01), dtype=np.float32)   # one float32 allocation, not two
 
     def _compute(self, storm: str, hour: int) -> np.ndarray:
         if self.src.uses_tiles(storm):
