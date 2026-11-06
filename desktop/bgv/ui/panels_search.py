@@ -334,10 +334,10 @@ def _search_bar(ui, c):
         _end_panel()
         return
     try:
-        if c.focus:
-            imgui.set_keyboard_focus_here()
-            c.focus = False
-            c.committed = False
+        want_focus = bool(c.focus)
+        if want_focus and getattr(c, "_focus_tries", 0) % 3 == 0:   # pending until the field is really active; re-issued only
+            imgui.set_keyboard_focus_here()            # a window that is appearing / fading in skips items, so a
+            c.committed = False                          # one-shot request was sometimes silently dropped
         imgui.push_item_width(-62.0 * s)
         ch, txt = imgui.input_text_with_hint("##q", "Search address (Ctrl+F)  e.g. 1309 Scottsville Rd", c.query,
                                              int(imgui.InputTextFlags_.enter_returns_true))
@@ -349,6 +349,11 @@ def _search_bar(ui, c):
         imgui.pop_item_width()
         active = imgui.is_item_active()
         c.input_active = active
+        if want_focus:
+            tries = getattr(c, "_focus_tries", 0) + 1
+            if active or tries >= 10:
+                c.focus, tries = False, 0
+            c._focus_tries = tries
         imgui.same_line()
         if imgui.button("Clear" if c.query else "Help", V2(54.0 * s, 0)):
             if c.query:

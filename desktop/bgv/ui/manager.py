@@ -1,4 +1,4 @@
-"""UiManager: owns the UI state, lays out every panel and draws them once per frame (called from App._gui through the
+﻿"""UiManager: owns the UI state, lays out every panel and draws them once per frame (called from App._gui through the
 OverlayLayer).  Every panel runs inside `safe()`: an exception shows a red line in that panel and is logged once; the
 render loop never sees it.
 
@@ -247,6 +247,12 @@ class UiManager:
                 return True
         except Exception:
             pass
+        try:                                                    # io.want_* are computed in new_frame and lag one frame behind
+            g = imgui.get_current_context()                     # the field becoming active: ask the context directly
+            if g.active_id and g.input_text_state.id_ == g.active_id:
+                return True
+        except Exception:
+            pass
         return bool(getattr(self, "_text_override", False))
 
     def _text_key(self, k: str, kl: str, mods) -> bool:
@@ -371,11 +377,21 @@ class UiManager:
     LITE_ON_MS, LITE_OFF_MS, LITE_MIN_UI_MS = 17.2, 13.8, 2.0
 
     def lite_skip(self) -> bool:
-        if not self.lite:
+        if not self.lite or self._needs_every_frame():
             self._skipped = False
             return False
         self._skipped = not self._skipped
         return self._skipped
+
+    def _needs_every_frame(self) -> bool:
+        """Text entry and pending focus requests must run the UI code every frame (a replayed frame drops keys / focus)."""
+        try:
+            from . import panels_search
+            if panels_search.controller(self).focus:
+                return True
+        except Exception:
+            pass
+        return self.text_focused()
 
     def _update_lite(self):
         fm = self.app.frame_ms

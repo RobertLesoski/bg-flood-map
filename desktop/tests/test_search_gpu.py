@@ -1,4 +1,4 @@
-"""Search / facilities / roads / report / help on the offscreen canvas with the real city data (no window), plus the controller's
+﻿"""Search / facilities / roads / report / help on the offscreen canvas with the real city data (no window), plus the controller's
 graceful behaviour on a data folder where everything is missing (CPU only)."""
 from __future__ import annotations
 
@@ -172,7 +172,11 @@ def test_keyboard_shortcuts_open_and_toggle(env):
     c = env.c
     assert env.key("f", modifiers=("Control",)) and c.focus
     env.draw(2)
-    assert not c.focus
+    assert not c.focus and env.m.text_focused()       # the field is active: hotkeys go to it ...
+    assert env.key("Escape")                           # ... until Esc leaves it
+    env.draw(2)
+    from imgui_bundle import imgui as _im; _g = _im.get_current_context(); _io = _im.get_io()
+    assert not env.m.text_focused(), (_g.active_id, _g.input_text_state.id_, _io.want_capture_keyboard, _io.want_text_input, c.focus)
     on = c.markers_on
     assert env.key("m") and c.markers_on != on
     env.key("m")
@@ -337,7 +341,7 @@ def test_search_focus_swallows_every_hotkey_and_text_reaches_the_box(env):
     assert m.st.hidden == hidden0
     c.focus = True
     env.draw(3)
-    assert m.text_focused()
+    assert m.text_focused(), (c.focus, getattr(c, "_focus_tries", None), c.input_active, imgui.get_io().want_capture_keyboard, imgui.get_io().want_text_input)
     for ch in "tbl 123 main st":
         env.key(ch)
         app._on_key({"event_type": "key_down", "key": ch})
@@ -382,6 +386,10 @@ def test_utilities_layer_draws_clicks_and_is_found_by_search(env):
     app, m, c = env.app, env.m, env.c
     if eu.uset(app) is None:
         pytest.skip("no layers/utilities.geojson.gz")
+    from imgui_bundle import imgui
+    imgui.internal.clear_active_id()                 # an active text field keeps its own buffer and would overwrite c.query
+    c.focus, c.query, c.committed = False, "", False
+    env.draw(2)
     registry.state(app, "utilities")["on"] = True
     env.draw(3)
     assert eu._S.view is not None and len(eu._S.view.ids) > 0

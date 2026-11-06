@@ -294,11 +294,13 @@ def test_pick_storm_and_cli_settings():
     pick = domainmod.pick_storm
     av = ["5yr", "25yr", "100yr"]
     assert pick({}, "city", av) == "25yr" and pick({}, "county", av) == "100yr"
-    assert pick({"storm": "5yr"}, "city", av) == "5yr"                              # legacy city key
-    assert pick({"storm": "5yr"}, "county", av) == "100yr"                          # ... not for the county
-    assert pick({"domain_views": {"county": {"storm": "5yr"}}}, "county", av) == "5yr"
-    assert pick({"storm": "5yr"}, "city", av, explicit="100yr") == "100yr"
-    assert pick({"storm": "gone"}, "city", ["10yr", "50yr"]) == "10yr"
+    assert pick({"storm": "5yr"}, "city", av) == "25yr"                             # stored storm ignored by default (7f5b158)
+    R = {"restore_last": True}
+    assert pick({**R, "storm": "5yr"}, "city", av) == "5yr"                         # legacy city key
+    assert pick({**R, "storm": "5yr"}, "county", av) == "100yr"                     # ... not for the county
+    assert pick({**R, "domain_views": {"county": {"storm": "5yr"}}}, "county", av) == "5yr"
+    assert pick({**R, "storm": "5yr"}, "city", av, explicit="100yr") == "100yr"
+    assert pick({**R, "storm": "gone"}, "city", ["10yr", "50yr"]) == "10yr"
     class A:
         domain, county_dem, county_demo, county_pbf = "COUNTY", "D:/x.tif", None, "k.pbf"
     s = domainmod.apply_cli({"keep": 1}, A())
