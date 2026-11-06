@@ -18,7 +18,7 @@ Tags -> type:
   power=plant, other source                  power_plant        power=line|minor_line|cable      power_line | minor_line | power_cable (lines)
   power=generator, not solar                 generator (optional sub-type: one unit, e.g. a backup diesel set)
   power=generator, solar                     DROPPED (one panel row of a farm, or a rooftop array; counted in metadata.dropped)
-  (Before this rule all 244 "power plants" in the county box were unnamed solar panel generators: 241 ground panel rows
+  (Before this rule all 244 "power plants" in the county box were solar: 241 power=generator ground panel rows
   dropped now; the 3 left are power=plant solar farms.)  Dams: only 3 dam/weir ways are mapped in OSM inside the county box
   (Shanty Hollow Lake Dam, Franklin Dam (weir), one unnamed); dams as closed ways/areas ARE read, relations are not read
   (whether a dam relation exists in the box is unknown).  No NID (National Inventory of Dams) list exists in the data folder, so
