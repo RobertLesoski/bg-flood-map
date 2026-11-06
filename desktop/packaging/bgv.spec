@@ -4,6 +4,8 @@ from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 HERE = os.path.abspath(SPECPATH)
 DESKTOP = os.path.dirname(HERE)
+import sys
+sys.path.insert(0, DESKTOP)  # so collect_submodules("bgv") sees the package (layers are imported by name at runtime)
 
 datas, binaries, hidden = [], [], []
 # wgpu: wgpu-native dll + shaders/resources; imgui_bundle: fonts/assets; rasterio: gdal_data + proj_data (proj.db);
@@ -16,6 +18,13 @@ for pkg in ("wgpu", "imgui_bundle", "rendercanvas", "glfw", "rasterio", "pyproj"
         print("collect_all skipped", pkg, e)
         continue
     datas += d; binaries += b; hidden += h
+# venv built from an Anaconda base: stdlib extension DLL deps (_ctypes->ffi, _ssl, _lzma, _bz2, _sqlite3, pyexpat)
+# live in <base>\Library\bin, which PyInstaller does not search.
+import sys, glob
+_libbin = os.path.join(sys.base_prefix, "Library", "bin")
+for pat in ("ffi*.dll", "libssl-*.dll", "libcrypto-*.dll", "liblzma.dll", "libbz2.dll", "sqlite3.dll",
+            "libexpat.dll", "zlib*.dll"):
+    binaries += [(f, ".") for f in glob.glob(os.path.join(_libbin, pat))]
 hidden += collect_submodules("bgv") + ["rasterio.sample", "rasterio.vrt", "rasterio._features", "scipy.special._cdflib"]
 hidden = [h for h in hidden if ".tests" not in h and not h.endswith(".tests")]
 

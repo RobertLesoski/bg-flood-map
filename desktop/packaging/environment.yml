@@ -1,0 +1,20 @@
+# Portable fallback (if the PyInstaller build fails): conda env create -f environment.yml   (or run "Run Portable.bat")
+name: bgv
+channels: [conda-forge]
+dependencies:
+  - python=3.12
+  - numpy
+  - numba
+  - scipy
+  - rasterio
+  - shapely
+  - pillow
+  - requests
+  - pip
+  - pip:
+      - wgpu==0.32.0
+      - rendercanvas==2.7.2
+      - glfw==2.11.0
+      - imgui-bundle==1.93.0
+      - mapbox_earcut
+      - imageio-ffmpeg

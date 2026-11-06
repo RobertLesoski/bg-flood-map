@@ -138,3 +138,12 @@ Details: `docs/SEARCH_HOOKS.md` (files, hooks, settings), `../SEARCH_PROGRESS.md
 - **Help / About** (F1): searchable help, shortcut sheet, per-storm data sources (renders `STORM_DATA_SOURCES.md` from the repo root when present),
   data-file status and the log file path. First run shows a short hint overlay (Find > Show first-run tips again).
 - Tools: `python -m bgv.search.shot --help` (headless renders), `python tests/verify_search.py` (independent verification against rasterio).
+
+## Install and run (packaged app)
+
+- Build: `powershell -ExecutionPolicy Bypass -File desktop\packaging\build.ps1` (isolated venv in `packaging\.build`,
+  PyInstaller one-folder app in `packaging\dist\BG Flood Viewer`, ~500 MB, ~3 min). The 7 GB data folder is not copied.
+- Run: `BG Flood Viewer.exe` (add `--domain county` for the county view). Data folder lookup: `--data`, `bgv_data.txt`
+  next to the exe, `BGV_DATA_ROOT`/`BGV_DATA`, `data\` next to the exe, then the default path; message box if missing.
+- Fallback without the exe: `packaging\Run Portable.bat` (conda env from `packaging\environment.yml`).
+- Presenter notes and known issues: `packaging\QUICKSTART.md`.
