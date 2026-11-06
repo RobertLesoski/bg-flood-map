@@ -1,4 +1,4 @@
-r"""
+﻿r"""
 build_utilities.py - utilities and infrastructure layer (water, power) from OpenStreetMap + flood exposure from the county COG tiles.
 
     python scripts/build_utilities.py                       # -> <app>/layers/utilities.geojson.gz
@@ -15,7 +15,14 @@ Tags -> type:
   man_made=reservoir_covered                 water_tank         man_made=pumping_station         pumping_station
   waterway=dam | weir                        dam | weir         power=substation                 substation
   power=plant|generator, source hydro        hydro_plant        power=transformer                transformer (only when <= 400 in the box)
-  power=plant|generator, other source        power_plant        power=line|minor_line|cable      power_line | minor_line | power_cable (lines)
+  power=plant, other source                  power_plant        power=line|minor_line|cable      power_line | minor_line | power_cable (lines)
+  power=generator, not solar                 generator (optional sub-type: one unit, e.g. a backup diesel set)
+  power=generator, solar                     DROPPED (one panel row of a farm, or a rooftop array; counted in metadata.dropped)
+  (Before this rule all 244 "power plants" in the county box were unnamed solar panel generators: 241 ground panel rows
+  dropped now; the 3 left are power=plant solar farms.)  Dams: only 3 dam/weir ways are mapped in OSM inside the county box
+  (Shanty Hollow Lake Dam, Franklin Dam (weir), one unnamed); dams as closed ways/areas ARE read, relations are not read
+  (whether a dam relation exists in the box is unknown).  No NID (National Inventory of Dams) list exists in the data folder, so
+  the layer under-represents dams; add NID points if a copy is obtained.
   man_made=pipeline                          pipeline (lines)
 Power towers / poles are not features.
 
@@ -68,8 +75,14 @@ def classify(t):
         return mm
     if ww in ("dam", "weir"):
         return ww
-    if pw in ("plant", "generator"):
+    if pw == "plant":
         return "hydro_plant" if _hydro(t) else "power_plant"
+    if pw == "generator":
+        # a generator is one unit (often one row of panels inside a solar farm, or a rooftop array), not a plant.
+        # Solar panels are dropped (counted in metadata.dropped); other generators are an optional sub-type.
+        if (t.get("generator:source") or "").lower() == "solar" or t.get("generator:type") == "solar_photovoltaic_panel":
+            return "solar_generator"
+        return "hydro_plant" if _hydro(t) else "generator"
     if pw == "substation":
         return "substation"
     if pw == "transformer":
@@ -90,6 +103,8 @@ def _props(t, typ):
     src = t.get("plant:source") or t.get("generator:source")
     if src:
         p["source"] = src
+    if typ == "solar_generator" and t.get("location"):
+        p["location"] = t["location"]
     if t.get("voltage"):
         p["voltage"] = t["voltage"]
     return p
@@ -294,8 +309,13 @@ def build(app, storms=None, pbf=None, cog_dir=None, out=None, bbox=None, city_bo
     for f in feats:
         if f["osm_id"] not in seen:
             seen.add(f["osm_id"]); uniq.append(f)
-    feats = uniq
-    log("  %d features from OSM" % len(feats))
+    dropped = {}
+    for f in uniq:
+        if f["props"]["type"] == "solar_generator":
+            k = "solar_generator_" + ("roof" if f["props"].get("location") == "roof" else "ground")
+            dropped[k] = dropped.get(k, 0) + 1
+    feats = [f for f in uniq if f["props"]["type"] != "solar_generator"]
+    log("  %d features from OSM (dropped solar panel generators: %s)" % (len(feats), dropped))
     rs = raster_of(os.path.join(cog_dir, storms[0], "max_depth.tif"))
     arrays = {s: _cog_depth_loader(os.path.join(cog_dir, s, "max_depth.tif")) for s in storms}
     d, f10, f30 = exposure(feats, rs, arrays, storms)
@@ -318,8 +338,8 @@ def build(app, storms=None, pbf=None, cog_dir=None, out=None, bbox=None, city_bo
         out_feats.append({"type": "Feature", "geometry": geom, "properties": p})
     doc = {"type": "FeatureCollection", "name": "utilities",
            "metadata": {"storms": storms, "built": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
-                        "counts": counts, "flooded_cm": FLOOD_CM, "deep_cm": DEEP_CM,
-                        "note": "OpenStreetMap utilities (relations not read; completeness varies). d = max depth cm per storm from the "
+                        "counts": counts, "dropped": dropped, "flooded_cm": FLOOD_CM, "deep_cm": DEEP_CM,
+                        "note": "OpenStreetMap utilities (relations not read; completeness varies; solar panel generators dropped, see dropped; only dams mapped in OSM, no NID list). d = max depth cm per storm from the "
                                 "COG tiles (6.25 m), f10 / f30 = % of line length at >= 10 / >= 30 cm. Verification pending."},
            "features": out_feats}
     out = out or os.path.join(app, "layers", "utilities.geojson.gz")

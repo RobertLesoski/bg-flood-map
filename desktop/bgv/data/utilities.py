@@ -1,4 +1,4 @@
-"""Utilities layer data (water + power from OpenStreetMap, flood exposure from the county COG tiles).
+﻿"""Utilities layer data (water + power from OpenStreetMap, flood exposure from the county COG tiles).
 
 File: <data root>/layers/utilities.geojson.gz, built by scripts/build_utilities.py (format documented there and in docs/UTILITIES.md).
 Pure numpy / json, no GPU.  `UtilitySet.for_app(app)` loads it once per data root (cached); `view(app)` projects it onto the
@@ -26,7 +26,7 @@ GROUPS = {
                         (0.0, 0.62, 0.451), "square", ("water works", "water treatment", "treatment", "wastewater", "sewage", "pumping station", "pumping")),
     "dam": ("Dam / weir", ("dam", "weir"), (0.8, 0.475, 0.655), "diamond", ("dam", "weir", "lock")),
     "hydro": ("Hydroelectric plant", ("hydro_plant",), (0.94, 0.894, 0.259), "hexagon", ("hydro", "hydroelectric", "power plant", "power station")),
-    "power_plant": ("Power plant / generator", ("power_plant",), (0.902, 0.624, 0.0), "pentagon", ("power plant", "power station", "generator", "solar", "plant")),
+    "power_plant": ("Power plant / generator", ("power_plant", "generator"), (0.902, 0.624, 0.0), "pentagon", ("power plant", "power station", "generator", "solar", "plant")),
     "substation": ("Substation", ("substation",), (0.835, 0.369, 0.0), "cross", ("substation", "electric")),
     "transformer": ("Transformer", ("transformer",), (0.6, 0.6, 0.6), "dot", ("transformer",)),
 }
@@ -36,7 +36,7 @@ LINE_GROUPS = {
 }
 TYPE_LABEL = {"water_tower": "Water tower", "water_tank": "Water tank / reservoir", "water_works": "Water works",
               "wastewater_plant": "Wastewater plant", "pumping_station": "Pumping station", "dam": "Dam", "weir": "Weir",
-              "hydro_plant": "Hydroelectric plant", "power_plant": "Power plant / generator", "substation": "Substation",
+              "hydro_plant": "Hydroelectric plant", "power_plant": "Power plant", "generator": "Generator (single unit)", "substation": "Substation",
               "transformer": "Transformer", "power_line": "Power line", "minor_line": "Minor power line",
               "power_cable": "Power cable", "pipeline": "Pipeline"}
 GROUP_OF_TYPE = {t: g for g, v in GROUPS.items() for t in v[1]}

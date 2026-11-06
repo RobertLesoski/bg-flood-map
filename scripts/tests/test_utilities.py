@@ -1,4 +1,4 @@
-"""build_utilities on a synthetic PBF + synthetic depth raster.   python -m pytest scripts/tests/test_utilities.py -q"""
+﻿"""build_utilities on a synthetic PBF + synthetic depth raster.   python -m pytest scripts/tests/test_utilities.py -q"""
 import sys
 from pathlib import Path
 
@@ -36,6 +36,10 @@ def test_classify():
     assert bu.classify({"man_made": "storage_tank", "content": "oil"}) is None
     assert bu.classify({"power": "plant", "plant:source": "hydro"}) == "hydro_plant"
     assert bu.classify({"power": "plant", "plant:source": "gas"}) == "power_plant"
+    assert bu.classify({"power": "generator", "generator:source": "solar", "location": "roof"}) == "solar_generator"   # dropped
+    assert bu.classify({"power": "generator", "generator:type": "solar_photovoltaic_panel"}) == "solar_generator"
+    assert bu.classify({"power": "generator", "generator:source": "diesel"}) == "generator"
+    assert bu.classify({"power": "generator", "generator:source": "hydro"}) == "hydro_plant"
     assert bu.classify({"power": "tower"}) is None and bu.classify({"waterway": "dam"}) == "dam"
 
 

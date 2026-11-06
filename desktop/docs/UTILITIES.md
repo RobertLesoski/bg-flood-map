@@ -1,4 +1,4 @@
-# Utilities and infrastructure layer
+﻿# Utilities and infrastructure layer
 
 Water and power infrastructure from OpenStreetMap, with flood exposure from the county solver tiles.  Off by default: View menu
 > "Utilities layer (water, power)" or the "Utilities" section of the sidebar (also per-type toggles = the legend).
@@ -27,10 +27,12 @@ a sample every 3 m along them), lines also `f10` / `f30` = % of their length at 
 | pipeline | man_made=pipeline |
 
 ## Counts (county box, built 2026-11-05)
-
+358 features (rebuilt Session 4): water_tower 19, water_works 1, wastewater_plant 6, dam 2, weir 1, power_plant 3 (all power=plant solar farms),
 599 features: water_tower 19, water_works 1, wastewater_plant 6, dam 2, weir 1, power_plant 244 (mostly small generators, e.g. solar),
-substation 44, transformer 50, power_line 120, minor_line 55, pipeline 57.  Flooded >= 10 cm in at least one design storm:
-water_tower 3, water_works 1, wastewater_plant 5, dam 2, weir 1, power_plant 48, substation 13, transformer 3, power_line 78,
+water_tower 3, water_works 1, wastewater_plant 5, dam 2, weir 1, power_plant 3, substation 13, transformer 3, power_line 78,
+minor_line 14, pipeline 19.  Not found in the data: hydroelectric plants, water tanks / reservoirs, pumping stations, non-solar generators.
+
+Data quality: the earlier build counted 244 'power plants'; every one was an unnamed power=generator way with generator:source=solar (241 ground-mounted panel rows inside solar farms + rooftop arrays). Generators are now classified separately: solar panel generators are dropped (count kept in metadata.dropped), other generators become the 'generator' sub-type of the power plant group. Dams: OSM maps only 3 dam/weir ways in the county box (Shanty Hollow Lake Dam, Franklin Dam as a weir, one unnamed). Ways and closed areas are read; relations are not (unknown whether any dam relation is in the box). No National Inventory of Dams list exists in the data folder, so dams are under-represented.
 minor_line 14, pipeline 19.  Not found in the data: hydroelectric plants, water tanks / reservoirs, pumping stations.
 
 ## Limits (honest)
