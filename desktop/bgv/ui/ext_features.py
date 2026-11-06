@@ -128,6 +128,14 @@ def hour_now(app) -> int:
 
 
 # ================================================================================================ world <-> screen
+def ll_to_world(fr, lng, lat):
+    """Vectorised GridFrame.lnglat_to_world (the frame's own method takes scalars)."""
+    from ..geo import R_MERC
+    x = R_MERC * np.radians(np.asarray(lng, float))
+    y = R_MERC * np.log(np.tan(np.pi / 4 + np.radians(np.asarray(lat, float)) / 2))
+    return fr.merc_to_world(x, y)
+
+
 def project(app, X, Y, lift=3.0):
     X, Y = np.asarray(X, float), np.asarray(Y, float)
     Z = np.asarray(app.terrain.sampler.sample(X, Y), float) * float(app.exag) + lift
@@ -146,13 +154,13 @@ def _polyline(dl, sx, sy, ok, col, width):
         if o:
             run.append(V2(float(x), float(y)))
         elif len(run) > 1:
-            dl.add_polyline(run, theme.col32(col), 0, width)
+            dl.add_polyline(run, theme.col32(col), width, 0)
             run = []
         else:
             run = []
     if len(run) > 1:
-        dl.add_polyline(run, theme.col32((0, 0, 0, 0.8)), 0, width + 3.0)
-        dl.add_polyline(run, theme.col32(col), 0, width)
+        dl.add_polyline(run, theme.col32((0, 0, 0, 0.8)), width + 3.0, 0)
+        dl.add_polyline(run, theme.col32(col), width, 0)
 
 
 # ================================================================================================ routing
@@ -248,7 +256,7 @@ def draw_route_overlay(ui):
         g = f.graph
         for route, col, wdt in ((r.normal, ROUTE_NORMAL, 4.0), (r.dry, ROUTE_DRY, 6.0)):
             if route.found:
-                X, Y = fr.lnglat_to_world(g.lng[route.nodes], g.lat[route.nodes])
+                X, Y = ll_to_world(fr, g.lng[route.nodes], g.lat[route.nodes])
                 sx, sy, ok = project(app, X, Y, 4.0)
                 _polyline(dl, sx, sy, ok, col + (1.0,), wdt * ui.s)
     for i, (lng, lat) in enumerate(f.route_pts):
@@ -861,6 +869,7 @@ def arbiter(ui):
     if not f.help_done:
         keymap.install_help()
         f.help_done = True
+        _env_setup(ui)
     apply_access(ui)
     # one click-capturing tool at a time: the analysis tools (Analysis menu) and the registry tools
     an = app.get_layer("analysis")
@@ -897,6 +906,37 @@ def arbiter(ui):
         cycle_focus(ui, -1 if imgui.get_io().key_shift else 1)
     if f.route_pts:
         draw_route_overlay(ui)
+
+
+def _env_setup(ui):
+    """Benchmarks / screenshots: BGV_FEATURES_ROUTE=lng,lat,lng,lat  BGV_FEATURES_HEAT=1  BGV_FEATURES_HC=1."""
+    f = F(ui)
+    r = os.environ.get("BGV_FEATURES_ROUTE", "")
+    try:
+        v = [float(x) for x in r.split(",")] if r else []
+        if len(v) == 4:
+            f.route_pts = [(v[0], v[1]), (v[2], v[3])]
+            ensure_graph(ui)
+            for _ in range(3000):                            # scripted mode: wait for the graph (cached: about 1 s)
+                if not f.graph_job.busy:
+                    break
+                time.sleep(0.05)
+            ensure_graph(ui)
+            if f.graph is not None:
+                app = ui.app
+                f.route_res = routing.plan(f.graph, f.depth_cache, f.route_pts[0], f.route_pts[1], app.storm.name, hour_now(app),
+                                           f.threshold_cm / 100.0, tile_label(app))
+                f.route_job.key = (app.storm.name, hour_now(app), f.threshold_cm / 100.0, tuple(f.route_pts))
+    except ValueError:
+        pass
+    if os.environ.get("BGV_FEATURES_HEAT") == "1":
+        lay = ui.app.get_layer("hoursflooded")
+        if lay is not None:
+            from .. import config
+            durmod.cached_hours_flooded(svc(ui.app), ui.app.storm.name, ui.app.terrain.frame, config.cache_dir() / "hoursflooded")
+            lay.enabled = True
+    if os.environ.get("BGV_FEATURES_HC") == "1":
+        _st(ui)["high_contrast"] = True
 
 
 def reset_for_domain(ui):
