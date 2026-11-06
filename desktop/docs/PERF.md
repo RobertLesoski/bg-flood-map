@@ -122,3 +122,26 @@ tool windows (analysis window, facilities list ...). Screenshots of every tool i
 (other processes), so the layer's cost is below the run-to-run noise there.  Offscreen UI harness with image read-back (orbit, 1080p, county):
 overview 18.9 ms off / 22.2 ms on (about +3 ms from the line polylines), close view 14.9 / 14.6 ms (67 fps).  Not a clean >= 60 fps
 proof for the county overview under load: marked as measured-but-noisy.
+
+## Flood-tools feature pack (viewer-features, 2026-11-05)
+
+Scene-only `python -m bgv --benchmark --domain county` does not run the interface, so it cannot see these features (three runs with
+the feature env vars set gave 111.9 / 97.6 / 125.2 fps synced: that spread is machine noise). Full viewer with interface, offscreen,
+county, 1920x1080, MSAA 4, 600 frames on the benchmark camera path, 100yr hour 12: `python docs/features_perf.py <config>` (synced
+wall time per frame, includes the offscreen read-back). The PC was loaded by other processes during every run: the `off` config
+gave 61.0 and 52.0 fps on two runs, so differences below ~10 fps are noise.
+
+| config | fps | mean ms | p95 | p99 | notes |
+|---|---|---|---|---|---|
+| off | 61.0 / 52.0 | 16.4 / 19.2 | 23.8 / 34.3 | 32.0 / 50.6 | two runs |
+| route drawn (dry + normal) | 60.9 / 50.6 | 16.4 / 19.8 | 22.1 / 27.6 | 29.5 / 34.5 | overlay CPU about 1.3 - 2 ms/frame (section timer) |
+| route, before the fix | 33.2 | 30.1 | 67.6 | 96.5 | re-planned on every new hour during playback (1.4 M tile samples in a thread); now re-plans only when time stops |
+| hours-flooded heat layer | 58.1 | 17.2 | 28.6 | 39.7 | one flow-grid texture draped on the terrain |
+| exposure tab open | 51.0 / 49.6 / 55.0 | 19.6 / 20.2 / 18.2 | | | window < 0.8 ms in the panel timer: spread is noise |
+| duration tab open | 57.0 | 17.5 | 28.8 | 40.0 | |
+| high contrast | 71.6 | 14.0 | 18.8 | 25.2 | a quieter moment; no cost expected |
+| all on | 50.5 | 19.8 | 26.7 | 32.5 | a later re-run under heavier load gave 29 fps with every panel slower: discarded |
+
+Verdict: only the route overlay has a cost visible in the timers (about 1.5 ms CPU, similar to the search markers). Whether county +
+interface holds >= 60 fps synced could NOT be shown cleanly on this loaded machine (the `off` baseline itself measured 52 - 61):
+re-measure on a quiet PC.

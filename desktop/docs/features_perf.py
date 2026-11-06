@@ -60,6 +60,8 @@ def main(cfg: str) -> int:
     errs = list(app.errors)[:3] if hasattr(app, "errors") else []
     print(f"{cfg}: frames {n}  fps {1000.0 / a.mean():.1f}  mean {a.mean():.2f}  p95 {np.percentile(a, 95):.2f}  "
           f"p99 {np.percentile(a, 99):.2f} ms  heat {'drawn' if lay is not None and lay.draws else 'off'}  errors {errs}")
+    pm = sorted(m.panel_ms.items(), key=lambda kv: -kv[1])[:4]
+    print("  panel ms: " + ", ".join(f"{k} {v:.2f}" for k, v in pm))
     app.shutdown()
     return 0
 

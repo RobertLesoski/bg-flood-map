@@ -136,10 +136,11 @@ def ll_to_world(fr, lng, lat):
     return fr.merc_to_world(x, y)
 
 
-def project(app, X, Y, lift=3.0):
+def project(app, X, Y, lift=3.0, Z=None):
     X, Y = np.asarray(X, float), np.asarray(Y, float)
-    Z = np.asarray(app.terrain.sampler.sample(X, Y), float) * float(app.exag) + lift
-    P = np.stack([X, Y, Z, np.ones_like(X)], 1) @ np.asarray(app.camera.view_proj(), float).T
+    if Z is None:
+        Z = np.asarray(app.terrain.sampler.sample(X, Y), float) * float(app.exag) + lift
+    P = np.stack([X, Y, Z, np.ones_like(X)], 1) @ np.asarray(getattr(app, "view_proj", None) if getattr(app, "view_proj", None) is not None else app.camera.view_proj(), float).T
     w = P[:, 3]
     ok = w > 1e-6
     cam = app.camera
@@ -149,18 +150,22 @@ def project(app, X, Y, lift=3.0):
 
 
 def _polyline(dl, sx, sy, ok, col, width):
-    run = []
-    for x, y, o in zip(sx, sy, ok):
-        if o:
-            run.append(V2(float(x), float(y)))
-        elif len(run) > 1:
-            dl.add_polyline(run, theme.col32(col), width, 0)
-            run = []
-        else:
-            run = []
-    if len(run) > 1:
-        dl.add_polyline(run, theme.col32((0, 0, 0, 0.8)), width + 3.0, 0)
-        dl.add_polyline(run, theme.col32(col), width, 0)
+    """Draw the visible runs of a projected polyline; points closer than ~2 px on screen are merged (a county route has
+    thousands of OSM nodes), so the per-frame Python work stays small."""
+    sx, sy, ok = np.asarray(sx), np.asarray(sy), np.asarray(ok, bool)
+    if sx.size < 2:
+        return
+    q = np.floor(sx / 2.0) * 1e5 + np.floor(sy / 2.0)
+    keep = np.r_[True, q[1:] != q[:-1]] | ~ok | np.r_[~ok[1:], True] | np.r_[True, ~ok[:-1]]
+    keep[-1] = True
+    sx, sy, ok = sx[keep], sy[keep], ok[keep]
+    cuts = np.flatnonzero(np.diff(ok.astype(np.int8)) != 0) + 1
+    c_out, c_in = theme.col32((0, 0, 0, 0.8)), theme.col32(col)
+    for seg in np.split(np.arange(sx.size), cuts):
+        if seg.size > 1 and ok[seg[0]]:
+            run = [V2(x, y) for x, y in zip(sx[seg].tolist(), sy[seg].tolist())]
+            dl.add_polyline(run, c_out, width + 3.0, 0)
+            dl.add_polyline(run, c_in, width, 0)
 
 
 # ================================================================================================ routing
@@ -254,10 +259,19 @@ def draw_route_overlay(ui):
     r = f.route_res
     if r is not None and f.graph is not None:
         g = f.graph
-        for route, col, wdt in ((r.normal, ROUTE_NORMAL, 4.0), (r.dry, ROUTE_DRY, 6.0)):
-            if route.found:
-                X, Y = ll_to_world(fr, g.lng[route.nodes], g.lat[route.nodes])
-                sx, sy, ok = project(app, X, Y, 4.0)
+        ck = (id(r), id(app.terrain), float(app.exag))
+        if f.__dict__.get("route_geo_key") != ck:                 # world X, Y, Z of both routes: once per result
+            geo = []
+            for route in (r.normal, r.dry):
+                if route.found:
+                    X, Y = ll_to_world(fr, g.lng[route.nodes], g.lat[route.nodes])
+                    geo.append((X, Y, np.asarray(app.terrain.sampler.sample(X, Y), float) * float(app.exag) + 4.0))
+                else:
+                    geo.append(None)
+            f.route_geo, f.route_geo_key = geo, ck
+        for gg, col, wdt in zip(f.route_geo, (ROUTE_NORMAL, ROUTE_DRY), (4.0, 6.0)):
+            if gg is not None:
+                sx, sy, ok = project(app, gg[0], gg[1], Z=gg[2])
                 _polyline(dl, sx, sy, ok, col + (1.0,), wdt * ui.s)
     for i, (lng, lat) in enumerate(f.route_pts):
         X, Y = fr.lnglat_to_world(lng, lat)
@@ -391,9 +405,12 @@ def tab_exposure(ui):
     if depth.shape[0] != b.n:
         imgui.text_colored(V4(*theme.WARN), "Depth array does not match the buildings (domain switching)")
         return
-    ids = expmod.apply(depth, b.land_use, b.sale_price, flt)
-    f.expo_ids = ids
-    sm = expmod.summarize(ids, depth, b.sale_price)
+    ck = (id(depth), id(b), flt.key())
+    if f.__dict__.get("expo_ck") != ck or f.expo_ids is None:          # filtering 25 k buildings is ~ms: once per change
+        f.expo_ids = expmod.apply(depth, b.land_use, b.sale_price, flt)
+        f.expo_sum = expmod.summarize(f.expo_ids, depth, b.sale_price)
+        f.expo_ck = ck
+    ids, sm = f.expo_ids, f.expo_sum
     imgui.text(f"{sm['count']:,} buildings  -  {storm}, {'peak' if peak else f'hour {h}'}")
     imgui.text_disabled("  ".join(f"{k}: {v:,}" for k, v in sm["by_tier"].items() if v))
     if sm["value_known"]:
@@ -411,22 +428,23 @@ def tab_exposure(ui):
         for c in ("Address", "Depth", "Land use", "Value"):
             imgui.table_setup_column(c)
         imgui.table_headers_row()
-        for i in ids[:300]:
-            imgui.table_next_row()
-            imgui.table_next_column()
-            addr = str(b.address[i]) or f"building {int(i)}"
-            if imgui.selectable(f"{addr}##e{int(i)}", False, int(imgui.SelectableFlags_.span_all_columns))[0]:
-                bridge.select_building(app, int(i), fly=True)
-            imgui.table_next_column()
-            imgui.text(f"{int(depth[i])} cm")
-            imgui.table_next_column()
-            imgui.text(str(b.land_use[i]) or "-")
-            imgui.table_next_column()
-            p = float(b.sale_price[i])
-            imgui.text(f"${p:,.0f}" if np.isfinite(p) and p > 0 else "-")
+        clip = imgui.ListClipper()
+        clip.begin(int(ids.size))
+        while clip.step():
+            for i in ids[clip.display_start:clip.display_end]:
+                imgui.table_next_row()
+                imgui.table_next_column()
+                addr = str(b.address[i]) or f"building {int(i)}"
+                if imgui.selectable(f"{addr}##e{int(i)}", False, int(imgui.SelectableFlags_.span_all_columns))[0]:
+                    bridge.select_building(app, int(i), fly=True)
+                imgui.table_next_column()
+                imgui.text(f"{int(depth[i])} cm")
+                imgui.table_next_column()
+                imgui.text(str(b.land_use[i]) or "-")
+                imgui.table_next_column()
+                p = float(b.sale_price[i])
+                imgui.text(f"${p:,.0f}" if np.isfinite(p) and p > 0 else "-")
         imgui.end_table()
-    if ids.size > 300:
-        imgui.text_disabled(f"first 300 of {ids.size:,} shown; the export has all")
 
 
 def _export(ui, ids, depth, label, storm, which, kind):
