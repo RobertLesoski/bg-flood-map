@@ -822,7 +822,9 @@ def apply_access(ui):
         f.font_applied = fs
     io = imgui.get_io()
     nav = int(imgui.ConfigFlags_.nav_enable_keyboard)
-    if st.get("keyboard_nav", True):
+    # keyboard navigation only while the user is in panel-navigation mode (F6): with imgui's nav flag on, a focused panel makes
+    # io.want_capture_keyboard true, and the manager then treats every key as text input -> all map hotkeys would die
+    if st.get("keyboard_nav", True) and f.__dict__.get("nav_mode", False):
         io.config_flags |= nav
     else:
         io.config_flags &= ~nav
@@ -934,7 +936,12 @@ def arbiter(ui):
         except Exception as e:
             ui.toasts.push(f"Share card failed: {e}", theme.ERR, 6.0)
     if _st(ui).get("keyboard_nav", True) and imgui.is_key_pressed(imgui.Key.f6, False):
+        f.nav_mode = True
         cycle_focus(ui, -1 if imgui.get_io().key_shift else 1)
+    elif f.__dict__.get("nav_mode") and (imgui.is_key_pressed(imgui.Key.escape, False)
+                                         or (imgui.is_mouse_clicked(0) and not imgui.get_io().want_capture_mouse)):
+        f.nav_mode = False                           # Esc or a click on the map: back to map hotkeys
+        imgui.get_io().config_flags &= ~int(imgui.ConfigFlags_.nav_enable_keyboard)
     if f.route_pts:
         draw_route_overlay(ui)
 
