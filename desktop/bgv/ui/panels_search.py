@@ -32,7 +32,11 @@ WIN_FLAGS = int(imgui.WindowFlags_.no_collapse | imgui.WindowFlags_.no_saved_set
 # NOTE: imgui puts a NoBringToFrontOnFocus window at the BACK of the stack (behind the legend and every other overlay panel), so the
 # cards and the dropdown deliberately do not use that flag
 CARD_FLAGS = int(imgui.WindowFlags_.no_move | imgui.WindowFlags_.no_resize | imgui.WindowFlags_.no_collapse
-                 | imgui.WindowFlags_.no_title_bar | imgui.WindowFlags_.no_saved_settings | imgui.WindowFlags_.always_auto_resize)
+                 | imgui.WindowFlags_.no_title_bar | imgui.WindowFlags_.no_saved_settings | imgui.WindowFlags_.always_auto_resize
+                 # a card that appears (the typeahead dropdown after the first letter, the result card) must not take the
+                 # keyboard focus: imgui focuses appearing windows, which deactivated the search box after ONE character
+                 # and sent every later key to the hotkeys (real-window bug, docs/realwin_search.py)
+                 | imgui.WindowFlags_.no_focus_on_appearing)
 TIER_LABEL = ("below 10 cm", "Shallow", "Moderate", "Deep", "Severe")
 
 

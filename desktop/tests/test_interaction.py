@@ -1070,6 +1070,36 @@ def test_typing_in_the_search_box_fires_no_shortcuts(env):
 
 
 @gpu
+def test_address_box_keeps_the_focus_when_the_typeahead_dropdown_appears(env):
+    """Real-window bug: after the FIRST character the typeahead dropdown window appeared, imgui focused it, the address box
+    lost the active id and every later key went to the hotkeys (3 -> storm 3, h -> hide UI, t -> tour ...).  Driven through
+    canvas events (pointer + key_down + char), the same path the glfw callbacks use; see also docs/realwin_search.py."""
+    from bgv.ui import panels_search
+    env.reset()
+    c = panels_search.controller(env.m)
+    c.query, c.result = "", None
+    env.frame(3)
+    x, y, w = c.bar_rect
+    env.click(x + 60.0, y + 16.0)
+    env.frame(3)
+    assert env.io.want_text_input and c.input_active
+    st = env.m.st
+    snap = dict(playing=env.app.playing, t=env.app.t, hidden=st.hidden, help=env.m.show_help, storm=env.app.storm.name)
+    env.type_text("1309 Scottsville")
+    env.frame(5)
+    if not c.hits_for(c.query):
+        pytest.skip("no address index: the dropdown does not appear")
+    assert c.input_active, "the dropdown took the keyboard focus from the address box"
+    env.type_text(" tlh39[].")
+    env.frame(10)
+    assert c.query == "1309 Scottsville tlh39[]."
+    assert dict(playing=env.app.playing, t=env.app.t, hidden=st.hidden, help=env.m.show_help,
+                storm=env.app.storm.name) == snap
+    env.tap("Escape")
+    c.query, c.result = "", None
+    env.frame(3)
+
+
 def test_key_released_while_typing_does_not_leave_the_camera_key_stuck(env):
     env.reset()
     env.key("w", True)                                                          # camera key down (not typing yet) ...

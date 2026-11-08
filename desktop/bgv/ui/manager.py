@@ -35,7 +35,8 @@ V2 = imgui.ImVec2
 
 PANEL_FLAGS = int(imgui.WindowFlags_.no_move | imgui.WindowFlags_.no_resize | imgui.WindowFlags_.no_collapse
                   | imgui.WindowFlags_.no_title_bar | imgui.WindowFlags_.no_saved_settings
-                  | imgui.WindowFlags_.no_bring_to_front_on_focus)
+                  | imgui.WindowFlags_.no_bring_to_front_on_focus
+                  | imgui.WindowFlags_.no_focus_on_appearing)    # a panel that appears must not deactivate a text box
 ALWAYS = int(imgui.Cond_.always)
 AUTO_RESIZE = int(imgui.WindowFlags_.always_auto_resize)
 
