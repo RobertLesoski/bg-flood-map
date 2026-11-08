@@ -1,5 +1,4 @@
 <img width="1087" height="495" alt="image" src="https://github.com/user-attachments/assets/53e21275-aa64-4c94-bd7a-7757b4739293" />
-<img width="1087" height="495" alt="image" src="https://github.com/user-attachments/assets/174b89aa-a425-4ff5-b9b4-6fb846461967" />
 <img width="750" height="238" alt="image" src="https://github.com/user-attachments/assets/ebbc3538-7d03-4981-a0f3-22840b41d8a1" />
 <img width="493" height="116" alt="image" src="https://github.com/user-attachments/assets/01f2d983-c0f9-46a6-b5b2-a9d8e2565139" />
 <img width="668" height="299" alt="image" src="https://github.com/user-attachments/assets/1f4212cf-8798-438b-8f9b-71cd2ac894f6" />
@@ -12,6 +11,9 @@
 ![Status](https://img.shields.io/badge/Status-Active_Research-green?style=for-the-badge)
 
 An interactive 3D flood risk visualization for Bowling Green, Kentucky, built using real LiDAR terrain data, FEMA flood zones, NOAA Atlas 14 rainfall statistics, and GPU-accelerated hydrodynamic simulation on the TACC Vista supercomputer.
+
+> [!WARNING]
+> **Disclaimer: flood depths are not validated.** The depths, extents and risk tiers shown here are output from a research model. They have not been validated against observed flooding, and they should not be treated as truth or used for safety, insurance, property, engineering or emergency decisions. The model does not include storm drains, karst drainage or river inflow from upstream, and its rainfall and infiltration settings are not calibrated. For official flood risk, consult FEMA flood maps and local authorities.
 
 ---
 
