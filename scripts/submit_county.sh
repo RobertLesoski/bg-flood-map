@@ -9,7 +9,7 @@
 #SBATCH --time=48:00:00
 #SBATCH --array=0-5
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=robert.lesoski138@topper.wku.edu
+#SBATCH --mail-user=your-email@example.com
 
 # County-wide Warren County flood simulation — same 6 historical events as BG batch,
 # run on a 5 m county DEM instead of the 2 m city DEM.

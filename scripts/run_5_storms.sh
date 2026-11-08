@@ -209,7 +209,7 @@ cat > submit_5storms.template <<'SLEOF'
 #SBATCH --time=__TIME__
 #SBATCH --array=0-4
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=robert.lesoski138@topper.wku.edu
+#SBATCH --mail-user=your-email@example.com
 
 RP_LIST=(5yr 10yr 25yr 50yr 100yr)
 RP=${RP_LIST[$SLURM_ARRAY_TASK_ID]}

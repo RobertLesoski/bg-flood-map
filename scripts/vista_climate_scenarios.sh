@@ -64,7 +64,7 @@ cat > submit_climate.template <<'SLEOF'
 #SBATCH --time=__TIME__
 #SBATCH --array=__ARRAY__
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=robert.lesoski138@topper.wku.edu
+#SBATCH --mail-user=your-email@example.com
 NAME_LIST=(__LIST__)
 ST=${NAME_LIST[$SLURM_ARRAY_TASK_ID]}
 export PYTHONUNBUFFERED=1 CN_PERVIOUS=75 CN_IMPERVIOUS=98 OUTFLOW=1 OUTFLOW_SLOPE=0.005

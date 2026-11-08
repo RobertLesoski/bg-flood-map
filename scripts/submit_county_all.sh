@@ -9,7 +9,7 @@
 #SBATCH --time=24:00:00
 #SBATCH --array=0-11
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=robert.lesoski138@topper.wku.edu
+#SBATCH --mail-user=your-email@example.com
 
 # Whole of Warren County, 12 storms, one H100 per storm.
 #   sbatch submit_county_all.sh                      all 12

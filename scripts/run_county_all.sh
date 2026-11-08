@@ -185,7 +185,7 @@ cat > submit_county_all.template <<'SLEOF'
 #SBATCH --time=__TIME__
 #SBATCH --array=__ARRAY__
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=robert.lesoski138@topper.wku.edu
+#SBATCH --mail-user=your-email@example.com
 
 STORM_LIST=(__LIST__)
 ST=${STORM_LIST[$SLURM_ARRAY_TASK_ID]}

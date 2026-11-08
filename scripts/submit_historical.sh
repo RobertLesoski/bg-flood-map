@@ -9,7 +9,7 @@
 #SBATCH --time=30:00:00
 #SBATCH --array=0-5
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=robert.lesoski138@topper.wku.edu
+#SBATCH --mail-user=your-email@example.com
 
 # Six historical 24-h rainfall blocks, light -> extreme (see storms.json)
 EV_LIST=(ev1 ev2 ev3 ev4 ev5 ev6)
