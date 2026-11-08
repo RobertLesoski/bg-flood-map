@@ -10,7 +10,7 @@
 ![TACC](https://img.shields.io/badge/TACC_Vista-H100_GPU-4a90d9?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active_Research-green?style=for-the-badge)
 
-An interactive 3D flood risk visualization for Bowling Green, Kentucky, built using real LiDAR terrain data, FEMA flood zones, NOAA Atlas 14 rainfall statistics, and GPU-accelerated hydrodynamic simulation on the TACC Vista supercomputer.
+An interactive 3D flood risk visualization for Bowling Green and all of Warren County, Kentucky, built using real LiDAR terrain data, FEMA flood zones, NOAA Atlas 14 rainfall statistics, historical rain gauge records, and GPU-accelerated hydrodynamic simulation on the TACC Vista supercomputer. It comes as a web viewer (`viewer.html`) and a native GPU desktop viewer ([`desktop/`](desktop/README.md)).
 
 > [!WARNING]
 > **Disclaimer: flood depths are not validated.** The depths, extents and risk tiers shown here are output from a research model. They have not been validated against observed flooding, and they should not be treated as truth or used for safety, insurance, property, engineering or emergency decisions. The model does not include storm drains, karst drainage or river inflow from upstream, and its rainfall and infiltration settings are not calibrated. For official flood risk, consult FEMA flood maps and local authorities.
@@ -21,19 +21,19 @@ An interactive 3D flood risk visualization for Bowling Green, Kentucky, built us
 
 ![MapLibre](https://img.shields.io/badge/MapLibre_GL_JS-4.7-blue?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-CuPy_CUDA_12-yellow?style=flat-square)
-![Resolution](https://img.shields.io/badge/Resolution-2m_Grid-orange?style=flat-square)
-![Cells](https://img.shields.io/badge/Grid_Cells-80_Million-red?style=flat-square)
+![Resolution](https://img.shields.io/badge/Resolution-2m_city_%7C_5m_county-orange?style=flat-square)
+![Cells](https://img.shields.io/badge/Grid_Cells-80M_city_%7C_125M_county-red?style=flat-square)
 
-- **3D building extrusion** — 20,284 OSM structures color-coded by flood risk tier
-- **Interactive flood overlay** — rainfall slider simulating 0–3" storm events
-- **FEMA flood zones** — official NFHL data for Warren County (AE, AO, X zones)
-- **Karst sinkhole mapping** — 3,872 closed depressions identified from LiDAR contours
-- **HPC time-animated flood simulation** — Hours 1–9 of 2-year storm, toggled with time slider + play/pause
-- **3D water volume mode** — flood polygons extruded by depth tier (shallow 3m → severe 50m)
-- **Depth tier overlay** — shallow / moderate / deep / severe color-coded at 2m resolution
-- **Building flood counter** — live count and % of buildings hit at each simulation hour
-- **Elevation analysis** — building-level ground elevation from KyFromAbove Phase 2 LiDAR
-- **Road network overlay** — OpenStreetMap road data with flood exposure analysis
+- **12 storm scenarios** — six design storms (2, 5, 10, 25, 50, 100-year, NOAA Atlas 14) and six historical rain events replayed from the Bowling Green gauge (Dec 2013, Mar 2015, Jun 2022, Apr 2025, Sep 2017 Harvey remnants, May 2010)
+- **Two domains** — Bowling Green city (2 m grid) and all of Warren County (5 m grid), hours 0–24 of each storm
+- **Real solver depth tiles** — Cloud-Optimized GeoTIFFs of the solver output, checked to within 1–2 cm of the solver rasters at 22,421 points ([docs/COG_VERIFICATION.md](docs/COG_VERIFICATION.md))
+- **3D buildings and roads** — OpenStreetMap footprints and roads coloured by flood depth tier (10 / 30 / 60 / 120 cm)
+- **Address search and risk card** — per-address depth by storm, with source labels and uncertainty
+- **Critical facilities and utilities** — hospitals, schools, fire, police, shelters, water towers, treatment plants, substations, power lines (OpenStreetMap; coverage varies)
+- **Analysis tools (desktop)** — measure, elevation profile, depth-over-time, flood timeline, storm compare and difference, flood duration, dry-route finder, building exposure filter with CSV/GeoJSON export
+- **Presentation tools (desktop)** — camera bookmarks, guided tour, time-lapse, PNG/MP4 export, share card
+- **FEMA flood zones and karst sinkholes** — NFHL zones and 3,872 closed depressions mapped from LiDAR
+- **Honesty labels** — every view states the source, and that velocities are derived and depths unvalidated
 
 ---
 
@@ -41,7 +41,9 @@ An interactive 3D flood risk visualization for Bowling Green, Kentucky, built us
 
 | Dataset | Source |
 |---|---|
-| 1m LiDAR DEM | USGS / KyFromAbove Phase 2 |
+| 1m LiDAR DEM (city, resampled to 2 m) | USGS / KyFromAbove Phase 2 |
+| County terrain (about 10 m, resampled to 5 m) | USGS 3DEP 1/3 arc-second |
+| Historical hourly rain | Bowling Green gauge record (`scripts/storms_out/`) |
 | FEMA Flood Zones | FEMA NFHL — Warren County, KY |
 | Building footprints | OpenStreetMap |
 | Rainfall depths | NOAA Atlas 14 — Warren County, KY |
@@ -52,9 +54,9 @@ An interactive 3D flood risk visualization for Bowling Green, Kentucky, built us
 
 ## ✦ HPC Simulation
 
-The flood depth layers are computed using a custom 2D GPU flood solver implementing the **Local Inertial Approximation** (Bates et al., 2010) — the same numerical scheme used by LISFLOOD-FP. The solver runs on TACC Vista's NVIDIA H100 Grace-Hopper nodes via CuPy, processing **80 million grid cells** per timestep at **2-meter resolution** across a 10×10 km domain centered on Bowling Green.
+The flood depth layers are computed using a custom 2D GPU flood solver implementing the **Local Inertial Approximation** (Bates et al., 2010) — the same numerical scheme used by LISFLOOD-FP. The solver runs on TACC Vista's NVIDIA H100 Grace-Hopper nodes via CuPy, processing **80 million grid cells** per timestep at **2-meter resolution** across a 20×20 km domain centered on Bowling Green, and **125 million cells** at **5-meter resolution** across all of Warren County (about 52×60 km). Infiltration uses SCS curve numbers (75 open land, 98 roads and buildings), water leaves freely at the domain edge, and depth is saved every hour for 24 hours. The model has no storm drains, no karst drainage and no river inflow from upstream.
 
-Planned storm return periods: **2, 5, 10, 25, 50, and 100-year** events. The 24-hour depths are close to NOAA Atlas 14 values (table below) and are spread over 24 hours with an 11-point cumulative curve that was checked against the 2-year run. It is **not** the official NRCS Type II distribution. Rain is applied uniformly over the domain.
+Storm return periods: **2, 5, 10, 25, 50, and 100-year** design events, plus six historical rain events. Full details per storm: [STORM_DATA_SOURCES.md](STORM_DATA_SOURCES.md). The 24-hour depths are close to NOAA Atlas 14 values (table below) and are spread over 24 hours with an 11-point cumulative curve that was checked against the 2-year run. It is **not** the official NRCS Type II distribution. Rain is applied uniformly over the domain.
 
 | Return Period | Depth used in the runs | NOAA Atlas 14, 24-hr, Vol. 2 v3 (36.9685, -86.4808, PDS) | Difference | Annual Probability |
 |---|---|---|---|---|
@@ -68,16 +70,24 @@ Planned storm return periods: **2, 5, 10, 25, 50, and 100-year** events. The 24-
 NOAA values were retrieved from the Precipitation Frequency Data Server on 2026-10-28 for downtown Bowling Green (partial duration series, depths in inches). The runs used rounded or earlier values, all within 3% of NOAA.
 
 ![Allocation](https://img.shields.io/badge/Allocation-ATM25008-4a90d9?style=flat-square)
-![Status](https://img.shields.io/badge/2yr_Storm-Complete-brightgreen?style=flat-square)
-![Pending](https://img.shields.io/badge/5--100yr_Storms-Pending-yellow?style=flat-square)
+![Status](https://img.shields.io/badge/City_runs-5yr--100yr_complete-brightgreen?style=flat-square)
+![County](https://img.shields.io/badge/County_runs-12_storms_complete-brightgreen?style=flat-square)
+![Validation](https://img.shields.io/badge/Depth_validation-not_done-orange?style=flat-square)
+
+### Validation status
+
+The depths are **not validated**. One first comparison was made against the April 2025 Bowling Green flood ([docs/VALIDATION_EV4.md](docs/VALIDATION_EV4.md)): 16 of 21 roads reported flooded reach 30 cm in the model (76%, 95% CI 55–89%), against 27 of 100 random city roads, with an AUC of about 0.85. Road length alone separates the two groups about as well, the replay used about half of the real four-day rainfall, and the observations record closures, not depths. This is weak evidence that the model finds where water collects, and no evidence about depth accuracy.
 
 ---
 
 ## ✦ Desktop Viewer (native GPU app)
 
-A standalone Vulkan/wgpu application lives in [`desktop/`](desktop/README.md): the same flood data with terrain, animated
-water, buildings, roads, statistics and a timeline, at about 90 fps and with no server or internet needed. Start it with
-`desktop/Launch Desktop Viewer.bat`. See [`desktop/README.md`](desktop/README.md) for controls, command line and limits.
+A standalone Vulkan/wgpu application lives in [`desktop/`](desktop/README.md): city and county domains, all 12 storms,
+terrain, animated water, buildings, roads, utilities, statistics, search and the analysis and presentation tools listed
+above, with no server or internet needed. Measured at 1080p on a GTX 1650: about 125 fps (city) and 140 fps (county).
+It opens on the May 2010 event (ev6) at hour 1. Start it with `desktop/Launch Desktop Viewer.bat`, or build a Windows
+package with `desktop/packaging/build.ps1` (see [`desktop/packaging/SHIP_NOTES.md`](desktop/packaging/SHIP_NOTES.md)).
+The data folder (about 7 GB) is not in this repo. See [`desktop/README.md`](desktop/README.md) for controls and limits.
 
 ## ✦ Running Locally
 
@@ -147,7 +157,7 @@ Undergraduate Researcher — Disaster Science Operations Center (DSOC) & AI Rese
 
 Western Kentucky University · Meteorology, Freshman
 
-*Made with [Claude Code](https://claude.ai/claude-code) · Claude Sonnet 4.6*
+*Made with [Claude Code](https://claude.ai/claude-code)*
 
 ---
 
