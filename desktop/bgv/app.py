@@ -1009,10 +1009,19 @@ class App:
                 hub.close()
             except Exception:
                 pass
+        if getattr(self, "_shut", False):                     # idempotent: tests and the window may both call it
+            return
+        self._shut = True
         for l in self.layers:
             self._safe(l, "shutdown")
+        self.layers = []                                      # drop GPU buffers / textures held by the layers
         if self.flow:
             self.flow.close()
+        if getattr(self, "terrain", None) is not None:
+            try:
+                self.terrain.close()
+            except Exception:
+                pass
         if self.storm:
             self.storm.close()
 

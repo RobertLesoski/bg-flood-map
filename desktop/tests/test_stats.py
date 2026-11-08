@@ -288,8 +288,10 @@ def test_real_evaluate_speed_targets():
     trm = best(lambda: ST.evaluate_roads(g, r, g13, 0.5))
     ts = best(lambda: ST.summarize_grid(g, fr), 10)
     print(f"evaluate_buildings {tb:.2f} ms (mix {tbm:.2f}), evaluate_roads {tr:.3f} ms (mix {trm:.3f}), summarize_grid {ts:.2f} ms")
-    assert tb < 5 and tr < 2
-    assert tbm < 5 and trm < 2
+    import threading
+    busy = sorted(t.name for t in threading.enumerate() if t is not threading.main_thread())
+    assert tb < 5 and tr < 2, (tb, tr, busy)
+    assert tbm < 5 and trm < 2, (tbm, trm, busy)
 
 
 def test_warmup_runs():

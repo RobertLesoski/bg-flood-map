@@ -210,6 +210,11 @@ def _status(ui, bar_h: float, x0: float):
     demo = bool(getattr(st, "synthetic", False))
     badge = "DEMO DATA" if demo else ("Full precision" if full else "Preview from depth tiers")
     bw, bh = pill_size(badge, (9.0, 2.0))
+    if x - bw - 10.0 < x0 + 8.0:       # narrow window / large UI scale: never cover the menus
+        badge = "DEMO" if demo else ("Full" if full else "Preview")
+        bw, bh = pill_size(badge, (9.0, 2.0))
+    if x - bw - 10.0 < x0 + 8.0:
+        return
     x -= bw + 10.0
     col = theme.OK if full else theme.WARN
     pill(dl, x, cy - bh * 0.5, badge, col, theme.with_alpha(col, 0.15), (9.0, 2.0), border=theme.with_alpha(col, 0.6))

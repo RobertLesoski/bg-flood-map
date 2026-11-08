@@ -208,11 +208,22 @@ def _sec_layers(ui):
         return
     imgui.spacing()
     col2 = imgui.get_content_region_avail().x * 0.5
+    box = imgui.get_frame_height() + imgui.get_style().item_inner_spacing.x + 6.0
+
+    def _fits(labels):                       # two columns only when the widest label fits its half (large UI scale)
+        try:
+            return max((imgui.calc_text_size(t).x for t in labels), default=0.0) + box <= col2
+        except Exception:
+            return True
+
+    shown = [l for l in app.layers if not (l.name in HIDDEN_LAYERS or (not l.draws and not l.has_ui))]
+    try:
+        two = _fits([l.label() for l in shown])
+    except Exception:
+        two = True
     k = 0
-    for l in app.layers:
-        if l.name in HIDDEN_LAYERS or (not l.draws and not l.has_ui):
-            continue
-        if k % 2:
+    for l in shown:
+        if k % 2 and two:
             imgui.same_line(col2)
         imgui.push_id("lay" + l.name)
         try:                                                  # a raising label() must not leave the ID stack unbalanced
@@ -228,7 +239,7 @@ def _sec_layers(ui):
         for k, (label, key) in enumerate((("Legends", "show_legends"), ("Compass", "show_compass"), ("Scale bar", "show_scalebar"),
                                           ("Probe tooltip", "show_probe"), ("At-risk list", "show_atrisk"),
                                           ("Building card", "show_selected"))):
-            if k % 2:
+            if k % 2 and _fits(("Probe tooltip", "Building card")):
                 imgui.same_line(col2)
             imgui.push_id(key)
             cur = ui.atrisk_shown() if key == "show_atrisk" else bool(getattr(st, key))

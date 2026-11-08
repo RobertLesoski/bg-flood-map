@@ -104,7 +104,11 @@ def _chart(ui, h: float):
     try:
         if implot.begin_plot("##timeline_plot", V2(-1, h), flags):
             AF = implot.AxisFlags_
-            ticks = np.arange(0, 25, 3, dtype=np.float64)
+            # tick step from the room per label (1366 px at 200 % scale fits only a few "00:00" labels)
+            lab_w = imgui.calc_text_size("00:00").x * 1.6
+            plot_w = max(imgui.get_content_region_avail().x - 90.0 * ui.s, 1.0)
+            step = next((k for k in (3, 6, 12) if plot_w / (24 / k) >= lab_w), 24)
+            ticks = np.arange(0, 25, step, dtype=np.float64)
             implot.setup_axis(implot.ImAxis_.x1, None, AF.no_highlight | AF.lock | AF.no_menus)
             implot.setup_axis_limits(implot.ImAxis_.x1, 0.0, 24.0, implot.Cond_.always)
             implot.setup_axis_ticks(implot.ImAxis_.x1, ticks, [f"{int(v):02d}:00" for v in ticks])
