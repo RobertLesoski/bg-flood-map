@@ -1100,6 +1100,51 @@ def test_address_box_keeps_the_focus_when_the_typeahead_dropdown_appears(env):
     env.frame(3)
 
 
+def _burst(env, text):
+    """The glfw event order for fast typing: Shift down, key down, char, key up, Shift up - for EVERY character, all
+    queued before the next frame (a slow frame / several keys between two frames)."""
+    for ch in text:
+        shift = ch.isupper()
+        if shift:
+            env.sub("key_down", key="Shift", modifiers=("Shift",))
+        env.sub("key_down", key=ch, modifiers=("Shift",) if shift else ())
+        env.sub("char", data=ch, char_str=ch, modifiers=("Shift",) if shift else ())
+        env.sub("key_up", key=ch, modifiers=("Shift",) if shift else ())
+        if shift:
+            env.sub("key_up", key="Shift", modifiers=())
+
+
+@gpu
+@pytest.mark.parametrize("per_frame,lite", [(100, False), (3, False), (3, True), (1, True)])
+def test_fast_typing_burst_reaches_the_address_box_in_order(env, per_frame, lite):
+    """User report: 'Scottsville' arrived as 'Scotllle' (characters dropped).  Every char must reach imgui in order,
+    whether all of them arrive in one frame or a few per (slow, half-rate 'lite') frame."""
+    from bgv.ui import panels_search
+    env.reset()
+    c = panels_search.controller(env.m)
+    c.query, c.result, c.committed = "", None, False
+    env.frame(3)
+    x, y, w = c.bar_rect
+    env.click(x + 60.0, y + 16.0)
+    env.frame(3)
+    assert c.input_active
+    if lite:
+        env.m.lite, env.m.LITE_ON_MS = True, 0.0
+    text = "1309 Scottsville Rd"
+    for i in range(0, len(text), per_frame):
+        _burst(env, text[i:i + per_frame])
+        env.frame(1)
+    env.frame(6)
+    try:
+        assert c.query == text, (c.query, per_frame, lite)
+        assert env.app.storm.name and not env.m.st.hidden
+    finally:
+        env.m.lite, env.m.LITE_ON_MS = False, float("inf")
+        env.tap("Escape")
+        c.query, c.result = "", None
+        env.frame(3)
+
+
 def test_key_released_while_typing_does_not_leave_the_camera_key_stuck(env):
     env.reset()
     env.key("w", True)                                                          # camera key down (not typing yet) ...

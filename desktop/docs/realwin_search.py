@@ -187,7 +187,10 @@ def main(argv=None):
             try:
                 g = imgui.get_current_context()
                 nw = g.nav_window.name if g.nav_window is not None else None
-                row = [int(g.active_id), nw]
+                io = imgui.get_io()
+                m = app.get_layer("overlay").manager
+                row = [int(g.active_id), nw, round(io.mouse_pos.x), round(io.mouse_pos.y), bool(io.mouse_down[0]),
+                       bool(getattr(m, "_skipped", False)), bool(m.lite), int(g.frame_count)]
             except Exception as e:
                 row = [repr(e)]
             if (not fl or fl[-1][1:] != row) and len(fl) < 200:
@@ -212,14 +215,16 @@ def main(argv=None):
             res["click"] = (ox + (x + 60) * pr, oy + (y + 18) * pr, pr, ox, oy, x, y)
             click(ox + (x + 60) * pr, oy + (y + 18) * pr)
             time.sleep(0.25)                      # no wait for a frame on purpose beyond this: keys follow the click fast
-            type_text(TEXT)
-            type_text(HOTKEYS)
-            t_w = time.perf_counter()                 # imgui trickles queued key events (one per frame): at a low
-            while time.perf_counter() - t_w < 30.0:   # loading frame rate the box fills in later, never out of order
-                if len(snapshot(app)["query"]) >= len(TEXT + HOTKEYS):
-                    break
-                time.sleep(0.25)
-            time.sleep(0.6)
+            _guard()                              # clear the box first: Ctrl+A, Backspace
+            _key(0x11); _key(0x41); _key(0x41, True); _key(0x11, True); _key(0x08); _key(0x08, True)
+            time.sleep(0.3)
+            res["cleared"] = snapshot(app)["query"]
+            type_text(TEXT)                       # a real address of the index ("1309 Scottsville Road")
+            time.sleep(0.8)
+            res["address"] = snapshot(app)["query"]
+            res["hits"] = [h.label for h in (c.cur_hits or [])][:3]
+            type_text(HOTKEYS)                    # keys bound to hotkeys: must land in the box too
+            time.sleep(0.8)
             res["after"] = snapshot(app)
             if a.out:
                 capture(h, a.out)
@@ -255,10 +260,11 @@ def main(argv=None):
     b, f = res.get("before", {}), res.get("after", {})
     want = TEXT + HOTKEYS
     changed = {k: (b.get(k), f.get(k)) for k in b if k != "query" and b.get(k) != f.get(k)}
-    res["pass"] = f.get("query") == want and not changed and "error" not in res
+    res["pass"] = (res.get("cleared") == "" and res.get("address") == TEXT and bool(res.get("hits"))
+                   and f.get("query") == want and not changed and "error" not in res)
     res["changed"] = changed
-    print(json.dumps({"query": f.get("query"), "want": want, "changed": changed, "pass": res["pass"],
-                      "error": res.get("error")}))
+    print(json.dumps({"address": res.get("address"), "hits": res.get("hits"), "query": f.get("query"), "want": want,
+                      "changed": changed, "pass": res["pass"], "error": res.get("error")}))
     if a.json:
         Path(a.json).write_text(json.dumps(res, indent=1))
     return 0 if res["pass"] else 1

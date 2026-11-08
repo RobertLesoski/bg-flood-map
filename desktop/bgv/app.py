@@ -471,6 +471,14 @@ class App:
             from wgpu.utils.imgui import ImguiRenderer
             self.imgui_renderer = ImguiRenderer(self.ctx.device, canvas)
             self.imgui_renderer.set_gui(self._gui)
+            try:
+                # imgui's default "trickle" queue applies at most one key transition per frame and holds the typed characters
+                # behind it: fast typing (Shift + letter, several keys between two frames, slow county frames) arrived
+                # frames late, and whatever was still queued when the field lost focus or Esc came was lost
+                # ("Scottsville" -> "Scotllle").  Apply every queued event in the frame it arrives.
+                self.imgui_renderer.backend.io.config_input_trickle_event_queue = False
+            except Exception as e:
+                self.report_error("imgui io", e)
             self._style_imgui()
         # Order: -100 releases (always seen, even when imgui swallows the event afterwards), -99 imgui's own handlers
         # (stop_propagation while it wants the mouse / keyboard), -98 our UI-rect gate (imgui's want_* flags are one
