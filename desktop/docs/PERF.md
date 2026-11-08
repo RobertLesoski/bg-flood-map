@@ -176,3 +176,19 @@ GTX 1650 / Vulkan, MSAA 4, scene-only benchmark path (no interface). City storm 
 The one slow city+tiledepth run (32 fps, 398 ms max) was the first run of that config: tile cache warm-up (cold), the two
 warm runs give 99-104 fps.  Every config is >= 60 fps synced on the median.  The 89 s county first frame did not recur:
 each county benchmark process (start-up + 8 s) finished in ~20-25 s with warm caches.
+
+## Wrap-up re-measure on a quiet PC (2026-11-08, merged desktop-integration, `--benchmark --seconds 8 --size 1920x1080`, 3 runs, median [min-max])
+Scene benchmark (no interface), GTX 1650, MSAA 4, synced wall time. Process wall = whole run incl. start-up (warm caches).
+
+| domain/config | synced fps | p99 ms | max ms | process wall s |
+|---|---|---|---|---|
+| city base | 125.3 [121.7-128.6] | 19.0 [17.3-23.8] | 36 | 12.9 |
+| city + utilities | 121.5 [49.2-126.0] | 24.3 [20.2-112.5] | 39 (652 once) | 15.0 |
+| city + tiledepth | 112.4 [108.5-113.5] | 23.8 [23.8-24.8] | 43 | 14.4 |
+| county base | 140.4 [137.7-140.7] | 20.2 [17.8-21.1] | 26 | 14.0 |
+| county + utilities | 136.3 [135.7-138.2] | 19.6 [18.7-21.0] | 33 | 13.8 |
+| county + tiledepth | 123.8 [121.7-125.8] | 21.1 [19.6-24.6] | 50 | 15.2 |
+
+The one slow city+utilities run (49 fps, one 652 ms frame) is a single outlier among three; the other two match base.
+The 89 s county first-frame start did NOT recur: every run started in < 16 s total (warm caches). A cold start (empty
+cache folder) still builds caches for ~1-2 min (see SHIP_NOTES.md).
