@@ -12,6 +12,9 @@
 
 An interactive 3D flood risk visualization for Bowling Green, Kentucky, built using real LiDAR terrain data, FEMA flood zones, NOAA Atlas 14 rainfall statistics, and GPU-accelerated hydrodynamic simulation on the TACC Vista supercomputer.
 
+> [!WARNING]
+> **Disclaimer: flood depths are not validated.** The depths, extents and risk tiers shown here are output from a research model. They have not been validated against observed flooding, and they should not be treated as truth or used for safety, insurance, property, engineering or emergency decisions. The model does not include storm drains, karst drainage or river inflow from upstream, and its rainfall and infiltration settings are not calibrated. For official flood risk, consult FEMA flood maps and local authorities.
+
 ---
 
 ## ✦ Features
