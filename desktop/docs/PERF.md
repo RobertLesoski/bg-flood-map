@@ -160,3 +160,19 @@ Machine was heavily loaded (other agents running pytest / features_perf.py); spr
 
 Tools (probe, timeline, swipe, tour, time-lapse, facilities) have no benchmark switch and were not measured.
 Regression tests that count bytes/allocations instead of time: `tests/test_perf_alloc.py`.
+
+## Wrap-up measurements (2026-11-08, quiet machine, `--benchmark --seconds 8 --size 1920x1080 --json`, 3 runs, median [min-max])
+GTX 1650 / Vulkan, MSAA 4, scene-only benchmark path (no interface). City storm 25yr, county storm ev6.
+
+| domain/config | synced fps | median ms | p99 ms |
+|---|---|---|---|
+| city base | 108.4 [101.7-109.8] | 8.6 | 29.1 [27.3-29.8] |
+| city + utilities | 108.5 [103.5-110.7] | 7.9 | 33.7 [33.2-45.5] |
+| city + tiledepth | 99.0 [32.1-104.1] | 9.4 | 29.9 [27.6-90.5] |
+| county base | 103.3 [82.8-135.5] | 8.6 | 28.4 [20.5-29.6] |
+| county + utilities | 110.5 [107.2-116.6] | 8.0 | 30.9 [29.1-35.0] |
+| county + tiledepth | 121.3 [95.9-128.8] | 7.4 | 24.0 [17.3-27.1] |
+
+The one slow city+tiledepth run (32 fps, 398 ms max) was the first run of that config: tile cache warm-up (cold), the two
+warm runs give 99-104 fps.  Every config is >= 60 fps synced on the median.  The 89 s county first frame did not recur:
+each county benchmark process (start-up + 8 s) finished in ~20-25 s with warm caches.
