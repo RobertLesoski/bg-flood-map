@@ -1,0 +1,40 @@
+{
+  "run_at": "2026-11-12T02:36:52",
+  "seed": 20261112,
+  "versions": {
+    "python": "3.11.9",
+    "numpy": "2.4.6",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "pillow": "13.0.0",
+    "rasterio": null
+  },
+  "inputs": {
+    "C:\\Users\\Minec\\Documents\\BG_3D_Map\\verification\\observed_depths.csv": "89d3c42c058eb388b43c006dc8879939a7e291271ed24d15db4ef2e46404a604",
+    "C:\\Users\\Minec\\Documents\\BG_3D_Map\\layers\\storm_info.json": "ffc8bc25aea377648ebaf693bc8edd79a2c23b0e3ba2312338fb7eda36908c3f",
+    "C:\\Users\\Minec\\Documents\\BG_3D_Map\\scripts\\storms_out\\bwg_hourly.csv": "0cee16c1a7f1893d2f89698efef97b781a454ce7051cef91cec6184cbdf8099b",
+    "C:\\Users\\Minec\\Documents\\BG_3D_Map\\.claude\\worktrees\\agent-ab76444f0e4e07897\\layers\\county_boundary_21227.geojson": "97920d5ce7d8409c69d13c03975dc633ae4d0322b8954b91f752921769207bf8"
+  },
+  "opera_tiles": {
+    "OPERA_L3_DSWx-S1_T16SEF_20250406T234000Z_20250407T102035Z_S1A_30_v1.0_B01_WTR.tif": "089b45a34747489b7b4c60488392eee125ef54de9fc5e7ee493d42274ea43801",
+    "OPERA_L3_DSWx-S1_T16SEG_20250406T234000Z_20250407T102035Z_S1A_30_v1.0_B01_WTR.tif": "a037e9d9c60094b01b883f166175209f65bd964a8a2bc8fcd2acdcc6fedad65d"
+  },
+  "steps": {
+    "unit_tests": {
+      "status": "passed",
+      "tests_run": 13,
+      "failures": []
+    },
+    "opera_vs_model": {
+      "status": "blocked",
+      "needed": "ev4 max-depth raster: layers/cog/county/ev4/max_depth.tif or runs/county_v2/ev4/max_depth.tif (on Vista, /scratch/11931/rlesoski/bgflood/runs/county_v2/ev4/max_depth.tif)"
+    },
+    "road_validation_bootstrap": {
+      "status": "blocked",
+      "needed": "per-road observed/control table from docs/VALIDATION_EV4.md (layers/validation/ev4_observations.json and ev4 depth raster) - not present in this repository"
+    },
+    "sensitivity_sweep": {
+      "status": "blocked",
+      "needed": "ev4 model inputs (DEM, roughness, rain files) and a runnable model; design in verification/SENSITIVITY_DESIGN.md"
+    }
+  }
+}

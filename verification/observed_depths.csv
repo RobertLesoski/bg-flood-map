@@ -1,0 +1,14 @@
+id,source,location,coordinate,date_or_time,value,unit,measure,quality,derived,notes
+OD01,Public Works director Andy Souza (Spectrum News 2025-04-07),one area in Bowling Green,none,2025-04-07,7,ft,flood depth,estimated (official verbal estimate),no,"Quoted: 'about seven feet deep'; area not specified"
+OD02,Public Works director Andy Souza (Spectrum News 2025-04-07),Cave Mill area,none,2025-04-07,10,ft,flood depth,estimated (official verbal estimate),no,"Quoted: 'Cave Mill is about 10 feet deep'"
+OD03,Aviation Heritage Park report (media),Aviation Heritage Park,none (needs geocode),2025-04-07,10,ft,flood depth,anecdotal (media),no,single media report
+OD04,WKU Talisman resident quote,Cave Mill Road,none,2025-04-06 to 04-08,up to 10,ft,flood depth,anecdotal,no,resident quote
+OD05,BG Daily News 2025-04-12 (Zulma Lopez),Brentwood Place home next to stormwater basin,none,2025-04-05 (inferred from article),4,in,water depth in home,anecdotal (single home),no,article day names; date inferred
+OD06,BG Daily News 2025-04-12 (Oliver family),Cave Mill Road home,none,2025-04-06 (inferred Sunday),12+,in,water depth in home,anecdotal (single home),no,'more than a foot deep through the home'
+OD07,BG Daily News 2025-04-12 (Oliver family),Cave Mill Road home garage,none,2025-04-06 (inferred Sunday),42,in,water depth in garage,anecdotal (single home),no,'3.5 feet high in the garage'
+OD08,BG Daily News 2025-04-12 (Marshall Beach),Cave Mill Road home garage,none,2025-04-05 (inferred Saturday),36,in,water depth in garage,anecdotal (single home),no,'garage 3 feet high'
+OD09,BG Daily News 2025-04-12 (Marshall Beach),Cave Mill Road home lower level,none,2025-04-06 (inferred Sunday),24,in,water depth in home,anecdotal (single home),no,'2 feet in the lower part of their house'
+OD10,BG Daily News 2025-04-12 (Marshall Beach),Cave Mill Road home upper level,none,2025-04-06 (inferred Sunday),6-8,in,water depth in home,anecdotal (single home),no,'6 to 8 inches in the upper part'
+OD11,USGS 03314500 Barren River at Bowling Green via NWS bwgk2 (crest),gauge,USGS 03314500,2025-04-04,35.76,ft stage,stage (gauge height),surveyed gauge (not a depth),no,Stage not depth; no datum-to-ground conversion available
+OD12,KYTC Water Over the Road 2025-04-05 22:00,Warren County roads KY 626 (4.5 mi); KY 2665 (5.5); KY 1083 (3 and 5); US 68 (27.4); KY 1435 (9 and 11); KY 242 (7); KY 884 (7.7); KY 1749 (1),road segments,none,2025-04-05 night,closed,presence,road closure (presence only),presence (official),no,mile points only; no depth
+OD13,KYTC Water Over the Road 2025-04-09 08:00,KY 2665 (5.5) reopened; KY 432 (0.0) reopened; other Warren segments still closed,road segments,none,2025-04-09,reopened,presence,road closure (presence only),presence (official),no,mile points only
